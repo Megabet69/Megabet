@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MegaBet - Premium Crypto Casino</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -179,7 +179,7 @@
         .mine-cell.revealed { background-color: #0B0E14; border-color: #151A25; transform: scale(0.95); }
         .mine-cell.revealed.gem { border-color: #10B981; background-color: rgba(16, 185, 129, 0.1); animation: popIn 0.3s ease; }
         .mine-cell.revealed.mine { border-color: #EF4444; background-color: rgba(239, 68, 68, 0.1); animation: shake 0.3s ease; }
-        .mine-cell.transparent { opacity: 0.4; } /* For showing unclicked cells on game over */
+        .mine-cell.transparent { opacity: 0.4; } 
         @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
@@ -194,14 +194,13 @@
         @media (min-width: 640px) { .plinko-mult-box { font-size: 0.75rem; } }
         .plinko-mult-box.active { transform: translateY(-4px); filter: brightness(1.3); }
         
-        /* Dynamic Plinko Box Colors */
         .p-color-high { background-color: #EF4444; color: #fff; }
         .p-color-med { background-color: #F59E0B; color: #fff; }
         .p-color-low { background-color: #10B981; color: #fff; }
 
         /* Toast */
-        #toast-container { position: fixed; bottom: 85px; right: 10px; z-index: 100; display: flex; flex-direction: column; gap: 8px; max-width: 90vw; }
-        @media (min-width: 768px) { #toast-container { bottom: 20px; right: 20px; max-width: 400px; } }
+        #toast-container { position: fixed; bottom: 150px; right: 10px; z-index: 100; display: flex; flex-direction: column; gap: 8px; max-width: 90vw; }
+        @media (min-width: 768px) { #toast-container { bottom: 30px; right: 100px; max-width: 400px; } }
         .toast { padding: 12px 16px; border-radius: 8px; color: white; font-size: 0.875rem; font-weight: 600; display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); animation: slideIn 0.3s ease-out forwards; }
         @media (min-width: 640px) { .toast { padding: 12px 20px; font-size: 1rem; } }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -210,11 +209,9 @@
 </head>
 <body class="antialiased flex flex-col min-h-[100dvh]">
 
-    <!-- Navbar -->
     <nav id="mainNav" class="bg-panel border-b border-gray-800 sticky top-0 z-40 shadow-md">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16 sm:h-20">
-                <!-- Logo & Desktop Nav -->
                 <div class="flex items-center gap-6 sm:gap-8">
                     <div class="flex-shrink-0 cursor-pointer" onclick="navigate('dashboard')">
                         <span class="text-2xl sm:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-brand to-purple-400 tracking-tight">
@@ -226,12 +223,12 @@
                             <button onclick="navigate('dashboard')" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition">Dashboard</button>
                             <button onclick="navigate('games')" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition">Games</button>
                             <button onclick="navigate('vip')" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition text-yellow-400"><i class="fas fa-crown mr-1"></i> VIP</button>
+                            <button onclick="navigate('history')" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition text-green-400"><i class="fas fa-history mr-1"></i> History</button>
                             <button onclick="navigate('support')" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition text-blue-400"><i class="fas fa-headset mr-1"></i> Support</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Balance & Actions -->
                 <div class="flex items-center gap-1.5 sm:gap-4">
                     <div class="bg-dark px-2.5 py-1 sm:px-4 sm:py-2 rounded-xl border border-gray-700 flex flex-col items-end min-w-[85px] sm:min-w-[120px]">
                         <span class="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-widest leading-none mb-0.5 sm:mb-1">Balance</span>
@@ -245,42 +242,37 @@
         </div>
     </nav>
 
-    <!-- Main Content Area -->
     <main id="mainContent" class="flex-grow max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 w-full pb-24 md:pb-8 flex flex-col">
         
-        <!-- AUTHENTICATION VIEW -->
+        <!-- Auth Section -->
         <section id="auth" class="view-section hidden max-w-md mx-auto w-full my-auto">
             <div class="bg-panel border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl text-center">
                 <div class="text-3xl sm:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-brand to-purple-400 tracking-tight mb-8">
                     <i class="fas fa-bolt text-brand mr-1"></i>MegaBet
                 </div>
 
-                <!-- Tabs -->
                 <div class="flex gap-4 mb-6">
                     <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 pb-2 border-b-2 border-brand text-white font-bold transition">Login</button>
                     <button id="tabRegister" onclick="switchAuthTab('register')" class="flex-1 pb-2 border-b-2 border-transparent text-gray-500 hover:text-gray-300 font-bold transition">Register</button>
                 </div>
 
-                <!-- Login Form -->
                 <div id="formLogin" class="space-y-4">
                     <input type="tel" id="loginMobile" placeholder="Mobile Number" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
                     <input type="password" id="loginPassword" placeholder="Password" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
                     <button onclick="handleLogin()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-2">Login</button>
-                    <p class="text-xs text-gray-500 mt-4">Demo Account: 9999999999 / password123</p>
                 </div>
 
-                <!-- Register Form -->
                 <div id="formRegister" class="space-y-4 hidden">
                     <input type="tel" id="regMobile" placeholder="Mobile Number" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
                     <input type="password" id="regPassword" placeholder="Set Password" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
                     <input type="text" id="regRefCode" placeholder="Referral Code (Optional)" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand uppercase transition tracking-widest">
-                    <p class="text-[10px] text-gray-400 text-left px-1">Use a referral code to instantly get a ₹50 Bonus!</p>
+                    <p class="text-[10px] text-gray-400 text-left px-1">Use a referral code to instantly get a ₹25 Bonus!</p>
                     <button onclick="handleRegister()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-2">Create Account</button>
                 </div>
             </div>
         </section>
 
-        <!-- DASHBOARD VIEW -->
+        <!-- Dashboard Section -->
         <section id="dashboard" class="view-section hidden">
             <div class="bg-gradient-to-br from-brand/20 to-purple-600/20 border border-brand/30 rounded-[1.5rem] p-6 sm:p-8 mb-6 sm:mb-8 relative overflow-hidden">
                 <div class="absolute top-0 right-0 -mt-6 -mr-6 opacity-10">
@@ -291,22 +283,18 @@
                 <button onclick="navigate('games')" class="w-full sm:w-auto bg-white text-brand px-6 py-3 rounded-xl font-bold text-base sm:text-lg hover:bg-gray-100 transition shadow-[0_0_20px_rgba(255,255,255,0.3)]">Explore Games <i class="fas fa-arrow-right ml-2"></i></button>
             </div>
 
-            <!-- VIP & Rewards Overview -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
-                <!-- VIP Card -->
                 <div class="bg-panel p-5 sm:p-6 rounded-2xl border border-gray-800 flex flex-col items-center justify-center text-center gap-2 relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
                     <div class="text-gray-400 text-xs sm:text-sm uppercase tracking-widest relative z-10">Current VIP Level</div>
                     <div id="dashVipLevel" class="text-2xl sm:text-3xl font-bold font-mono text-gray-400 relative z-10">BEGINNER</div>
                     <div id="dashVipProgress" class="text-xs text-gray-500 relative z-10">Deposit ₹50 for Bronze</div>
                 </div>
-                <!-- Daily Check-in -->
                 <div class="bg-panel p-5 sm:p-6 rounded-2xl border border-gray-800 flex flex-col items-center justify-center text-center gap-3">
                     <div class="text-gray-400 text-xs sm:text-sm uppercase tracking-widest">Daily Check-In</div>
                     <button onclick="claimDaily()" class="w-full py-2.5 rounded-xl font-bold bg-green-600/20 text-green-400 border border-green-600/30 hover:bg-green-600/40 transition active:scale-95">Claim Bonus</button>
                     <div id="dashDailyDesc" class="text-xs text-gray-500">Reach Bronze to unlock</div>
                 </div>
-                <!-- Cashback -->
                 <div class="bg-panel p-5 sm:p-6 rounded-2xl border border-gray-800 flex flex-col items-center justify-center text-center gap-3">
                     <div class="text-gray-400 text-xs sm:text-sm uppercase tracking-widest">Available Cashback</div>
                     <div id="dashCashback" class="text-xl sm:text-2xl font-mono font-bold text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.4)]">₹0.00</div>
@@ -346,55 +334,55 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Referrals List Section -->
+            <div class="bg-panel p-5 sm:p-6 rounded-2xl border border-gray-800 mt-6">
+                <h2 class="text-xl sm:text-2xl font-bold mb-4 flex items-center gap-2"><i class="fas fa-users text-yellow-400"></i> My Referrals</h2>
+                <div id="referralsList" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                    <div class="text-gray-500 text-sm">No referrals yet. Share your code to earn ₹25 per friend!</div>
+                </div>
+            </div>
         </section>
 
-        <!-- GAMES SELECTOR VIEW -->
+        <!-- Games Section -->
         <section id="games" class="view-section hidden">
             <h2 class="text-2xl sm:text-3xl font-extrabold mb-6 sm:mb-8 text-center">Select a Game</h2>
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <!-- Dice -->
                 <div onclick="navigate('game-dice')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(99,102,241,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-indigo-500 to-blue-600 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg"><i class="fas fa-dice"></i></div>
                     <h3 class="text-lg font-bold mb-1">Dice Roller</h3>
                     <p class="text-xs text-gray-400">Bet on High/Low.</p>
                 </div>
-                <!-- Coin Flip -->
                 <div onclick="navigate('game-coin')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(250,204,21,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg"><i class="fas fa-coins"></i></div>
                     <h3 class="text-lg font-bold mb-1">Coin Flip</h3>
                     <p class="text-xs text-gray-400">Heads or Tails?</p>
                 </div>
-                <!-- Mini Roulette -->
                 <div onclick="navigate('game-roulette')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(239,68,68,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-red-500 to-rose-700 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg"><i class="fas fa-life-ring"></i></div>
                     <h3 class="text-lg font-bold mb-1">Roulette</h3>
                     <p class="text-xs text-gray-400">Red, Black, Green.</p>
                 </div>
-                <!-- Slot Machine -->
                 <div onclick="navigate('game-slots')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(168,85,247,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-purple-500 to-fuchsia-600 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">🎰</div>
                     <h3 class="text-lg font-bold mb-1">Slots</h3>
                     <p class="text-xs text-gray-400">Match symbols!</p>
                 </div>
-                <!-- Crash Road -->
                 <div onclick="navigate('game-chicken')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(16,185,129,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">🚎</div>
                     <h3 class="text-lg font-bold mb-1">Crash Road</h3>
                     <p class="text-xs text-gray-400">Crash game!</p>
                 </div>
-                <!-- Limbo -->
                 <div onclick="navigate('game-limbo')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(249,115,22,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-orange-500 to-red-600 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">🚀</div>
                     <h3 class="text-lg font-bold mb-1">Limbo</h3>
                     <p class="text-xs text-gray-400">Target multipliers.</p>
                 </div>
-                <!-- Mines -->
                 <div onclick="navigate('game-mines')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(239,68,68,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-red-600 to-red-900 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">💣</div>
                     <h3 class="text-lg font-bold mb-1">Mines</h3>
                     <p class="text-xs text-gray-400">Find the gems!</p>
                 </div>
-                <!-- Plinko -->
                 <div onclick="navigate('game-plinko')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(236,72,153,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-pink-500 to-rose-600 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">🔴</div>
                     <h3 class="text-lg font-bold mb-1">Plinko</h3>
@@ -403,14 +391,13 @@
             </div>
         </section>
 
-        <!-- VIP LEVELS VIEW -->
+        <!-- VIP Section -->
         <section id="vip" class="view-section hidden">
             <div class="text-center mb-8">
                 <h2 class="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 mb-3 sm:mb-4"><i class="fas fa-crown"></i> VIP Club</h2>
                 <p class="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto px-2">Play more to unlock exclusive rewards, higher limits, and better rakeback. VIP levels are determined by your total deposited amount.</p>
             </div>
             <div class="flex flex-col gap-4 sm:gap-6 max-w-4xl mx-auto">
-                <!-- Tier: Bronze -->
                 <div class="bg-gradient-to-r from-panel to-[#3E2723]/30 border border-[#8D6E63] rounded-2xl p-4 sm:p-6 flex items-center justify-between">
                     <div class="flex items-center gap-4 sm:gap-6">
                         <div class="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 rounded-full bg-[#8D6E63] flex items-center justify-center text-white text-xl sm:text-2xl shadow-[0_0_15px_#8D6E63]"><i class="fas fa-medal"></i></div>
@@ -418,7 +405,6 @@
                     </div>
                     <div class="text-right hidden sm:block"><ul class="text-sm text-gray-300 list-disc list-inside"><li>₹5 Daily Check-in</li><li>Standard Limits</li></ul></div>
                 </div>
-                <!-- Tier: Silver -->
                 <div class="bg-gradient-to-r from-panel to-[#424242]/30 border border-[#BDBDBD] rounded-2xl p-4 sm:p-6 flex items-center justify-between">
                     <div class="flex items-center gap-4 sm:gap-6">
                         <div class="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 rounded-full bg-[#BDBDBD] flex items-center justify-center text-dark text-xl sm:text-2xl shadow-[0_0_15px_#BDBDBD]"><i class="fas fa-medal"></i></div>
@@ -426,7 +412,6 @@
                     </div>
                     <div class="text-right hidden sm:block"><ul class="text-sm text-gray-300 list-disc list-inside"><li>₹10 Daily Check-in</li><li>Advanced Stats</li></ul></div>
                 </div>
-                <!-- Tier: Gold -->
                 <div class="bg-gradient-to-r from-panel to-[#F57F17]/20 border border-[#FBC02D] rounded-2xl p-4 sm:p-6 flex items-center justify-between">
                     <div class="flex items-center gap-4 sm:gap-6">
                         <div class="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 rounded-full bg-[#FBC02D] flex items-center justify-center text-white text-xl sm:text-2xl shadow-[0_0_20px_#FBC02D]"><i class="fas fa-trophy"></i></div>
@@ -434,7 +419,6 @@
                     </div>
                     <div class="text-right hidden sm:block"><ul class="text-sm text-gray-300 list-disc list-inside"><li>₹20 Daily Check-in</li><li>Priority Support</li></ul></div>
                 </div>
-                <!-- Tier: Platinum -->
                 <div class="bg-gradient-to-r from-panel to-[#455A64]/30 border border-[#90A4AE] rounded-2xl p-4 sm:p-6 flex items-center justify-between">
                     <div class="flex items-center gap-4 sm:gap-6">
                         <div class="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 rounded-full bg-[#CFD8DC] flex items-center justify-center text-dark text-xl sm:text-2xl shadow-[0_0_20px_#CFD8DC]"><i class="fas fa-gem"></i></div>
@@ -442,7 +426,6 @@
                     </div>
                     <div class="text-right hidden sm:block"><ul class="text-sm text-gray-300 list-disc list-inside"><li>₹50 Daily Check-in</li><li>VIP Host</li></ul></div>
                 </div>
-                <!-- Tier: Diamond -->
                 <div class="bg-gradient-to-r from-panel to-[#006064]/30 border border-[#00BCD4] rounded-2xl p-4 sm:p-6 flex items-center justify-between relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[#00BCD4]/10 to-transparent animate-[pulse_2s_infinite]"></div>
                     <div class="flex items-center gap-4 sm:gap-6 relative z-10">
@@ -454,7 +437,28 @@
             </div>
         </section>
 
-        <!-- SUPPORT VIEW -->
+        <!-- History Section -->
+        <section id="history" class="view-section hidden max-w-4xl mx-auto w-full">
+            <h2 class="text-2xl sm:text-3xl font-extrabold mb-6 sm:mb-8 flex items-center gap-3"><i class="fas fa-history text-green-400"></i> Activity History</h2>
+            
+            <div class="flex gap-2 sm:gap-4 mb-6 overflow-x-auto pb-2">
+                <button id="tabHistDeposit" onclick="switchHistTab('deposit')" class="whitespace-nowrap flex-1 bg-brand text-white py-3 rounded-xl font-bold transition">Deposits</button>
+                <button id="tabHistWithdraw" onclick="switchHistTab('withdraw')" class="whitespace-nowrap flex-1 bg-dark border border-gray-700 text-gray-400 py-3 rounded-xl font-bold transition">Withdrawals</button>
+                <button id="tabHistSupport" onclick="switchHistTab('support')" class="whitespace-nowrap flex-1 bg-dark border border-gray-700 text-gray-400 py-3 rounded-xl font-bold transition">Support Tickets</button>
+            </div>
+
+            <div id="histDepositView" class="space-y-4">
+                <div id="history-deposits-list"></div>
+            </div>
+            <div id="histWithdrawView" class="space-y-4 hidden">
+                <div id="history-withdrawals-list"></div>
+            </div>
+            <div id="histSupportView" class="space-y-4 hidden">
+                <div id="history-support-list"></div>
+            </div>
+        </section>
+
+        <!-- Support Section -->
         <section id="support" class="view-section hidden max-w-3xl mx-auto w-full">
             <div class="bg-gradient-to-br from-blue-900/20 to-panel border border-blue-500/30 rounded-[1.5rem] p-6 sm:p-8 shadow-2xl">
                 <h2 class="text-3xl sm:text-4xl font-extrabold mb-3 sm:mb-4 flex items-center gap-3"><i class="fas fa-headset text-blue-400"></i> Support Center</h2>
@@ -484,16 +488,15 @@
             </div>
         </section>
 
-        <!-- GAME: DICE -->
+        <!-- Games Component Views -->
         <section id="game-dice" class="view-section hidden max-w-3xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
-                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹1,000.00</div>
+                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
             </div>
             <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-6 sm:mb-8 border-b border-gray-800 pb-4">
                     <h2 class="text-2xl sm:text-3xl font-bold flex items-center gap-3"><i class="fas fa-dice text-brand"></i> Dice Roller</h2>
-                    <div class="bg-dark px-3 py-1.5 rounded-lg font-mono text-gray-300 text-xs sm:text-sm border border-gray-700">Win Chance: 41.6% (2.00x)</div>
                 </div>
                 
                 <div class="flex justify-center gap-4 sm:gap-6 mb-8 sm:mb-12 py-6 sm:py-8 bg-dark/50 rounded-2xl border border-gray-800/50" id="diceContainer">
@@ -522,16 +525,14 @@
             </div>
         </section>
 
-        <!-- GAME: COIN FLIP -->
         <section id="game-coin" class="view-section hidden max-w-3xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
-                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹1,000.00</div>
+                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
             </div>
             <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-6 sm:mb-8 border-b border-gray-800 pb-4">
                     <h2 class="text-2xl sm:text-3xl font-bold flex items-center gap-3"><i class="fas fa-coins text-yellow-400"></i> Coin Flip</h2>
-                    <div class="bg-dark px-3 py-1.5 rounded-lg font-mono text-gray-300 text-xs sm:text-sm border border-gray-700">Win Chance: 50.0% (1.95x)</div>
                 </div>
                 
                 <div class="py-10 sm:py-12 bg-dark/50 rounded-2xl border border-gray-800/50 mb-8 sm:mb-12">
@@ -563,11 +564,10 @@
             </div>
         </section>
 
-        <!-- GAME: MINI ROULETTE -->
         <section id="game-roulette" class="view-section hidden max-w-3xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
-                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹1,000.00</div>
+                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
             </div>
             <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl">
                 <div class="flex justify-between items-center mb-6 sm:mb-8 border-b border-gray-800 pb-4">
@@ -607,11 +607,10 @@
             </div>
         </section>
 
-        <!-- GAME: SLOT MACHINE -->
         <section id="game-slots" class="view-section hidden max-w-4xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
-                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹1,000.00</div>
+                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
             </div>
             <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 sm:mb-8 border-b border-gray-800 pb-4 gap-3">
@@ -622,7 +621,6 @@
                 </div>
                 
                 <div class="flex flex-col md:flex-row gap-6 sm:gap-8">
-                    <!-- Machine -->
                     <div class="flex-grow">
                         <div class="slot-grid" id="slotGrid">
                             <div class="slot-cell" id="slot-0">🍒</div>
@@ -637,7 +635,6 @@
                         </div>
                     </div>
                     
-                    <!-- Controls -->
                     <div class="w-full md:w-64 flex flex-col justify-between space-y-5 sm:space-y-6">
                         <div class="bg-dark rounded-xl p-3 sm:p-4 border border-gray-800">
                             <h4 class="text-[10px] sm:text-xs text-gray-500 uppercase font-bold mb-2 sm:mb-3 tracking-wider">Paytable</h4>
@@ -665,14 +662,12 @@
             </div>
         </section>
 
-        <!-- GAME: CRASH ROAD -->
         <section id="game-chicken" class="view-section hidden max-w-4xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
                 <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
             </div>
             <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col md:flex-row gap-6">
-                <!-- Controls Side -->
                 <div class="w-full md:w-64 flex flex-col justify-start space-y-4 border-b md:border-b-0 md:border-r border-gray-800 pb-6 md:pb-0 md:pr-6">
                     <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">🚗 Crash Road</h2>
                     <p class="text-xs text-gray-400">Cash out before the car crashes! The multiplier increases as it drives.</p>
@@ -697,7 +692,6 @@
                     <button id="btnChickenCashout" onclick="cashoutChicken()" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3.5 rounded-xl transition shadow-lg hidden mt-auto">Cashout</button>
                 </div>
 
-                <!-- Animation Side -->
                 <div class="flex-grow cr-road-container">
                     <div class="absolute inset-0 bg-gradient-to-b from-blue-900/40 to-transparent pointer-events-none z-0"></div>
                     <div id="crMultiplierDisplay" class="absolute top-10 left-1/2 transform -translate-x-1/2 text-6xl sm:text-7xl font-extrabold font-mono text-white z-20 drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)] transition-colors duration-300">1.00x</div>
@@ -710,14 +704,12 @@
             </div>
         </section>
 
-        <!-- GAME: LIMBO -->
         <section id="game-limbo" class="view-section hidden max-w-3xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
                 <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
             </div>
             <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col md:flex-row gap-6">
-                 <!-- Controls -->
                  <div class="w-full md:w-64 flex flex-col justify-start space-y-5 border-b md:border-b-0 md:border-r border-gray-800 pb-6 md:pb-0 md:pr-6">
                     <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">🚀 Limbo</h2>
                     
@@ -732,19 +724,14 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Target Multiplier</label>
                         <div class="relative">
-                            <input type="number" id="limboTarget" value="2.00" min="1.01" step="0.01" oninput="updateLimboChance()" class="w-full bg-dark border border-gray-700 rounded-xl py-3 pl-4 pr-8 text-white font-mono focus:outline-none focus:border-orange-500 transition">
+                            <input type="number" id="limboTarget" value="2.00" min="1.01" step="0.01" class="w-full bg-dark border border-gray-700 rounded-xl py-3 pl-4 pr-8 text-white font-mono focus:outline-none focus:border-orange-500 transition">
                             <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400">x</span>
-                        </div>
-                        <div class="flex justify-between text-xs text-gray-500 mt-2 px-1">
-                            <span>Win Chance:</span>
-                            <span id="limboChance" class="font-bold text-gray-300">49.50%</span>
                         </div>
                     </div>
 
                     <button id="btnPlayLimbo" onclick="playLimbo()" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-4 rounded-xl text-lg transition shadow-lg mt-auto active:transform active:translate-y-1">Bet</button>
                 </div>
 
-                <!-- Display -->
                 <div class="flex-grow flex flex-col items-center justify-center bg-dark/80 rounded-2xl border border-gray-800 p-8 min-h-[250px] relative overflow-hidden">
                     <div id="limboResult" class="text-6xl sm:text-7xl font-extrabold font-mono text-white transition-colors duration-300">1.00x</div>
                     <div id="limboSubtext" class="text-gray-500 text-sm mt-4 tracking-widest uppercase">Target: 2.00x</div>
@@ -752,14 +739,12 @@
             </div>
         </section>
 
-        <!-- GAME: MINES -->
         <section id="game-mines" class="view-section hidden max-w-4xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
                 <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
             </div>
             <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col md:flex-row gap-6">
-                <!-- Controls Side -->
                 <div class="w-full md:w-64 flex flex-col justify-start space-y-4 border-b md:border-b-0 md:border-r border-gray-800 pb-6 md:pb-0 md:pr-6">
                     <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">💣 Mines</h2>
                     <p class="text-xs text-gray-400">Reveal gems to multiply your bet. Hit a mine and you bust!</p>
@@ -788,23 +773,19 @@
                     <button id="btnMinesCashout" onclick="cashoutMines()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg hidden mt-auto">Cashout</button>
                 </div>
 
-                <!-- Grid Side -->
                 <div class="flex-grow flex items-center justify-center bg-dark/50 rounded-2xl border border-gray-800 p-4 sm:p-6">
                     <div id="minesGrid" class="mine-grid">
-                        <!-- Grid cells will be generated here -->
-                    </div>
+                        </div>
                 </div>
             </div>
         </section>
 
-        <!-- GAME: PLINKO -->
         <section id="game-plinko" class="view-section hidden max-w-4xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
                 <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
             </div>
             <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col md:flex-row gap-6">
-                <!-- Controls Side -->
                 <div class="w-full md:w-64 flex flex-col justify-start space-y-4 border-b md:border-b-0 md:border-r border-gray-800 pb-6 md:pb-0 md:pr-6">
                     <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">🔴 Plinko</h2>
                     <p class="text-xs text-gray-400">Drop the ball down the pyramid. Multipliers scale with risk.</p>
@@ -829,7 +810,6 @@
                     <button id="btnPlinkoDrop" onclick="playPlinko()" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-auto active:transform active:translate-y-1">Drop</button>
                 </div>
 
-                <!-- Board Side -->
                 <div class="flex-grow flex items-center justify-center p-2 sm:p-4">
                     <div class="plinko-board" id="plinkoBoard">
                         <div class="plinko-pegs" id="plinkoPegs"></div>
@@ -842,33 +822,54 @@
 
     </main>
 
-    <!-- Mobile Bottom Navigation (App-like) -->
+    <!-- Floating Mail Button -->
+    <div id="floatingMailBtn" class="fixed bottom-[80px] md:bottom-8 right-4 md:right-8 z-50 hidden cursor-grab active:cursor-grabbing touch-none select-none">
+        <div class="bg-gradient-to-r from-brand to-purple-600 hover:from-brandHover hover:to-purple-500 text-white h-14 w-14 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.5)] flex items-center justify-center text-2xl relative pointer-events-none transition-transform transform hover:scale-105">
+            <i class="fas fa-envelope"></i>
+            <span id="mailBadge" class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full hidden border-2 border-panel transform translate-x-1 -translate-y-1">0</span>
+        </div>
+    </div>
+
+    <!-- Mail Modal -->
+    <div id="mailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center opacity-0 transition-opacity duration-300 pb-safe p-4">
+        <div class="bg-panel border border-gray-700 rounded-3xl p-6 sm:p-8 max-w-lg w-full mx-auto transform scale-95 transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col" id="mailModalInner">
+            <div class="flex justify-between items-center mb-5 sm:mb-6 sticky top-0 bg-panel z-10 pb-2 border-b border-gray-800">
+                <h3 class="text-xl sm:text-2xl font-bold text-white"><i class="fas fa-envelope text-brand mr-2"></i> Inbox</h3>
+                <button onclick="closeModal('mailModal')" class="text-gray-400 hover:text-white text-xl p-1"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="mailList" class="space-y-4 flex-grow">
+                <!-- Mails rendered here via JS -->
+            </div>
+        </div>
+    </div>
+
     <div id="mobileNav" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-panel border-t border-gray-800 flex justify-around py-2 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
-        <button onclick="navigate('dashboard')" class="text-gray-400 hover:text-white flex flex-col items-center justify-center w-1/4 py-1">
+        <button onclick="navigate('dashboard')" class="text-gray-400 hover:text-white flex flex-col items-center justify-center w-1/5 py-1">
             <i class="fas fa-home text-[1.25rem] mb-1"></i>
             <span class="text-[9px] uppercase font-bold tracking-widest">Home</span>
         </button>
-        <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex flex-col items-center justify-center w-1/4 border-l border-gray-800 py-1">
+        <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex flex-col items-center justify-center w-1/5 border-l border-gray-800 py-1">
             <i class="fas fa-gamepad text-[1.25rem] mb-1"></i>
             <span class="text-[9px] uppercase font-bold tracking-widest">Games</span>
         </button>
-        <button onclick="navigate('vip')" class="text-yellow-500 hover:text-yellow-400 flex flex-col items-center justify-center w-1/4 border-l border-gray-800 py-1">
+        <button onclick="navigate('vip')" class="text-yellow-500 hover:text-yellow-400 flex flex-col items-center justify-center w-1/5 border-l border-gray-800 py-1">
             <i class="fas fa-crown text-[1.25rem] mb-1"></i>
             <span class="text-[9px] uppercase font-bold tracking-widest">VIP</span>
         </button>
-        <button onclick="navigate('support')" class="text-blue-400 hover:text-blue-300 flex flex-col items-center justify-center w-1/4 border-l border-gray-800 py-1">
+        <button onclick="navigate('history')" class="text-green-400 hover:text-green-300 flex flex-col items-center justify-center w-1/5 border-l border-gray-800 py-1">
+            <i class="fas fa-history text-[1.25rem] mb-1"></i>
+            <span class="text-[9px] uppercase font-bold tracking-widest">History</span>
+        </button>
+        <button onclick="navigate('support')" class="text-blue-400 hover:text-blue-300 flex flex-col items-center justify-center w-1/5 border-l border-gray-800 py-1">
             <i class="fas fa-headset text-[1.25rem] mb-1"></i>
             <span class="text-[9px] uppercase font-bold tracking-widest">Support</span>
         </button>
     </div>
 
-    <!-- Footer Disclaimer -->
     <footer id="mainFooter" class="bg-dark border-t border-gray-800 py-6 text-center text-gray-500 text-[10px] sm:text-xs mt-auto mb-[60px] md:mb-0">
         <p class="mb-2 text-gray-400 font-bold tracking-wide">MegaBet © 2026. Premium Crypto Casino.</p>
-        <p class="max-w-3xl mx-auto px-4 leading-relaxed">MegaBet offers premium entertainment. Play responsibly. All games are Provably Fair. If you or someone you know has a gambling problem, please seek professional help.</p>
     </footer>
 
-    <!-- Modals -->
     <!-- Deposit Modal -->
     <div id="depositModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center opacity-0 transition-opacity duration-300 pb-safe p-4">
         <div class="bg-panel border border-gray-700 rounded-3xl p-6 sm:p-8 max-w-md w-full mx-auto transform scale-95 transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto" id="depositModalInner">
@@ -876,17 +877,40 @@
                 <h3 class="text-xl sm:text-2xl font-bold text-white"><i class="fas fa-wallet text-brand mr-2"></i> Add Funds</h3>
                 <button onclick="closeModal('depositModal')" class="text-gray-400 hover:text-white text-xl p-1"><i class="fas fa-times"></i></button>
             </div>
-            <p class="text-xs sm:text-sm text-gray-400 mb-5 sm:mb-6">Select an amount to add funds to your balance.</p>
-            <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-5 sm:mb-6">
+            
+            <p class="text-xs sm:text-sm text-gray-400 mb-4">Minimum deposit is ₹20. Pay to the UPI ID below and enter the UTR/Reference number.</p>
+            
+            <div class="bg-dark border border-gray-700 rounded-xl p-3 mb-4 flex justify-between items-center">
+                <div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Official UPI ID (GPay, PhonePe, Paytm)</div>
+                    <div class="text-white font-mono text-sm tracking-wide" id="adminUpiId">priyanshugogoi594@oksbi</div>
+                </div>
+                <button onclick="copyUpi()" class="text-brand hover:text-white p-2 rounded-lg bg-panel hover:bg-gray-800 transition" title="Copy UPI ID"><i class="fas fa-copy"></i></button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+                <button onclick="setDepositAmount(20)" class="bg-dark border border-gray-700 hover:border-brand py-2 sm:py-3 rounded-xl text-white font-mono text-sm sm:text-base transition">₹20</button>
                 <button onclick="setDepositAmount(100)" class="bg-dark border border-gray-700 hover:border-brand py-2 sm:py-3 rounded-xl text-white font-mono text-sm sm:text-base transition">₹100</button>
                 <button onclick="setDepositAmount(500)" class="bg-dark border border-gray-700 hover:border-brand py-2 sm:py-3 rounded-xl text-white font-mono text-sm sm:text-base transition">₹500</button>
-                <button onclick="setDepositAmount(1000)" class="bg-dark border border-gray-700 hover:border-brand py-2 sm:py-3 rounded-xl text-white font-mono text-sm sm:text-base transition">₹1000</button>
             </div>
-            <div class="mb-5 sm:mb-6 relative">
+            
+            <div class="mb-4 relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">₹</span>
-                <input type="number" id="depositAmount" value="100" class="w-full bg-dark border border-gray-600 rounded-xl py-3 pl-8 pr-4 text-white font-mono focus:outline-none focus:border-brand">
+                <input type="number" id="depositAmount" value="20" min="20" class="w-full bg-dark border border-gray-600 rounded-xl py-3 pl-8 pr-4 text-white font-mono focus:outline-none focus:border-brand">
             </div>
-            <button onclick="confirmDeposit()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-3.5 sm:py-4 rounded-xl transition shadow-lg text-sm sm:text-base">Deposit</button>
+
+            <div class="mb-4">
+                <button onclick="payViaUPI()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 sm:py-3.5 rounded-xl transition shadow-lg text-sm sm:text-base flex justify-center items-center gap-2">
+                    <i class="fas fa-shield-alt"></i> Secure UPI Direct Pay
+                </button>
+                <p class="text-[10px] text-center text-gray-500 mt-2">After paying, enter the 12-digit UTR below to confirm.</p>
+            </div>
+
+            <div class="mb-5 sm:mb-6 relative">
+                <input type="text" id="depositUtr" placeholder="Enter 12-digit UTR / Ref Number" class="w-full bg-dark border border-gray-600 rounded-xl py-3 px-4 text-white font-mono focus:outline-none focus:border-brand transition">
+            </div>
+
+            <button onclick="confirmDeposit()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-3.5 sm:py-4 rounded-xl transition shadow-lg text-sm sm:text-base">Submit Deposit Request</button>
         </div>
     </div>
 
@@ -897,51 +921,124 @@
                 <h3 class="text-xl sm:text-2xl font-bold text-white"><i class="fas fa-university text-gray-400 mr-2"></i> Withdraw Funds</h3>
                 <button onclick="closeModal('withdrawModal')" class="text-gray-400 hover:text-white text-xl p-1"><i class="fas fa-times"></i></button>
             </div>
-            <p class="text-xs sm:text-sm text-gray-400 mb-5 sm:mb-6">Withdraw funds directly to your wallet.</p>
-            <div class="flex justify-between text-xs sm:text-sm text-gray-400 mb-2">
-                <span>Available:</span> <span class="text-green-400 font-mono" id="withdrawAvailable"></span>
+            
+            <p class="text-xs sm:text-sm text-gray-400 mb-4">Select your withdrawal method and enter details.</p>
+            
+            <div class="flex gap-2 mb-4">
+                <button id="btnWithUpi" onclick="setWithMethod('upi')" class="flex-1 bg-brand text-white py-2 rounded-xl text-sm font-bold transition shadow-lg">UPI ID</button>
+                <button id="btnWithBank" onclick="setWithMethod('bank')" class="flex-1 bg-dark border border-gray-700 hover:bg-gray-800 text-gray-400 py-2 rounded-xl text-sm font-bold transition">Bank Account</button>
             </div>
+            
+            <div id="withUpiFields" class="mb-4">
+                <input type="text" id="withUpiId" placeholder="Enter your UPI ID" class="w-full bg-dark border border-gray-600 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-gray-400 transition">
+            </div>
+            
+            <div id="withBankFields" class="mb-4 hidden space-y-3">
+                <input type="text" id="withBankName" placeholder="Bank Name" class="w-full bg-dark border border-gray-600 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-gray-400 transition">
+                <input type="text" id="withBankAcc" placeholder="Account Number" class="w-full bg-dark border border-gray-600 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-gray-400 transition">
+                <input type="text" id="withBankIfsc" placeholder="IFSC Code" class="w-full bg-dark border border-gray-600 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-gray-400 transition">
+            </div>
+
+            <div class="flex justify-between text-xs sm:text-sm text-gray-400 mb-2">
+                <span>Withdrawable Balance:</span> <span class="text-green-400 font-mono" id="withdrawAvailable"></span>
+            </div>
+            <div class="text-[10px] text-gray-500 mb-4 text-center">Only winnings are added to your withdrawable balance. Min withdraw: ₹100.</div>
+
             <div class="mb-5 sm:mb-6 relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">₹</span>
-                <input type="number" id="withdrawAmount" placeholder="Amount" class="w-full bg-dark border border-gray-600 rounded-xl py-3 pl-8 pr-16 text-white font-mono focus:outline-none focus:border-gray-400">
+                <input type="number" id="withdrawAmount" placeholder="Amount" class="w-full bg-dark border border-gray-600 rounded-xl py-3 pl-8 pr-16 text-white font-mono focus:outline-none focus:border-gray-400 transition">
                 <button onclick="setMaxWithdraw()" class="absolute inset-y-0 right-2 flex items-center px-3 text-xs font-bold text-brand hover:text-brandHover uppercase">Max</button>
             </div>
-            <button onclick="confirmWithdraw()" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3.5 sm:py-4 rounded-xl transition shadow-lg text-sm sm:text-base">Withdraw</button>
+            <button onclick="confirmWithdraw()" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3.5 sm:py-4 rounded-xl transition shadow-lg text-sm sm:text-base">Submit Withdrawal Request</button>
         </div>
     </div>
 
-    <!-- Toast Container -->
     <div id="toast-container"></div>
 
     <script>
-        // --- STATE MANAGEMENT ---
-        const savedUsers = JSON.parse(localStorage.getItem('megabet_users')) || {
-            "9999999999": {
-                mobile: "9999999999",
-                password: "password123",
-                balance: 1000.00,
-                stats: { wagered: 0, won: 0, gamesPlayed: 0 },
-                refCode: "megabet",
-                totalDeposited: 5000,
-                lastCheckIn: "",
-                claimableCashback: 15.50
-            }
+        // --- FIREBASE INITIALIZATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8NZdS7LukcSsYyVRRmjL3UTHCgSEbVKY",
+            authDomain: "bigwin-1e632.firebaseapp.com",
+            databaseURL: "https://bigwin-1e632-default-rtdb.firebaseio.com",
+            projectId: "bigwin-1e632",
+            storageBucket: "bigwin-1e632.firebasestorage.app",
+            messagingSenderId: "295874651333",
+            appId: "1:295874651333:web:8940f8d6c449af7cc3fcac",
+            measurementId: "G-DMRMJ0BR2C"
         };
-        const savedCurrentUser = localStorage.getItem('megabet_currentUser') || null;
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
+        // --- STATE MANAGEMENT & DBR LOGIC ---
         let state = {
-            currentUser: savedCurrentUser,
-            users: savedUsers,
-            balance: savedCurrentUser && savedUsers[savedCurrentUser] ? savedUsers[savedCurrentUser].balance : 0,
-            stats: savedCurrentUser && savedUsers[savedCurrentUser] ? savedUsers[savedCurrentUser].stats : {
-                wagered: 0,
-                won: 0,
-                gamesPlayed: 0
-            },
+            currentUser: null,
+            users: {},
+            balance: 0,
+            withdrawableBalance: 0,
+            stats: { wagered: 0, won: 0, gamesPlayed: 0 },
             gameIsRunning: false,
             freeSpins: 0,
             diceTarget: 'low',
             coinTarget: 'heads'
+        };
+        
+        // Setup Live Listener
+        let liveListener = null;
+
+        const setupLiveListener = () => {
+            if (!state.currentUser) return;
+            
+            if (liveListener) {
+                db.ref('users/' + state.currentUser).off('value', liveListener);
+            }
+
+            liveListener = db.ref('users/' + state.currentUser).on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    
+                    // Update our cached dictionary immediately
+                    state.users[state.currentUser] = data;
+                    
+                    // Inject live updates into memory. 
+                    state.balance = data.balance || 0;
+                    state.withdrawableBalance = data.withdrawableBalance || 0;
+                    if(data.stats) state.stats = data.stats;
+                    
+                    // Re-render UI. Parameter false ensures we don't accidentally write the DB data BACK to the DB 
+                    // causing an infinite loop. We just render the live snapshot on the user's screen.
+                    updateUI(false);
+                    
+                    // Live update history/mail if they are currently visible
+                    if (!document.getElementById('history').classList.contains('hidden')) {
+                        fetchHistory();
+                    }
+                    if (!document.getElementById('mailModal').classList.contains('hidden')) {
+                        renderMails();
+                    }
+                }
+            });
+        };
+
+        // DBR (Dynamic Balance Retention) Helper
+        const getDBRMultiplier = () => {
+            if (!state.currentUser || !state.users[state.currentUser]) return 1.0;
+            const user = state.users[state.currentUser];
+            
+            if (!user.dbr || !user.dbr.enabled) return 1.0; 
+            
+            const totalBal = (user.balance || 0) + (user.withdrawableBalance || 0);
+            const peak = user.dbr.peak || 5000;
+            const floor = user.dbr.floor || 300;
+
+            if (totalBal >= (peak * 0.85)) {
+                return 0.3; // High balance protection: reduce win chances significantly
+            } 
+            else if (totalBal <= floor) {
+                return 1.3; // Low balance boost: slightly increase win chances to keep playing
+            }
+            return 1.0;
         };
 
         // Format Currency
@@ -959,37 +1056,82 @@
             return { name: "Beginner", bonus: 0, color: "text-gray-400" };
         };
 
-        // Update UI & Save State
-        const updateUI = () => {
-            if (state.currentUser) {
+        // Update UI & Sync with Firebase (Decoupled rendering logic from DB-saving logic via saveToDb)
+        const updateUI = (saveToDb = true) => {
+            if (state.currentUser && state.users[state.currentUser]) {
                 const user = state.users[state.currentUser];
-                user.balance = state.balance;
-                user.stats = state.stats;
+                if(!user.mails) user.mails = {};
+
+                // Only overwrite user dict fields if this originated from local gameplay (saveToDb = true)
+                if (saveToDb) {
+                    user.balance = state.balance;
+                    user.withdrawableBalance = state.withdrawableBalance || 0;
+                    user.stats = state.stats;
+                }
                 
-                document.getElementById('balanceDisplay').innerText = formatMoney(state.balance);
+                const totalBal = state.balance + (state.withdrawableBalance || 0);
+
+                // Live DOM Rendering
+                document.getElementById('balanceDisplay').innerText = formatMoney(totalBal);
                 document.getElementById('statWagered').innerText = formatMoney(state.stats.wagered);
                 document.getElementById('statWon').innerText = formatMoney(state.stats.won);
                 document.getElementById('statGames').innerText = state.stats.gamesPlayed;
-                document.getElementById('displayRefCode').innerText = user.refCode;
+                document.getElementById('displayRefCode').innerText = user.refCode || "------";
                 
-                const vip = getVIPLevel(user.totalDeposited);
+                const vip = getVIPLevel(user.totalDeposited || 0);
                 document.getElementById('dashVipLevel').innerText = vip.name.toUpperCase();
                 document.getElementById('dashVipLevel').className = `text-2xl sm:text-3xl font-bold font-mono relative z-10 ${vip.color}`;
                 document.getElementById('dashDailyDesc').innerText = vip.bonus > 0 ? `₹${vip.bonus} available today` : `Reach Bronze to unlock`;
-                document.getElementById('dashCashback').innerText = formatMoney(user.claimableCashback);
+                document.getElementById('dashCashback').innerText = formatMoney(user.claimableCashback || 0);
 
                 let nextTierText = "Max Level Reached";
-                if(user.totalDeposited < 50) nextTierText = `Deposit ₹${50 - user.totalDeposited} for Bronze`;
-                else if(user.totalDeposited < 200) nextTierText = `Deposit ₹${200 - user.totalDeposited} for Silver`;
-                else if(user.totalDeposited < 500) nextTierText = `Deposit ₹${500 - user.totalDeposited} for Gold`;
-                else if(user.totalDeposited < 2000) nextTierText = `Deposit ₹${2000 - user.totalDeposited} for Platinum`;
-                else if(user.totalDeposited < 5000) nextTierText = `Deposit ₹${5000 - user.totalDeposited} for Diamond`;
+                let depTotal = user.totalDeposited || 0;
+                if(depTotal < 50) nextTierText = `Deposit ₹${50 - depTotal} for Bronze`;
+                else if(depTotal < 200) nextTierText = `Deposit ₹${200 - depTotal} for Silver`;
+                else if(depTotal < 500) nextTierText = `Deposit ₹${500 - depTotal} for Gold`;
+                else if(depTotal < 2000) nextTierText = `Deposit ₹${2000 - depTotal} for Platinum`;
+                else if(depTotal < 5000) nextTierText = `Deposit ₹${5000 - depTotal} for Diamond`;
                 document.getElementById('dashVipProgress').innerText = nextTierText;
 
-                document.querySelectorAll('.gameBalanceDisplay').forEach(el => el.innerText = formatMoney(state.balance));
+                document.querySelectorAll('.gameBalanceDisplay').forEach(el => el.innerText = formatMoney(totalBal));
                 
-                // Save to local storage
-                localStorage.setItem('megabet_users', JSON.stringify(state.users));
+                // Render Referral Trackings
+                const refContainer = document.getElementById('referralsList');
+                if (refContainer) {
+                    if (user.referredUsers && Object.keys(user.referredUsers).length > 0) {
+                        refContainer.innerHTML = '';
+                        const refs = Object.values(user.referredUsers).sort((a,b) => b.timestamp - a.timestamp);
+                        refs.forEach(r => {
+                            const div = document.createElement('div');
+                            div.className = "flex justify-between items-center bg-dark p-3 rounded-xl border border-gray-700 mb-2";
+                            div.innerHTML = `
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400"><i class="fas fa-user"></i></div>
+                                    <span class="text-gray-300 font-mono text-sm">${r.masked}</span>
+                                </div>
+                                <span class="text-xs text-green-400 font-bold">+₹25 Bonus</span>
+                            `;
+                            refContainer.appendChild(div);
+                        });
+                    } else {
+                        refContainer.innerHTML = `<div class="text-gray-500 text-sm">No referrals yet. Share your code to earn ₹25 per friend!</div>`;
+                    }
+                }
+
+                // Update Mail Badge (Checks incoming admin mails)
+                const unreadCount = Object.values(user.mails).filter(m => (!m.claimed && m.bonusAmount > 0) || !m.read).length;
+                const badge = document.getElementById('mailBadge');
+                if(unreadCount > 0) {
+                    badge.innerText = unreadCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+
+                // Sync back to DB only if prompted (prevents infinite loop with the .on liveListener)
+                if (saveToDb) {
+                    db.ref('users/' + state.currentUser).set(user).catch(err => console.error("Firebase save error:", err));
+                }
             }
 
             const fsInd = document.getElementById('freeSpinsIndicator');
@@ -1041,13 +1183,13 @@
                 document.getElementById('formRegister').classList.remove('hidden');
                 document.getElementById('formLogin').classList.add('hidden');
                 document.getElementById('tabRegister').classList.replace('border-transparent', 'border-brand');
-                document.getElementById('tabRegister').classList.replace('text-gray-500', 'text-white');
+                document.getElementById('tabRegister').classList.replace('text-white', 'text-gray-500');
                 document.getElementById('tabLogin').classList.replace('border-brand', 'border-transparent');
                 document.getElementById('tabLogin').classList.replace('text-white', 'text-gray-500');
             }
         };
 
-        const handleRegister = () => {
+        const handleRegister = async () => {
             const mobile = document.getElementById('regMobile').value.trim();
             const password = document.getElementById('regPassword').value;
             const refCode = document.getElementById('regRefCode').value.trim().toLowerCase();
@@ -1055,60 +1197,125 @@
             const mobileError = validateMobile(mobile);
             if(mobileError) return showToast(mobileError, "error");
             if(!password || password.length < 4) return showToast("Password must be at least 4 characters", "error");
-            if(state.users[mobile]) return showToast("Mobile number already registered", "error");
+            
+            try {
+                const snapshot = await db.ref('users/' + mobile).once('value');
+                if (snapshot.exists()) {
+                    return showToast("Mobile number already registered", "error");
+                }
 
-            let initialBalance = 1000.00;
+                let initialBalance = 1000.00;
 
-            if(refCode) {
-                let refValid = false;
-                for(let key in state.users) {
-                    if(state.users[key].refCode === refCode) {
-                        refValid = true;
-                        state.users[key].balance += 50; 
-                        break;
+                if(refCode) {
+                    const refSnapshot = await db.ref('users').orderByChild('refCode').equalTo(refCode).once('value');
+                    if(refSnapshot.exists()) {
+                        const referrerData = refSnapshot.val();
+                        const referrerMobile = Object.keys(referrerData)[0];
+                        const referrer = referrerData[referrerMobile];
+                        
+                        referrer.balance += 25; // Referral tracking bonus
+                        if(!referrer.referredUsers) referrer.referredUsers = {};
+                        
+                        const maskedMobile = mobile.substring(0, 2) + '******' + mobile.substring(8);
+                        referrer.referredUsers[mobile] = { masked: maskedMobile, timestamp: Date.now() };
+
+                        await db.ref('users/' + referrerMobile).set(referrer);
+                        
+                        initialBalance += 25;
+                        showToast("Referral applied! ₹25 Bonus added.", "success");
+                    } else {
+                        return showToast("Invalid Referral Code", "error");
                     }
                 }
-                if(refValid) {
-                    initialBalance += 50;
-                    showToast("Referral applied! ₹50 Bonus added.", "success");
-                } else {
-                    return showToast("Invalid Referral Code", "error");
-                }
+
+                const newUser = {
+                    mobile,
+                    password,
+                    balance: initialBalance,
+                    withdrawableBalance: 0,
+                    stats: { wagered: 0, won: 0, gamesPlayed: 0 },
+                    refCode: generateRefCode(),
+                    referredUsers: {},
+                    totalDeposited: 0,
+                    lastCheckIn: "",
+                    claimableCashback: 0,
+                    mails: {}
+                };
+
+                await db.ref('users/' + mobile).set(newUser);
+                
+                state.users[mobile] = newUser;
+                loginUser(mobile, password);
+
+            } catch (err) {
+                showToast("Connection error. Please try again.", "error");
+                console.error(err);
             }
-
-            const newUser = {
-                mobile,
-                password,
-                balance: initialBalance,
-                stats: { wagered: 0, won: 0, gamesPlayed: 0 },
-                refCode: generateRefCode(),
-                totalDeposited: 0,
-                lastCheckIn: "",
-                claimableCashback: 0
-            };
-
-            state.users[mobile] = newUser;
-            loginUser(mobile, password);
         };
 
-        const handleLogin = () => {
+        const handleLogin = async () => {
             const mobile = document.getElementById('loginMobile').value.trim();
             const password = document.getElementById('loginPassword').value;
 
             if(!mobile || !password) return showToast("Please fill all fields", "error");
 
-            const user = state.users[mobile];
-            if(!user || user.password !== password) {
-                return showToast("Invalid mobile number or password", "error");
-            }
+            try {
+                const snapshot = await db.ref('users/' + mobile).once('value');
+                if (!snapshot.exists()) {
+                    return showToast("Invalid mobile number or password", "error");
+                }
 
-            loginUser(mobile, password);
+                const user = snapshot.val();
+                if (user.password !== password) {
+                    return showToast("Invalid mobile number or password", "error");
+                }
+
+                state.users[mobile] = user;
+                loginUser(mobile, password);
+
+            } catch (err) {
+                showToast("Connection error. Please try again.", "error");
+                console.error(err);
+            }
+        };
+
+        const checkDailyMail = () => {
+            if(!state.currentUser) return;
+            const user = state.users[state.currentUser];
+            if(!user.mails) user.mails = {};
+
+            const today = new Date().toDateString();
+            let hasTodayMail = false;
+
+            Object.values(user.mails).forEach(m => {
+                if(m.type === 'daily_bonus' && m.dateStr === today) hasTodayMail = true;
+            });
+
+            if(!hasTodayMail) {
+                const bonusAmt = Math.floor(Math.random() * 50) + 1; // 1 to 50
+                const mailId = 'mail_' + Date.now();
+                user.mails[mailId] = {
+                    id: mailId,
+                    type: 'daily_bonus',
+                    dateStr: today,
+                    timestamp: Date.now(),
+                    title: "🎁 Daily Surprise Bonus!",
+                    content: `You have received a random daily bonus. Claim it before the day ends!`,
+                    bonusAmount: bonusAmt,
+                    claimed: false,
+                    read: false
+                };
+                updateUI();
+            }
         };
 
         const loginUser = (mobile, password) => {
             const user = state.users[mobile];
             state.currentUser = mobile;
-            state.balance = user.balance;
+            state.balance = user.balance || 0;
+            state.withdrawableBalance = user.withdrawableBalance || 0;
+            
+            if(!user.stats) user.stats = { wagered: 0, won: 0, gamesPlayed: 0 };
             state.stats = user.stats;
             
             document.getElementById('loginMobile').value = "";
@@ -1118,6 +1325,9 @@
             document.getElementById('regRefCode').value = "";
 
             localStorage.setItem('megabet_currentUser', mobile);
+            
+            setupLiveListener(); // Establish realtime DB connection
+            checkDailyMail();
             updateUI();
             navigate('dashboard');
             showToast("Logged in successfully!", "success");
@@ -1126,19 +1336,19 @@
         const logout = () => {
             if(state.gameIsRunning) return showToast("Cannot logout during a game", "error");
             
-            if(state.currentUser) {
-                state.users[state.currentUser].balance = state.balance;
-                state.users[state.currentUser].stats = state.stats;
-                localStorage.setItem('megabet_users', JSON.stringify(state.users));
+            if (state.currentUser && liveListener) {
+                db.ref('users/' + state.currentUser).off('value', liveListener);
+                liveListener = null;
             }
 
             state.currentUser = null;
+            state.users = {};
             localStorage.removeItem('megabet_currentUser');
             navigate('auth');
             showToast("Logged out successfully", "info");
         };
 
-        // --- NAVIGATION ---
+        // --- NAVIGATION, MAIL & HISTORY ---
         const navigate = (viewId) => {
             if(state.gameIsRunning) {
                 showToast("Please wait for the current game to finish.", "error");
@@ -1157,6 +1367,7 @@
             const mobileNav = document.getElementById('mobileNav');
             const mainFooter = document.getElementById('mainFooter');
             const mainContent = document.getElementById('mainContent');
+            const floatingMailBtn = document.getElementById('floatingMailBtn');
 
             if (viewId === 'auth') {
                 mainNav.classList.add('hidden');
@@ -1164,6 +1375,7 @@
                 mainFooter.classList.add('hidden');
                 mainContent.classList.add('justify-center', 'my-auto');
                 mainContent.classList.remove('py-6', 'pb-24', 'md:pb-8');
+                if (floatingMailBtn) floatingMailBtn.classList.add('hidden');
             } else if (isGameView) {
                 mainNav.classList.add('hidden');
                 mobileNav.classList.add('hidden');
@@ -1171,22 +1383,194 @@
                 mainContent.classList.add('justify-center');
                 mainContent.classList.remove('py-6', 'pb-24', 'md:pb-8', 'my-auto');
                 mainContent.classList.add('py-4', 'pb-4');
+                if (floatingMailBtn) floatingMailBtn.classList.remove('hidden');
             } else {
                 mainNav.classList.remove('hidden');
                 mobileNav.classList.remove('hidden');
                 mainFooter.classList.remove('hidden');
                 mainContent.classList.remove('justify-center', 'my-auto', 'py-4', 'pb-4');
                 mainContent.classList.add('py-6', 'pb-24', 'md:pb-8');
+                if (floatingMailBtn) floatingMailBtn.classList.remove('hidden');
+            }
+            
+            if (viewId === 'history') {
+                fetchHistory();
             }
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
-        // --- MODALS & REWARDS ---
+        // Mail Logic
+        const renderMails = () => {
+            const container = document.getElementById('mailList');
+            if(!container) return;
+            container.innerHTML = '';
+            
+            if(!state.currentUser) return;
+            const user = state.users[state.currentUser];
+            const mailsObj = user.mails || {};
+            
+            const mails = Object.values(mailsObj).sort((a,b) => b.timestamp - a.timestamp);
+            
+            if(mails.length === 0) {
+                container.innerHTML = `<div class="bg-dark border border-gray-800 rounded-xl p-6 text-center text-gray-500">Your inbox is empty.</div>`;
+                return;
+            }
+            
+            mails.forEach(m => {
+                const div = document.createElement('div');
+                div.className = `bg-dark border ${m.read && m.claimed ? 'border-gray-800 opacity-70' : 'border-brand'} rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center`;
+                
+                let actionHtml = '';
+                if(m.bonusAmount > 0) {
+                    if(m.claimed) {
+                        actionHtml += `<button disabled class="px-4 py-2 rounded-xl font-bold bg-gray-800 text-gray-500 cursor-not-allowed text-sm whitespace-nowrap">Claimed</button>`;
+                    } else {
+                        actionHtml += `<button onclick="claimMailBonus('${m.id}')" class="px-4 py-2 rounded-xl font-bold bg-brand hover:bg-brandHover text-white shadow-lg shadow-brand/30 transition transform active:scale-95 text-sm whitespace-nowrap"><i class="fas fa-gift mr-1"></i> Claim ${formatMoney(m.bonusAmount)}</button>`;
+                    }
+                } else {
+                    if(!m.read) {
+                        actionHtml += `<button onclick="markMailRead('${m.id}')" class="px-4 py-2 rounded-xl font-bold bg-gray-700 hover:bg-gray-600 text-white transition text-sm whitespace-nowrap">Mark Read</button>`;
+                    }
+                }
+                
+                // Add Delete Button directly next to other actions
+                actionHtml += `<button onclick="deleteMail('${m.id}')" class="px-3 py-2 rounded-xl font-bold bg-red-500/10 hover:bg-red-500/20 text-red-500 transition ml-2 border border-red-500/30" title="Delete Mail"><i class="fas fa-trash"></i></button>`;
+
+                div.innerHTML = `
+                    <div class="flex-grow w-full">
+                        <div class="flex justify-between items-start mb-1">
+                            <h3 class="font-bold text-white text-lg ${!m.read && !m.claimed ? 'text-brand' : ''}">${m.title}</h3>
+                            <span class="text-xs text-gray-500 sm:hidden">${new Date(m.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <p class="text-sm text-gray-300 mb-2">${m.content}</p>
+                        <div class="text-xs text-gray-500 hidden sm:block">${new Date(m.timestamp).toLocaleString()}</div>
+                    </div>
+                    <div class="flex items-center justify-end w-full sm:w-auto">
+                        ${actionHtml}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        };
+
+        const deleteMail = (id) => {
+            if(!state.currentUser) return;
+            const user = state.users[state.currentUser];
+            if(user.mails && user.mails[id]) {
+                delete user.mails[id];
+                updateUI(true); 
+                renderMails();
+                showToast("Mail deleted", "success");
+            }
+        };
+
+        const claimMailBonus = (id) => {
+            if(!state.currentUser) return;
+            const user = state.users[state.currentUser];
+            const mail = user.mails[id];
+            
+            if(mail && !mail.claimed) {
+                user.balance += mail.bonusAmount;
+                mail.claimed = true;
+                mail.read = true;
+                state.balance = user.balance;
+                
+                updateUI(true);
+                renderMails();
+                showToast(`Successfully claimed ${formatMoney(mail.bonusAmount)} bonus!`, "success");
+            }
+        };
+
+        const markMailRead = (id) => {
+            if(!state.currentUser) return;
+            const user = state.users[state.currentUser];
+            if(user.mails[id]) {
+                user.mails[id].read = true;
+                updateUI(true);
+                renderMails();
+            }
+        };
+
+        const switchHistTab = (tab) => {
+            ['deposit', 'withdraw', 'support'].forEach(t => {
+                document.getElementById(`hist${t.charAt(0).toUpperCase() + t.slice(1)}View`).classList.add('hidden');
+                const btn = document.getElementById(`tabHist${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                btn.className = "whitespace-nowrap flex-1 bg-dark border border-gray-700 text-gray-400 py-3 rounded-xl font-bold transition";
+            });
+            
+            document.getElementById(`hist${tab.charAt(0).toUpperCase() + tab.slice(1)}View`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tabHist${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+            activeBtn.className = "whitespace-nowrap flex-1 bg-brand text-white py-3 rounded-xl font-bold transition";
+        };
+
+        const fetchHistory = () => {
+            // Updated to fetch synchronously from live state instead of .once query
+            if(!state.currentUser || !state.users[state.currentUser]) return;
+            const data = state.users[state.currentUser];
+            renderHistory('deposits', data.deposits);
+            renderHistory('withdrawals', data.withdrawals);
+            renderHistory('support', data.support);
+        };
+
+        const renderHistory = (type, recordsObj) => {
+            const container = document.getElementById(`history-${type}-list`);
+            if(!container) return;
+            container.innerHTML = '';
+            
+            if(!recordsObj) {
+                container.innerHTML = `<div class="bg-dark border border-gray-800 rounded-xl p-6 text-center text-gray-500">No ${type} records found.</div>`;
+                return;
+            }
+            
+            const records = Object.values(recordsObj).sort((a,b) => b.timestamp - a.timestamp);
+            
+            records.forEach(r => {
+                const div = document.createElement('div');
+                div.className = "bg-dark border border-gray-800 rounded-xl p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3";
+                
+                const date = new Date(r.timestamp).toLocaleString();
+                let statusColor = r.status === 'success' ? 'text-green-500' : (r.status === 'pending' ? 'text-yellow-500' : 'text-red-500');
+                
+                if(type === 'deposits') {
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-bold text-lg text-white">${formatMoney(r.amount)}</div>
+                            <div class="text-xs text-gray-400 mt-1">UTR: <span class="font-mono">${r.utr}</span></div>
+                            <div class="text-xs text-gray-500 mt-1">${date}</div>
+                        </div>
+                        <div class="font-bold uppercase tracking-wider text-sm ${statusColor}">${r.status}</div>
+                    `;
+                } else if(type === 'withdrawals') {
+                    let detStr = r.details.type === 'upi' ? `UPI: ${r.details.upiId}` : `Bank: ${r.details.bankName} (${r.details.accNum})`;
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-bold text-lg text-white">${formatMoney(r.amount)}</div>
+                            <div class="text-xs text-gray-400 mt-1">${detStr}</div>
+                            <div class="text-xs text-gray-500 mt-1">${date}</div>
+                        </div>
+                        <div class="font-bold uppercase tracking-wider text-sm ${statusColor}">${r.status}</div>
+                    `;
+                } else if(type === 'support') {
+                    div.innerHTML = `
+                        <div class="flex-grow pr-4">
+                            <div class="font-bold text-sm uppercase text-blue-400">${r.type}</div>
+                            <div class="text-sm text-gray-300 mt-1 leading-snug">${r.desc.length > 60 ? r.desc.substring(0, 60) + '...' : r.desc}</div>
+                            <div class="text-xs text-gray-500 mt-2">${date}</div>
+                        </div>
+                        <div class="font-bold uppercase tracking-wider text-sm ${statusColor}">${r.status}</div>
+                    `;
+                }
+                container.appendChild(div);
+            });
+        };
+
+
+        // --- MODALS, DEPOSIT & WITHDRAW ---
         const claimDaily = () => {
             if(!state.currentUser) return;
             const user = state.users[state.currentUser];
-            const vip = getVIPLevel(user.totalDeposited);
+            const vip = getVIPLevel(user.totalDeposited || 0);
             
             if(vip.bonus === 0) return showToast("Reach Bronze VIP (₹50 deposit) to claim daily!", "error");
             
@@ -1196,7 +1580,7 @@
             user.balance += vip.bonus;
             user.lastCheckIn = today;
             state.balance = user.balance;
-            updateUI();
+            updateUI(true); 
             showToast(`Claimed ₹${vip.bonus} Daily Bonus!`, "success");
         };
 
@@ -1204,19 +1588,22 @@
             if(!state.currentUser) return;
             const user = state.users[state.currentUser];
             
-            if(user.claimableCashback <= 0) return showToast("No accumulated cashback available to claim.", "error");
+            if(!user.claimableCashback || user.claimableCashback <= 0) return showToast("No accumulated cashback available to claim.", "error");
             
             const amt = user.claimableCashback;
             user.balance += amt;
             user.claimableCashback = 0;
             state.balance = user.balance;
-            updateUI();
+            updateUI(true);
             showToast(`Claimed ₹${amt.toFixed(2)} Cashback successfully!`, "success");
         };
 
         const openModal = (modalId) => {
             if(state.gameIsRunning) return showToast("Cannot transact while game is running.", "error");
-            if(modalId === 'withdrawModal') document.getElementById('withdrawAvailable').innerText = formatMoney(state.balance);
+            if(modalId === 'withdrawModal') document.getElementById('withdrawAvailable').innerText = formatMoney(state.withdrawableBalance || 0);
+            if(modalId === 'depositModal') { document.getElementById('depositAmount').value = 20; document.getElementById('depositUtr').value = ""; }
+            if(modalId === 'mailModal') renderMails();
+
             const modal = document.getElementById(modalId);
             const inner = document.getElementById(modalId + 'Inner');
             modal.classList.remove('hidden');
@@ -1236,45 +1623,148 @@
             setTimeout(() => { modal.classList.add('hidden'); }, 300);
         };
 
+        // Deposit Setup
         const setDepositAmount = (amount) => { document.getElementById('depositAmount').value = amount; };
-        const setMaxWithdraw = () => { document.getElementById('withdrawAmount').value = Math.floor(state.balance); };
+        
+        const copyUpi = () => {
+            const tempInput = document.createElement("input");
+            tempInput.value = "priyanshugogoi594@oksbi";
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            showToast("UPI ID copied to clipboard!", "success");
+        };
 
-        const confirmDeposit = () => {
+        const payViaUPI = () => {
             const amt = parseFloat(document.getElementById('depositAmount').value);
-            if(isNaN(amt) || amt <= 0) return showToast("Enter a valid amount", "error");
+            if(isNaN(amt) || amt < 20) return showToast("Minimum deposit amount is ₹20", "error");
             
-            state.users[state.currentUser].totalDeposited += amt;
-            state.balance += amt;
+            const upiId = "priyanshugogoi594@oksbi";
+            const payeeName = "MegaBet";
             
-            updateUI();
-            closeModal('depositModal');
-            showToast(`Successfully deposited ${formatMoney(amt)}`, "success");
+            const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amt.toFixed(2)}&cu=INR`;
+            
+            try {
+                window.location.assign(upiUrl);
+            } catch(e) {
+                showToast("Could not open UPI app automatically.", "error");
+            }
         };
 
-        const confirmWithdraw = () => {
+        const confirmDeposit = async () => {
+            const amt = parseFloat(document.getElementById('depositAmount').value);
+            const utr = document.getElementById('depositUtr').value.trim();
+            
+            if(isNaN(amt) || amt < 20) return showToast("Minimum deposit amount is ₹20", "error");
+            if(!utr || utr.length < 6) return showToast("Please enter a valid UTR or Reference Number", "error");
+            
+            const req = {
+                amount: amt,
+                utr: utr,
+                status: 'pending',
+                timestamp: Date.now()
+            };
+            
+            try {
+                await db.ref(`users/${state.currentUser}/deposits`).push(req);
+                closeModal('depositModal');
+                showToast(`Deposit request for ${formatMoney(amt)} submitted. It is pending admin approval.`, "success");
+                
+                if(!state.users[state.currentUser].totalDeposited) state.users[state.currentUser].totalDeposited = 0;
+            } catch(e) {
+                showToast("Failed to submit deposit. Please try again.", "error");
+            }
+        };
+
+        // Withdraw Setup
+        let withdrawMethod = 'upi';
+        const setWithMethod = (method) => {
+            withdrawMethod = method;
+            if(method === 'upi') {
+                document.getElementById('btnWithUpi').className = "flex-1 bg-brand text-white py-2 rounded-xl text-sm font-bold transition shadow-lg";
+                document.getElementById('btnWithBank').className = "flex-1 bg-dark border border-gray-700 hover:bg-gray-800 text-gray-400 py-2 rounded-xl text-sm font-bold transition";
+                document.getElementById('withUpiFields').classList.remove('hidden');
+                document.getElementById('withBankFields').classList.add('hidden');
+            } else {
+                document.getElementById('btnWithBank').className = "flex-1 bg-brand text-white py-2 rounded-xl text-sm font-bold transition shadow-lg";
+                document.getElementById('btnWithUpi').className = "flex-1 bg-dark border border-gray-700 hover:bg-gray-800 text-gray-400 py-2 rounded-xl text-sm font-bold transition";
+                document.getElementById('withBankFields').classList.remove('hidden');
+                document.getElementById('withUpiFields').classList.add('hidden');
+            }
+        };
+
+        const setMaxWithdraw = () => { document.getElementById('withdrawAmount').value = Math.floor(state.withdrawableBalance || 0); };
+
+        const confirmWithdraw = async () => {
             const amt = parseFloat(document.getElementById('withdrawAmount').value);
-            if(isNaN(amt) || amt <= 0) return showToast("Enter a valid amount", "error");
-            if(amt > state.balance) return showToast("Insufficient balance", "error");
-            state.balance -= amt;
-            updateUI();
-            closeModal('withdrawModal');
-            showToast(`Successfully withdrew ${formatMoney(amt)}`, "success");
+            if(isNaN(amt) || amt < 100) return showToast("Minimum withdrawal is ₹100", "error");
+            if(amt > (state.withdrawableBalance || 0)) return showToast("Insufficient withdrawable balance", "error");
+            
+            let details = {};
+            if(withdrawMethod === 'upi') {
+                const upiId = document.getElementById('withUpiId').value.trim();
+                if(!upiId) return showToast("Please enter your UPI ID", "error");
+                details = { type: 'upi', upiId };
+            } else {
+                const bName = document.getElementById('withBankName').value.trim();
+                const bAcc = document.getElementById('withBankAcc').value.trim();
+                const bIfsc = document.getElementById('withBankIfsc').value.trim();
+                if(!bName || !bAcc || !bIfsc) return showToast("Please fill out all Bank Account details", "error");
+                details = { type: 'bank', bankName: bName, accNum: bAcc, ifsc: bIfsc };
+            }
+
+            state.withdrawableBalance -= amt;
+            updateUI(true); // Pushes new balance to DB immediately 
+            
+            const req = {
+                amount: amt,
+                details,
+                status: 'pending',
+                timestamp: Date.now()
+            };
+            
+            try {
+                await db.ref(`users/${state.currentUser}/withdrawals`).push(req);
+                closeModal('withdrawModal');
+                document.getElementById('withdrawAmount').value = "";
+                showToast(`Withdraw request for ${formatMoney(amt)} submitted successfully.`, "success");
+            } catch(e) {
+                state.withdrawableBalance += amt; 
+                updateUI(true);
+                showToast("Failed to submit withdrawal. Please try again.", "error");
+            }
         };
 
-        const submitSupportTicket = () => {
+        const submitSupportTicket = async () => {
             const type = document.getElementById('supportType').value;
+            const ref = document.getElementById('supportRef').value;
             const desc = document.getElementById('supportDesc').value;
 
             if(!type) return showToast("Please select an issue type", "error");
             if(desc.trim().length < 10) return showToast("Please provide a more detailed description", "error");
 
-            document.getElementById('supportType').value = "";
-            document.getElementById('supportRef').value = "";
-            document.getElementById('supportDesc').value = "";
+            const req = {
+                type,
+                ref,
+                desc,
+                status: 'pending',
+                timestamp: Date.now()
+            };
 
-            showToast("Ticket submitted successfully! Support will contact you shortly.", "success");
-            
-            setTimeout(() => { navigate('dashboard'); }, 1000);
+            try {
+                await db.ref(`users/${state.currentUser}/support`).push(req);
+                
+                document.getElementById('supportType').value = "";
+                document.getElementById('supportRef').value = "";
+                document.getElementById('supportDesc').value = "";
+
+                showToast("Ticket submitted successfully! Check your History.", "success");
+                
+                setTimeout(() => { navigate('history'); switchHistTab('support'); }, 1000);
+            } catch(e) {
+                showToast("Failed to submit ticket. Please try again.", "error");
+            }
         };
 
         // --- TOAST SYSTEM ---
@@ -1303,28 +1793,39 @@
         const validateBet = (betInputId) => {
             const bet = parseFloat(document.getElementById(betInputId).value);
             if(isNaN(bet) || bet <= 0) { showToast("Invalid bet amount", "error"); return false; }
-            if(bet > state.balance && state.freeSpins === 0) { showToast("Insufficient balance", "error"); return false; }
+            
+            const totalAvailable = state.balance + (state.withdrawableBalance || 0);
+            if(bet > totalAvailable && state.freeSpins === 0) { showToast("Insufficient balance", "error"); return false; }
             return bet;
         };
 
         const processBet = (amount) => {
-            state.balance -= amount;
+            if(state.balance >= amount) {
+                state.balance -= amount;
+            } else {
+                const remaining = amount - state.balance;
+                state.balance = 0;
+                state.withdrawableBalance -= remaining;
+            }
+            
             state.stats.wagered += amount;
             state.stats.gamesPlayed++;
-            updateUI();
+            updateUI(true); 
         };
 
         const processWin = (amount) => {
-            state.balance += amount;
+            if(!state.withdrawableBalance) state.withdrawableBalance = 0;
+            state.withdrawableBalance += amount;
             state.stats.won += amount;
-            updateUI();
+            updateUI(true); 
         };
 
         const registerGameResult = (actualBet, winAmt) => {
             if (winAmt < actualBet) {
                 const loss = actualBet - winAmt;
+                if(!state.users[state.currentUser].claimableCashback) state.users[state.currentUser].claimableCashback = 0;
                 state.users[state.currentUser].claimableCashback += (loss * 0.10);
-                updateUI();
+                updateUI(true);
             }
         };
 
@@ -1373,19 +1874,34 @@
                 rolls++;
                 if(rolls > 15) {
                     clearInterval(rollAnim);
-                    const d1 = Math.floor(Math.random() * 6) + 1;
-                    const d2 = Math.floor(Math.random() * 6) + 1;
-                    const total = d1 + d2;
+                    
+                    let d1 = Math.floor(Math.random() * 6) + 1;
+                    let d2 = Math.floor(Math.random() * 6) + 1;
+                    let total = d1 + d2;
+
+                    let isWin = false;
+                    if(state.diceTarget === 'low' && total <= 7) isWin = true;
+                    if(state.diceTarget === 'high' && total >= 8) isWin = true;
+
+                    // --- DBR SYSTEM INTERVENTION ---
+                    const dbr = getDBRMultiplier();
+                    if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                        isWin = false; // Force Loss
+                        if(state.diceTarget === 'low') { d1 = 4; d2 = 5; total = 9; } // Force High
+                        if(state.diceTarget === 'high') { d1 = 2; d2 = 3; total = 5; } // Force Low
+                    } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
+                        isWin = true; // Force Win
+                        if(state.diceTarget === 'low') { d1 = 2; d2 = 2; total = 4; } // Force Low
+                        if(state.diceTarget === 'high') { d1 = 5; d2 = 5; total = 10; } // Force High
+                    }
+                    // -------------------------------
                     
                     die1El.className = `fas ${getDiceIcon(d1)} text-5xl sm:text-7xl text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.8)]`;
                     die2El.className = `fas ${getDiceIcon(d2)} text-5xl sm:text-7xl text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.8)]`;
 
-                    let isWin = false;
                     let winAmt = 0;
-                    if(state.diceTarget === 'low' && total <= 7) isWin = true;
-                    if(state.diceTarget === 'high' && total >= 8) isWin = true;
-
                     const resText = document.getElementById('diceResultText');
+                    
                     if(isWin) {
                         winAmt = bet * 2.00;
                         processWin(winAmt);
@@ -1420,7 +1936,6 @@
             document.getElementById(activeBtn).classList.add('border-yellow-400', 'text-white');
         };
 
-        let coinCurrentRot = 0;
         const playCoin = () => {
             if(state.gameIsRunning) return;
             const bet = validateBet('coinBet');
@@ -1433,8 +1948,19 @@
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
-            const result = Math.random() < 0.5 ? 'heads' : 'tails';
-            const isWin = result === state.coinTarget;
+            let result = Math.random() < 0.5 ? 'heads' : 'tails';
+            let isWin = result === state.coinTarget;
+
+            // --- DBR SYSTEM INTERVENTION ---
+            const dbr = getDBRMultiplier();
+            if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                isWin = false; // Force Loss
+                result = state.coinTarget === 'heads' ? 'tails' : 'heads';
+            } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
+                isWin = true; // Force Win
+                result = state.coinTarget;
+            }
+            // -------------------------------
 
             const coin = document.getElementById('coinObj');
             const spins = 5; 
@@ -1487,19 +2013,29 @@
             
             const wheel = document.getElementById('rouletteWheel');
             
-            const resultNum = Math.floor(Math.random() * 37);
+            let resultNum = Math.floor(Math.random() * 37);
             let resultColor = 'green';
-            let targetAngle = 0; 
+            if(resultNum >= 1 && resultNum <= 18) resultColor = 'red';
+            else if (resultNum >= 19 && resultNum <= 36) resultColor = 'black';
             
-            if(resultNum >= 1 && resultNum <= 18) {
-                resultColor = 'red';
-                targetAngle = 20 + Math.random() * 165; 
-            } else if (resultNum >= 19 && resultNum <= 36) {
-                resultColor = 'black';
-                targetAngle = 195 + Math.random() * 160;
-            } else {
-                targetAngle = 2 + Math.random() * 14;
+            let isWin = target === resultColor;
+
+            // --- DBR SYSTEM INTERVENTION ---
+            const dbr = getDBRMultiplier();
+            if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                isWin = false; // Force loss
+                const losingColors = ['red', 'black', 'green'].filter(c => c !== target);
+                resultColor = losingColors[Math.floor(Math.random() * losingColors.length)];
+            } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
+                isWin = true; // Force win
+                resultColor = target;
             }
+            // -------------------------------
+
+            let targetAngle = 0; 
+            if(resultColor === 'red') targetAngle = 20 + Math.random() * 165; 
+            else if (resultColor === 'black') targetAngle = 195 + Math.random() * 160;
+            else targetAngle = 2 + Math.random() * 14;
 
             const spins = 5;
             const targetRotationMod = 360 - targetAngle;
@@ -1514,16 +2050,11 @@
             wheel.style.transform = `rotate(${rouletteRot}deg)`;
 
             setTimeout(() => {
-                let isWin = false;
                 let multiplier = 0;
                 let winAmt = 0;
                 
-                if(target === resultColor) {
-                    isWin = true;
-                    multiplier = target === 'green' ? 14 : 2;
-                }
-
                 if(isWin) {
+                    multiplier = target === 'green' ? 14 : 2;
                     winAmt = bet * multiplier;
                     processWin(winAmt);
                     resText.innerText = `Landed on ${resultColor.toUpperCase()}`;
@@ -1580,7 +2111,6 @@
             });
 
             const scatters = grid.filter(s => s === '🌟').length;
-
             return { multiplier: winMultiplier, lines: winningLines, scatters };
         };
 
@@ -1593,7 +2123,7 @@
             if(state.freeSpins > 0) {
                 bet = parseFloat(document.getElementById('slotBet').value); 
                 state.freeSpins--;
-                updateUI(); 
+                updateUI(true); 
             } else {
                 bet = validateBet('slotBet');
                 if(!bet) return;
@@ -1618,6 +2148,21 @@
 
             const grid = [];
             for(let i=0; i<9; i++) grid.push(getRandomSymbol());
+            let result = checkLines(grid);
+
+            // --- DBR SYSTEM INTERVENTION ---
+            const dbr = getDBRMultiplier();
+            if (dbr < 1.0 && result.multiplier > 0 && Math.random() > dbr) {
+                // Force Loss
+                for(let i=0; i<9; i++) grid[i] = SYMBOLS[i % 5]; // Random unmatching pattern
+                grid[4] = SYMBOLS[6]; // throw in a scatter so it looks natural
+                result = checkLines(grid); 
+            } else if (dbr > 1.0 && result.multiplier === 0 && Math.random() < (dbr - 1.0)) {
+                // Force minor win (Cherries)
+                grid[3] = '🍒'; grid[4] = '🍒'; grid[5] = '🍒';
+                result = checkLines(grid);
+            }
+            // -------------------------------
 
             const stopColumn = (colIndex, delay) => {
                 setTimeout(() => {
@@ -1636,8 +2181,6 @@
             stopColumn(2, 1800);
 
             setTimeout(() => {
-                const result = checkLines(grid);
-
                 let totalWin = bet * result.multiplier;
                 
                 result.lines.forEach(line => {
@@ -1661,7 +2204,7 @@
                     state.freeSpins += 10;
                     setTimeout(() => {
                         showToast("🎰 10 FREE SPINS TRIGGERED! 🎰", "win");
-                        updateUI();
+                        updateUI(true);
                     }, 500);
                 }
 
@@ -1701,8 +2244,21 @@
             crState.currentMultiplier = 1.00;
             crState.cashedOut = false;
 
-            crState.crashPoint = Math.max(1.00, 0.99 / Math.random());
-            if(crState.crashPoint <= 1.01) crState.crashPoint = 1.00;
+            let crashPoint = Math.max(1.00, 0.99 / Math.random());
+
+            // --- DBR SYSTEM INTERVENTION ---
+            const dbr = getDBRMultiplier();
+            if (dbr < 1.0 && Math.random() > dbr) {
+                // Force an early crash (between 1.00 and 1.20)
+                crashPoint = 1.00 + (Math.random() * 0.20);
+            } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
+                // Force a longer run (between 2.00 and 5.00)
+                crashPoint = 2.00 + (Math.random() * 3.00);
+            }
+            // -------------------------------
+
+            if(crashPoint <= 1.01) crashPoint = 1.00;
+            crState.crashPoint = crashPoint;
 
             document.getElementById('btnChickenStart').classList.add('hidden');
             const cashBtn = document.getElementById('btnChickenCashout');
@@ -1806,18 +2362,6 @@
         };
 
         // --- LIMBO GAME ---
-        const updateLimboChance = () => {
-            const target = parseFloat(document.getElementById('limboTarget').value);
-            const chanceDisplay = document.getElementById('limboChance');
-            if(isNaN(target) || target <= 1.00) {
-                chanceDisplay.innerText = "0.00%";
-                return;
-            }
-            let chance = 99 / target;
-            if(chance > 99) chance = 99;
-            chanceDisplay.innerText = `${chance.toFixed(2)}%`;
-        };
-
         const playLimbo = () => {
             if(state.gameIsRunning) return;
             const bet = validateBet('limboBet');
@@ -1836,7 +2380,19 @@
             const resDisplay = document.getElementById('limboResult');
             resDisplay.className = "text-6xl sm:text-7xl font-extrabold font-mono text-white transition-colors duration-300";
 
-            const crashPoint = Math.max(1.00, 0.99 / Math.random());
+            let crashPoint = Math.max(1.00, 0.99 / Math.random());
+            let isWin = crashPoint >= target;
+
+            // --- DBR SYSTEM INTERVENTION ---
+            const dbr = getDBRMultiplier();
+            if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                crashPoint = 1.00 + (Math.random() * (target - 1.01)); // Force Loss
+                isWin = false;
+            } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
+                crashPoint = target + (Math.random() * 2.00); // Force Win
+                isWin = true;
+            }
+            // -------------------------------
             
             let currentDisplay = 1.00;
             const duration = 800; 
@@ -1858,7 +2414,7 @@
                     resDisplay.classList.add('limbo-pop');
                     
                     let winAmt = 0;
-                    if(crashPoint >= target) {
+                    if(isWin) {
                         winAmt = bet * target;
                         processWin(winAmt);
                         resDisplay.classList.replace('text-white', 'text-green-500');
@@ -1885,7 +2441,7 @@
             active: false,
             bet: 0,
             minesCount: 3,
-            grid: [], // 0 = gem, 1 = mine
+            grid: [], 
             revealedCount: 0,
             currentMult: 1.00
         };
@@ -1928,7 +2484,6 @@
             minesState.revealedCount = 0;
             minesState.currentMult = 1.00;
 
-            // Generate Board
             minesState.grid = new Array(25).fill(0);
             let placed = 0;
             while(placed < minesCount) {
@@ -1939,7 +2494,6 @@
                 }
             }
 
-            // UI Resets
             for(let i=0; i<25; i++) {
                 const cell = document.getElementById(`mine-cell-${i}`);
                 cell.className = 'mine-cell';
@@ -1965,15 +2519,36 @@
             const cell = document.getElementById(`mine-cell-${index}`);
             if(cell.classList.contains('revealed')) return;
 
+            let isMine = minesState.grid[index] === 1;
+
+            // --- DBR SYSTEM INTERVENTION (Swap cells invisibly) ---
+            const dbr = getDBRMultiplier();
+            if (dbr < 1.0 && !isMine && Math.random() > dbr) {
+                // Force a hit on a mine if possible
+                let unrevealedMine = minesState.grid.findIndex((v, i) => v === 1 && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
+                if (unrevealedMine !== -1) {
+                    minesState.grid[index] = 1;
+                    minesState.grid[unrevealedMine] = 0;
+                    isMine = true;
+                }
+            } else if (dbr > 1.0 && isMine && Math.random() < (dbr - 1.0)) {
+                // Protect user by swapping out a mine for a gem
+                let unrevealedGem = minesState.grid.findIndex((v, i) => v === 0 && i !== index && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
+                if (unrevealedGem !== -1) {
+                    minesState.grid[index] = 0;
+                    minesState.grid[unrevealedGem] = 1;
+                    isMine = false;
+                }
+            }
+            // -------------------------------
+
             cell.classList.add('revealed');
 
-            if(minesState.grid[index] === 1) {
-                // Hit a mine
+            if(isMine) {
                 cell.classList.add('mine');
                 cell.innerHTML = '💣';
                 endMinesGame(false);
             } else {
-                // Hit a gem
                 cell.classList.add('gem');
                 cell.innerHTML = '💎';
                 minesState.revealedCount++;
@@ -1984,7 +2559,6 @@
                 cashBtn.classList.remove('opacity-50');
                 cashBtn.innerText = `Cashout ${formatMoney(minesState.bet * minesState.currentMult)}`;
                 
-                // Max win condition (revealed all gems)
                 if(minesState.revealedCount === (25 - minesState.minesCount)) {
                     cashoutMines();
                 } else {
@@ -2001,7 +2575,6 @@
         const endMinesGame = (isWin) => {
             minesState.active = false;
             
-            // Reveal remaining
             for(let i=0; i<25; i++) {
                 const cell = document.getElementById(`mine-cell-${i}`);
                 if(!cell.classList.contains('revealed')) {
@@ -2043,15 +2616,12 @@
             const pegsContainer = document.getElementById('plinkoPegs');
             pegsContainer.innerHTML = '';
             
-            // Build Pegs (Triangle)
             for(let row = 0; row < PLINKO_LEVELS; row++) {
-                let numPegs = row + 3; // Top row has 3 pegs
+                let numPegs = row + 3; 
                 for(let col = 0; col < numPegs; col++) {
                     const peg = document.createElement('div');
                     peg.className = 'plinko-peg';
-                    // Calculate position
                     const rowHeightPerc = (row + 1) / (PLINKO_LEVELS + 1) * 100;
-                    // Spread pegs horizontally
                     const pegSpacing = 100 / numPegs;
                     const offset = pegSpacing / 2;
                     const colWidthPerc = (col * pegSpacing) + offset;
@@ -2100,10 +2670,8 @@
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
-            // Reset active bins
             document.querySelectorAll('.plinko-mult-box').forEach(el => el.classList.remove('active'));
 
-            // Calculate path
             let currentBin = 0;
             const path = [];
             for(let i=0; i < PLINKO_LEVELS; i++) {
@@ -2112,6 +2680,25 @@
                 path.push(dir);
             }
 
+            // --- DBR SYSTEM INTERVENTION ---
+            const dbr = getDBRMultiplier();
+            const mults = PLINKO_MULTIPLIERS[risk];
+            let isWin = mults[currentBin] >= 2; 
+
+            if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                // Force center bin (usually lowest multiplier)
+                currentBin = Math.floor(PLINKO_LEVELS / 2);
+                path.length = 0;
+                for(let i=0; i<PLINKO_LEVELS; i++) path.push(i < currentBin ? 1 : 0);
+                path.sort(() => Math.random() - 0.5); // shuffle
+            } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
+                // Force an edge bin (high multiplier)
+                currentBin = Math.random() > 0.5 ? 0 : PLINKO_LEVELS;
+                path.length = 0;
+                for(let i=0; i<PLINKO_LEVELS; i++) path.push(currentBin === 0 ? 0 : 1);
+            }
+            // -------------------------------
+
             const ball = document.getElementById('plinkoBall');
             ball.style.transition = 'none';
             ball.style.top = '0%';
@@ -2119,25 +2706,14 @@
             ball.classList.add('active');
 
             let currentStep = 0;
-            // Center is 50%. The drop widens as it goes down.
             let currentLeft = 50; 
-            const horizontalSpread = 45; // Max % it can go left/right from center
+            const horizontalSpread = 45; 
 
             const dropStep = () => {
                 currentStep++;
-                
-                const topPerc = (currentStep / PLINKO_LEVELS) * 90; // Move down
-                
-                // Calculate left
-                // Path tells us number of rights.
-                // At step `currentStep`, maximum rights is `currentStep`.
-                // We want to map current rights vs currentStep to a percentage
+                const topPerc = (currentStep / PLINKO_LEVELS) * 90; 
                 let rightsSoFar = path.slice(0, currentStep).reduce((a,b) => a+b, 0);
-                // Map to -1 to 1 range
                 let normalizedPos = (rightsSoFar / currentStep) * 2 - 1; 
-                // However, the triangle widens linearly. 
-                // Actual Left = 50% + (normalizedPos * horizontalSpread * (currentStep / PLINKO_LEVELS))
-                
                 let targetLeft = 50 + (normalizedPos * horizontalSpread * (currentStep / PLINKO_LEVELS));
                 
                 ball.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 1, 1), left 0.3s cubic-bezier(0.4, 0, 1, 1)';
@@ -2147,10 +2723,8 @@
                 if(currentStep < PLINKO_LEVELS) {
                     setTimeout(dropStep, 300);
                 } else {
-                    // Reached bottom
                     setTimeout(() => {
                         ball.style.top = '100%';
-                        // Final alignment to the specific bin box
                         const targetBinOffset = (currentBin / PLINKO_LEVELS) * 96 + 2; 
                         ball.style.left = `${targetBinOffset}%`;
                         
@@ -2164,7 +2738,7 @@
                                 processWin(winAmt);
                                 showToast(`Plinko: Won ${formatMoney(winAmt)}!`, "win");
                             } else {
-                                processWin(winAmt); // Returns fraction of bet
+                                processWin(winAmt);
                             }
 
                             registerGameResult(bet, winAmt);
@@ -2179,21 +2753,131 @@
                 }
             };
 
-            // Start drop animation
             setTimeout(dropStep, 100);
         };
 
+        // --- DRAGGABLE MAIL BUTTON (Upgraded for Smoothness) ---
+        const draggableMailBtn = document.getElementById('floatingMailBtn');
+        let isDraggingMail = false;
+        let mailDragStartX = 0;
+        let mailDragStartY = 0;
+        let mailDragInitialLeft = 0;
+        let mailDragInitialTop = 0;
+        let mailHasMoved = false;
+
+        const startMailDrag = (e) => {
+            isDraggingMail = true;
+            mailHasMoved = false;
+            
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            
+            const rect = draggableMailBtn.getBoundingClientRect();
+            mailDragInitialLeft = rect.left;
+            mailDragInitialTop = rect.top;
+            
+            mailDragStartX = clientX;
+            mailDragStartY = clientY;
+            
+            draggableMailBtn.style.transition = 'none';
+            draggableMailBtn.style.bottom = 'auto';
+            draggableMailBtn.style.right = 'auto';
+        };
+
+        const moveMailDrag = (e) => {
+            if (!isDraggingMail) return;
+            
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+
+            let deltaX = clientX - mailDragStartX;
+            let deltaY = clientY - mailDragStartY;
+
+            if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                mailHasMoved = true;
+            }
+
+            let newX = mailDragInitialLeft + deltaX;
+            let newY = mailDragInitialTop + deltaY;
+
+            // Constrain to window bounds
+            const maxX = window.innerWidth - draggableMailBtn.offsetWidth;
+            const maxY = window.innerHeight - draggableMailBtn.offsetHeight;
+            newX = Math.max(0, Math.min(newX, maxX));
+            newY = Math.max(0, Math.min(newY, maxY));
+
+            // Use requestAnimationFrame for completely smooth, 60fps tracking
+            requestAnimationFrame(() => {
+                draggableMailBtn.style.left = `${newX}px`;
+                draggableMailBtn.style.top = `${newY}px`;
+            });
+            
+            if(e.type === 'touchmove' && e.cancelable) e.preventDefault(); 
+        };
+
+        const stopMailDrag = () => {
+            if (!isDraggingMail) return;
+            isDraggingMail = false;
+            // Restore default hover transition capabilities 
+            draggableMailBtn.style.transition = ''; 
+        };
+
+        draggableMailBtn.addEventListener('mousedown', startMailDrag);
+        document.addEventListener('mousemove', moveMailDrag, { passive: false });
+        document.addEventListener('mouseup', stopMailDrag);
+
+        draggableMailBtn.addEventListener('touchstart', startMailDrag, { passive: false });
+        document.addEventListener('touchmove', moveMailDrag, { passive: false });
+        document.addEventListener('touchend', stopMailDrag);
+
+        draggableMailBtn.addEventListener('click', (e) => {
+            if (mailHasMoved) {
+                e.preventDefault();
+                e.stopPropagation();
+            } else {
+                openModal('mailModal');
+            }
+        });
 
         // --- INITIAL BOOT ---
         initMinesGrid();
         initPlinko();
-        if (state.currentUser && state.users[state.currentUser]) {
-            updateUI();
-            navigate('dashboard');
-        } else {
-            updateUI();
-            navigate('auth'); 
-        }
+        
+        // Asynchronous Firebase Boot Sequence
+        const initApp = async () => {
+            const savedCurrentUser = localStorage.getItem('megabet_currentUser') || null;
+            
+            if (savedCurrentUser) {
+                try {
+                    const snapshot = await db.ref('users/' + savedCurrentUser).once('value');
+                    if (snapshot.exists()) {
+                        state.currentUser = savedCurrentUser;
+                        state.users[savedCurrentUser] = snapshot.val();
+                        state.balance = state.users[savedCurrentUser].balance || 0;
+                        state.withdrawableBalance = state.users[savedCurrentUser].withdrawableBalance || 0;
+                        
+                        if(!state.users[savedCurrentUser].stats) state.users[savedCurrentUser].stats = { wagered: 0, won: 0, gamesPlayed: 0 };
+                        state.stats = state.users[savedCurrentUser].stats;
+                        
+                        setupLiveListener(); // Establish Realtime Admin Listener
+                        checkDailyMail();
+                        updateUI();
+                        navigate('dashboard');
+                    } else {
+                        localStorage.removeItem('megabet_currentUser');
+                        navigate('auth');
+                    }
+                } catch(err) {
+                    console.error("Failed to load user from DB", err);
+                    navigate('auth');
+                }
+            } else {
+                navigate('auth'); 
+            }
+        };
+
+        // Start App
+        initApp();
 
     </script>
 </body>
