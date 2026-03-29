@@ -266,7 +266,7 @@
                     <input type="tel" id="regMobile" placeholder="Mobile Number" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
                     <input type="password" id="regPassword" placeholder="Set Password" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
                     <input type="text" id="regRefCode" placeholder="Referral Code (Optional)" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand uppercase transition tracking-widest">
-                    <p class="text-[10px] text-gray-400 text-left px-1">Use a referral code to instantly get a ₹50 Bonus!</p>
+                    <p class="text-[10px] text-gray-400 text-left px-1">Use a referral code to instantly get a ₹25 Bonus!</p>
                     <button onclick="handleRegister()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-2">Create Account</button>
                 </div>
             </div>
@@ -332,6 +332,14 @@
                         <div class="text-gray-400 text-xs sm:text-sm truncate">Referral Code</div>
                         <div class="text-xl sm:text-2xl font-mono font-bold truncate text-yellow-400 tracking-widest" id="displayRefCode">------</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Referrals List Section -->
+            <div class="bg-panel p-5 sm:p-6 rounded-2xl border border-gray-800 mt-6">
+                <h2 class="text-xl sm:text-2xl font-bold mb-4 flex items-center gap-2"><i class="fas fa-users text-yellow-400"></i> My Referrals</h2>
+                <div id="referralsList" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                    <div class="text-gray-500 text-sm">No referrals yet. Share your code to earn ₹25 per friend!</div>
                 </div>
             </div>
         </section>
@@ -815,8 +823,8 @@
     </main>
 
     <!-- Floating Mail Button -->
-    <div id="floatingMailBtn" class="fixed bottom-[80px] md:bottom-8 right-4 md:right-8 z-50 hidden transition-transform transform hover:scale-105 cursor-grab active:cursor-grabbing touch-none select-none">
-        <div class="bg-gradient-to-r from-brand to-purple-600 hover:from-brandHover hover:to-purple-500 text-white h-14 w-14 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.5)] flex items-center justify-center text-2xl relative pointer-events-none">
+    <div id="floatingMailBtn" class="fixed bottom-[80px] md:bottom-8 right-4 md:right-8 z-50 hidden cursor-grab active:cursor-grabbing touch-none select-none">
+        <div class="bg-gradient-to-r from-brand to-purple-600 hover:from-brandHover hover:to-purple-500 text-white h-14 w-14 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.5)] flex items-center justify-center text-2xl relative pointer-events-none transition-transform transform hover:scale-105">
             <i class="fas fa-envelope"></i>
             <span id="mailBadge" class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full hidden border-2 border-panel transform translate-x-1 -translate-y-1">0</span>
         </div>
@@ -1087,6 +1095,29 @@
 
                 document.querySelectorAll('.gameBalanceDisplay').forEach(el => el.innerText = formatMoney(totalBal));
                 
+                // Render Referral Trackings
+                const refContainer = document.getElementById('referralsList');
+                if (refContainer) {
+                    if (user.referredUsers && Object.keys(user.referredUsers).length > 0) {
+                        refContainer.innerHTML = '';
+                        const refs = Object.values(user.referredUsers).sort((a,b) => b.timestamp - a.timestamp);
+                        refs.forEach(r => {
+                            const div = document.createElement('div');
+                            div.className = "flex justify-between items-center bg-dark p-3 rounded-xl border border-gray-700 mb-2";
+                            div.innerHTML = `
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400"><i class="fas fa-user"></i></div>
+                                    <span class="text-gray-300 font-mono text-sm">${r.masked}</span>
+                                </div>
+                                <span class="text-xs text-green-400 font-bold">+₹25 Bonus</span>
+                            `;
+                            refContainer.appendChild(div);
+                        });
+                    } else {
+                        refContainer.innerHTML = `<div class="text-gray-500 text-sm">No referrals yet. Share your code to earn ₹25 per friend!</div>`;
+                    }
+                }
+
                 // Update Mail Badge (Checks incoming admin mails)
                 const unreadCount = Object.values(user.mails).filter(m => (!m.claimed && m.bonusAmount > 0) || !m.read).length;
                 const badge = document.getElementById('mailBadge');
@@ -1182,11 +1213,16 @@
                         const referrerMobile = Object.keys(referrerData)[0];
                         const referrer = referrerData[referrerMobile];
                         
-                        referrer.balance += 50;
+                        referrer.balance += 25; // Referral tracking bonus
+                        if(!referrer.referredUsers) referrer.referredUsers = {};
+                        
+                        const maskedMobile = mobile.substring(0, 2) + '******' + mobile.substring(8);
+                        referrer.referredUsers[mobile] = { masked: maskedMobile, timestamp: Date.now() };
+
                         await db.ref('users/' + referrerMobile).set(referrer);
                         
-                        initialBalance += 50;
-                        showToast("Referral applied! ₹50 Bonus added.", "success");
+                        initialBalance += 25;
+                        showToast("Referral applied! ₹25 Bonus added.", "success");
                     } else {
                         return showToast("Invalid Referral Code", "error");
                     }
@@ -1199,6 +1235,7 @@
                     withdrawableBalance: 0,
                     stats: { wagered: 0, won: 0, gamesPlayed: 0 },
                     refCode: generateRefCode(),
+                    referredUsers: {},
                     totalDeposited: 0,
                     lastCheckIn: "",
                     claimableCashback: 0,
@@ -1387,16 +1424,19 @@
                 let actionHtml = '';
                 if(m.bonusAmount > 0) {
                     if(m.claimed) {
-                        actionHtml = `<button disabled class="px-4 py-2 rounded-xl font-bold bg-gray-800 text-gray-500 cursor-not-allowed text-sm whitespace-nowrap">Claimed</button>`;
+                        actionHtml += `<button disabled class="px-4 py-2 rounded-xl font-bold bg-gray-800 text-gray-500 cursor-not-allowed text-sm whitespace-nowrap">Claimed</button>`;
                     } else {
-                        actionHtml = `<button onclick="claimMailBonus('${m.id}')" class="px-4 py-2 rounded-xl font-bold bg-brand hover:bg-brandHover text-white shadow-lg shadow-brand/30 transition transform active:scale-95 text-sm whitespace-nowrap"><i class="fas fa-gift mr-1"></i> Claim ${formatMoney(m.bonusAmount)}</button>`;
+                        actionHtml += `<button onclick="claimMailBonus('${m.id}')" class="px-4 py-2 rounded-xl font-bold bg-brand hover:bg-brandHover text-white shadow-lg shadow-brand/30 transition transform active:scale-95 text-sm whitespace-nowrap"><i class="fas fa-gift mr-1"></i> Claim ${formatMoney(m.bonusAmount)}</button>`;
                     }
                 } else {
                     if(!m.read) {
-                        actionHtml = `<button onclick="markMailRead('${m.id}')" class="px-4 py-2 rounded-xl font-bold bg-gray-700 hover:bg-gray-600 text-white transition text-sm whitespace-nowrap">Mark Read</button>`;
+                        actionHtml += `<button onclick="markMailRead('${m.id}')" class="px-4 py-2 rounded-xl font-bold bg-gray-700 hover:bg-gray-600 text-white transition text-sm whitespace-nowrap">Mark Read</button>`;
                     }
                 }
                 
+                // Add Delete Button directly next to other actions
+                actionHtml += `<button onclick="deleteMail('${m.id}')" class="px-3 py-2 rounded-xl font-bold bg-red-500/10 hover:bg-red-500/20 text-red-500 transition ml-2 border border-red-500/30" title="Delete Mail"><i class="fas fa-trash"></i></button>`;
+
                 div.innerHTML = `
                     <div class="flex-grow w-full">
                         <div class="flex justify-between items-start mb-1">
@@ -1414,6 +1454,17 @@
             });
         };
 
+        const deleteMail = (id) => {
+            if(!state.currentUser) return;
+            const user = state.users[state.currentUser];
+            if(user.mails && user.mails[id]) {
+                delete user.mails[id];
+                updateUI(true); 
+                renderMails();
+                showToast("Mail deleted", "success");
+            }
+        };
+
         const claimMailBonus = (id) => {
             if(!state.currentUser) return;
             const user = state.users[state.currentUser];
@@ -1425,7 +1476,7 @@
                 mail.read = true;
                 state.balance = user.balance;
                 
-                updateUI();
+                updateUI(true);
                 renderMails();
                 showToast(`Successfully claimed ${formatMoney(mail.bonusAmount)} bonus!`, "success");
             }
@@ -1436,7 +1487,7 @@
             const user = state.users[state.currentUser];
             if(user.mails[id]) {
                 user.mails[id].read = true;
-                updateUI();
+                updateUI(true);
                 renderMails();
             }
         };
@@ -1529,7 +1580,7 @@
             user.balance += vip.bonus;
             user.lastCheckIn = today;
             state.balance = user.balance;
-            updateUI(); 
+            updateUI(true); 
             showToast(`Claimed ₹${vip.bonus} Daily Bonus!`, "success");
         };
 
@@ -1543,7 +1594,7 @@
             user.balance += amt;
             user.claimableCashback = 0;
             state.balance = user.balance;
-            updateUI();
+            updateUI(true);
             showToast(`Claimed ₹${amt.toFixed(2)} Cashback successfully!`, "success");
         };
 
@@ -2705,11 +2756,13 @@
             setTimeout(dropStep, 100);
         };
 
-        // --- DRAGGABLE MAIL BUTTON ---
+        // --- DRAGGABLE MAIL BUTTON (Upgraded for Smoothness) ---
         const draggableMailBtn = document.getElementById('floatingMailBtn');
         let isDraggingMail = false;
         let mailDragStartX = 0;
         let mailDragStartY = 0;
+        let mailDragInitialLeft = 0;
+        let mailDragInitialTop = 0;
         let mailHasMoved = false;
 
         const startMailDrag = (e) => {
@@ -2720,10 +2773,15 @@
             const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
             
             const rect = draggableMailBtn.getBoundingClientRect();
-            mailDragStartX = clientX - rect.left;
-            mailDragStartY = clientY - rect.top;
+            mailDragInitialLeft = rect.left;
+            mailDragInitialTop = rect.top;
+            
+            mailDragStartX = clientX;
+            mailDragStartY = clientY;
             
             draggableMailBtn.style.transition = 'none';
+            draggableMailBtn.style.bottom = 'auto';
+            draggableMailBtn.style.right = 'auto';
         };
 
         const moveMailDrag = (e) => {
@@ -2732,25 +2790,27 @@
             const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
             const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
 
-            let newX = clientX - mailDragStartX;
-            let newY = clientY - mailDragStartY;
+            let deltaX = clientX - mailDragStartX;
+            let deltaY = clientY - mailDragStartY;
 
+            if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                mailHasMoved = true;
+            }
+
+            let newX = mailDragInitialLeft + deltaX;
+            let newY = mailDragInitialTop + deltaY;
+
+            // Constrain to window bounds
             const maxX = window.innerWidth - draggableMailBtn.offsetWidth;
             const maxY = window.innerHeight - draggableMailBtn.offsetHeight;
             newX = Math.max(0, Math.min(newX, maxX));
             newY = Math.max(0, Math.min(newY, maxY));
 
-            const currentLeft = parseFloat(draggableMailBtn.style.left) || draggableMailBtn.getBoundingClientRect().left;
-            const currentTop = parseFloat(draggableMailBtn.style.top) || draggableMailBtn.getBoundingClientRect().top;
-            
-            if (Math.abs(newX - currentLeft) > 3 || Math.abs(newY - currentTop) > 3) {
-                mailHasMoved = true;
-            }
-
-            draggableMailBtn.style.bottom = 'auto';
-            draggableMailBtn.style.right = 'auto';
-            draggableMailBtn.style.left = `${newX}px`;
-            draggableMailBtn.style.top = `${newY}px`;
+            // Use requestAnimationFrame for completely smooth, 60fps tracking
+            requestAnimationFrame(() => {
+                draggableMailBtn.style.left = `${newX}px`;
+                draggableMailBtn.style.top = `${newY}px`;
+            });
             
             if(e.type === 'touchmove' && e.cancelable) e.preventDefault(); 
         };
@@ -2758,6 +2818,7 @@
         const stopMailDrag = () => {
             if (!isDraggingMail) return;
             isDraggingMail = false;
+            // Restore default hover transition capabilities 
             draggableMailBtn.style.transition = ''; 
         };
 
@@ -2767,7 +2828,7 @@
 
         draggableMailBtn.addEventListener('touchstart', startMailDrag, { passive: false });
         document.addEventListener('touchmove', moveMailDrag, { passive: false });
-        document.addEventListener('touchmove', stopMailDrag);
+        document.addEventListener('touchend', stopMailDrag);
 
         draggableMailBtn.addEventListener('click', (e) => {
             if (mailHasMoved) {
