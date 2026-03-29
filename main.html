@@ -1204,7 +1204,7 @@
                     return showToast("Mobile number already registered", "error");
                 }
 
-                let initialBalance = 1000.00;
+                let initialBalance = 50.00; // UPDATED FROM 1000.00 to 50.00
 
                 if(refCode) {
                     const refSnapshot = await db.ref('users').orderByChild('refCode').equalTo(refCode).once('value');
