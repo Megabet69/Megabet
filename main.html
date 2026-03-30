@@ -2285,11 +2285,12 @@
             crState.cashedOut = false;
 
             let crashPoint = Math.max(1.00, 0.99 / Math.random());
+            let forceLoss = false;
 
             // --- DBR SYSTEM INTERVENTION ---
             const dbr = getDBRMultiplier();
             if (dbr < 1.0 && Math.random() > dbr) {
-                crashPoint = 1.00 + (Math.random() * 0.20);
+                forceLoss = true;
             } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
                 crashPoint = 2.00 + (Math.random() * 3.00);
             }
@@ -2299,15 +2300,36 @@
             const user = state.users[state.currentUser];
             const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
             const totalBal = state.balance + (state.withdrawableBalance || 0);
+            let maxAllowedMult = Infinity;
 
             if (Math.floor(totalBal) <= 0) {
-                crashPoint = 1.00; // Immediate crash for all-in
+                forceLoss = true; // All-in protection
             } else {
-                const maxAllowedMult = (peak - totalBal) / bet;
-                if (crashPoint > maxAllowedMult) {
-                    crashPoint = 1.00 + (Math.random() * Math.max(0, maxAllowedMult - 1.01));
+                maxAllowedMult = (peak - totalBal) / bet;
+                if (crashPoint >= maxAllowedMult) {
+                    forceLoss = true;
                 }
             }
+
+            // --- EXECUTE FORCED LOSS LOGICALLY ---
+            if (forceLoss) {
+                // Determine the absolute highest multiplier we can safely reach
+                let safeMax = Math.min(crState.autoCashout, maxAllowedMult);
+                
+                // We want an early natural-looking crash (e.g., between 1.01x and 1.15x)
+                // but strictly ensuring we bust before they win.
+                let upperTarget = Math.min(1.15, safeMax - 0.01); 
+                
+                if (upperTarget <= 1.01) {
+                    // Extreme case: Auto-cashout is dangerously low (e.g. 1.01 or 1.02)
+                    crashPoint = safeMax <= 1.01 ? 1.00 : 1.01;
+                } else {
+                    // Normal realistic forced loss
+                    crashPoint = 1.01 + (Math.random() * (upperTarget - 1.01));
+                }
+            }
+            
+            // Final fallback
             if (crashPoint < 1.00) crashPoint = 1.00;
             crState.crashPoint = crashPoint;
             // ----------------------------------
