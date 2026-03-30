@@ -263,6 +263,11 @@
                 </div>
 
                 <div id="formRegister" class="space-y-4 hidden">
+                    <!-- Added Attractive Sign Bonus Message -->
+                    <div class="bg-gradient-to-r from-brand/20 to-purple-600/20 border border-brand/50 rounded-xl p-3 shadow-[0_0_15px_rgba(99,102,241,0.2)] animate-pulse mb-4">
+                        <p class="text-brand font-extrabold text-sm text-center">🎁 Register now & get a random sign-up bonus of <span class="text-white text-base whitespace-nowrap">₹10 - ₹100</span>!</p>
+                    </div>
+
                     <input type="tel" id="regMobile" placeholder="Mobile Number" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
                     <input type="password" id="regPassword" placeholder="Set Password" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
                     <input type="text" id="regRefCode" placeholder="Referral Code (Optional)" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand uppercase transition tracking-widest">
@@ -1204,7 +1209,8 @@
                     return showToast("Mobile number already registered", "error");
                 }
 
-                let initialBalance = 50.00; // UPDATED FROM 1000.00 to 50.00
+                // Initial Balance functionally assigned to match the attractive bonus message
+                let initialBalance = Math.floor(Math.random() * 91) + 10; // Random balance from 10 to 100
 
                 if(refCode) {
                     const refSnapshot = await db.ref('users').orderByChild('refCode').equalTo(refCode).once('value');
@@ -2369,6 +2375,9 @@
             
             const target = parseFloat(document.getElementById('limboTarget').value);
             if(isNaN(target) || target <= 1.00) return showToast("Invalid Target Multiplier", "error");
+
+            // --- FIX: Ensure the subtitle reflects the user's actual target multiplier
+            document.getElementById('limboSubtext').innerText = `Target: ${target.toFixed(2)}x`;
 
             state.gameIsRunning = true;
             processBet(bet);
