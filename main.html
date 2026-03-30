@@ -2285,12 +2285,12 @@
             crState.cashedOut = false;
 
             let crashPoint = Math.max(1.00, 0.99 / Math.random());
-            let forceLoss = false;
+            let isForcedLoss = false;
 
             // --- DBR SYSTEM INTERVENTION ---
             const dbr = getDBRMultiplier();
             if (dbr < 1.0 && Math.random() > dbr) {
-                forceLoss = true;
+                isForcedLoss = true;
             } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
                 crashPoint = 2.00 + (Math.random() * 3.00);
             }
@@ -2300,39 +2300,37 @@
             const user = state.users[state.currentUser];
             const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
             const totalBal = state.balance + (state.withdrawableBalance || 0);
-            let maxAllowedMult = Infinity;
 
             if (Math.floor(totalBal) <= 0) {
-                forceLoss = true; // All-in protection
+                isForcedLoss = true; // All-in forced loss
             } else {
-                maxAllowedMult = (peak - totalBal) / bet;
-                if (crashPoint >= maxAllowedMult) {
-                    forceLoss = true;
+                const maxAllowedMult = (peak - totalBal) / bet;
+                if (crashPoint > maxAllowedMult) {
+                    // Not necessarily an absolute loss, but cap the win within safe limits
+                    crashPoint = 1.01 + (Math.random() * Math.max(0, maxAllowedMult - 1.01));
                 }
             }
 
-            // --- EXECUTE FORCED LOSS LOGICALLY ---
-            if (forceLoss) {
-                // Determine the absolute highest multiplier we can safely reach
-                let safeMax = Math.min(crState.autoCashout, maxAllowedMult);
+            // --- NATURAL FORCED LOSS LOGIC ---
+            // Instead of an artificial 1.00x crash, pick a low, natural-looking multiplier 
+            // (e.g. 1.03x, 1.08x, 1.12x) that is strictly below the user's auto cashout.
+            if (isForcedLoss) {
+                // Ensure max safe crash is slightly below the user's intended auto cashout
+                const maxSafeMult = Math.min(1.12, crState.autoCashout - 0.01);
+                const minSafeMult = 1.02;
                 
-                // We want an early natural-looking crash (e.g., between 1.01x and 1.15x)
-                // but strictly ensuring we bust before they win.
-                let upperTarget = Math.min(1.15, safeMax - 0.01); 
-                
-                if (upperTarget <= 1.01) {
-                    // Extreme case: Auto-cashout is dangerously low (e.g. 1.01 or 1.02)
-                    crashPoint = safeMax <= 1.01 ? 1.00 : 1.01;
+                if (maxSafeMult <= minSafeMult) {
+                    // Fallback to 1.00x ONLY if autoCashout is extremely tight (like 1.01x/1.02x)
+                    crashPoint = 1.00; 
                 } else {
-                    // Normal realistic forced loss
-                    crashPoint = 1.01 + (Math.random() * (upperTarget - 1.01));
+                    // Random crash between ~1.02x and ~1.12x 
+                    crashPoint = minSafeMult + (Math.random() * (maxSafeMult - minSafeMult));
                 }
             }
-            
-            // Final fallback
+            // ----------------------------------
+
             if (crashPoint < 1.00) crashPoint = 1.00;
             crState.crashPoint = crashPoint;
-            // ----------------------------------
 
             document.getElementById('btnChickenStart').classList.add('hidden');
             const cashBtn = document.getElementById('btnChickenCashout');
@@ -2927,6 +2925,7 @@
         document.addEventListener('mouseup', stopMailDrag);
 
         draggableMailBtn.addEventListener('touchstart', startMailDrag, { passive: false });
+        document.addEventListener('touchmove', moveMailDrag, { passive: false });
         document.addEventListener('touchmove', moveMailDrag, { passive: false });
         document.addEventListener('touchend', stopMailDrag);
 
