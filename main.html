@@ -178,7 +178,20 @@
             100% { transform: translateX(-50%) scale(1); }
         }
         .balloon-odds-pop { animation: balloonOddsPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .balloon-obj { font-size: 4rem; transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); display: inline-block; user-select: none; }
+        .balloon-obj { 
+            width: 80px; 
+            height: 120px; 
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            transform-origin: bottom center; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            user-select: none;
+            will-change: transform;
+        }
+        @media (min-width: 640px) {
+            .balloon-obj { width: 100px; height: 150px; }
+        }
         .balloon-pop { animation: explode 0.3s ease-out forwards; }
         @keyframes explode {
             0% { transform: scale(1); opacity: 1; filter: brightness(1); }
@@ -547,7 +560,7 @@
 
                 <div class="flex-grow flex flex-col items-center justify-center bg-dark/50 rounded-2xl border border-gray-800 p-8 min-h-[300px] relative overflow-hidden">
                     <div id="balloonMultDisplay" class="absolute top-6 left-1/2 transform -translate-x-1/2 text-4xl sm:text-5xl font-extrabold font-mono text-white z-20 transition-colors duration-300 drop-shadow-[0_2px_5px_rgba(0,0,0,0.8)]">1.00x</div>
-                    <div id="balloonObj" class="balloon-obj mt-12">🎈</div>
+                    <div id="balloonObj" class="balloon-obj mt-12"></div>
                 </div>
             </div>
         </section>
@@ -1912,6 +1925,22 @@ My referal code - ${refCode}`;
             pumps: 0
         };
         let balloonRollFrame;
+        
+        const BALLOON_SVG = `
+            <svg viewBox="0 0 100 180" class="w-full h-full drop-shadow-[0_10px_20px_rgba(6,182,212,0.6)]" overflow="visible">
+                <defs>
+                    <radialGradient id="balloonGrad" cx="30%" cy="30%" r="70%">
+                        <stop offset="0%" stop-color="#67e8f9" />
+                        <stop offset="50%" stop-color="#06b6d4" />
+                        <stop offset="100%" stop-color="#164e63" />
+                    </radialGradient>
+                </defs>
+                <path d="M50 10 C15 10 10 45 10 70 C10 110 40 140 50 150 C60 140 90 110 90 70 C90 45 85 10 50 10 Z" fill="url(#balloonGrad)" />
+                <path d="M45 150 L55 150 L53 155 L47 155 Z" fill="#164e63" />
+                <path d="M50 155 Q40 165 50 170 T50 185" stroke="#475569" stroke-width="2" fill="none" />
+                <path d="M30 40 Q40 20 55 20 Q40 25 35 45 Q30 40 30 40 Z" fill="rgba(255,255,255,0.4)" />
+            </svg>
+        `;
 
         const startBalloon = () => {
             if (balloonState.active || state.gameIsRunning) return;
@@ -1976,7 +2005,7 @@ My referal code - ${refCode}`;
             const balloon = document.getElementById('balloonObj');
             balloon.classList.remove('balloon-pop');
             balloon.style.transform = `scale(1)`;
-            balloon.innerText = "🎈";
+            balloon.innerHTML = BALLOON_SVG;
 
             if (balloonState.crashPoint <= 1.00) {
                 popBalloon();
@@ -2074,7 +2103,7 @@ My referal code - ${refCode}`;
             document.getElementById('balloonMultDisplay').classList.replace('text-white', 'text-red-500');
             
             const balloon = document.getElementById('balloonObj');
-            balloon.innerText = "💥";
+            balloon.innerHTML = '<div class="text-7xl drop-shadow-[0_0_30px_rgba(239,68,68,1)]">💥</div>';
             balloon.classList.add('balloon-pop');
             
             registerGameResult(balloonState.bet, 0); 
@@ -2093,7 +2122,7 @@ My referal code - ${refCode}`;
                 const balloon = document.getElementById('balloonObj');
                 balloon.style.transform = `scale(1)`;
                 balloon.classList.remove('balloon-pop');
-                balloon.innerText = "🎈";
+                balloon.innerHTML = BALLOON_SVG;
                 document.getElementById('balloonMultDisplay').innerText = `1.00x`;
                 document.getElementById('balloonMultDisplay').classList.replace('text-green-500', 'text-white');
                 document.getElementById('balloonMultDisplay').classList.replace('text-red-500', 'text-white');
@@ -3167,6 +3196,9 @@ My referal code - ${refCode}`;
         // --- INITIAL BOOT ---
         initMinesGrid();
         initPlinko();
+        
+        // Insert initial SVG into balloon container immediately
+        document.getElementById('balloonObj').innerHTML = BALLOON_SVG;
         
         const initApp = async () => {
             const savedCurrentUser = localStorage.getItem('megabet_currentUser') || null;
