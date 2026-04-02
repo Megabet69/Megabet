@@ -226,6 +226,26 @@
         .p-color-med { background-color: #F59E0B; color: #fff; }
         .p-color-low { background-color: #10B981; color: #fff; }
 
+        /* Mystery Box */
+        .mystery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 350px; margin: 0 auto; }
+        @media (min-width: 640px) { .mystery-grid { grid-template-columns: repeat(4, 1fr); max-width: 450px; gap: 12px; } }
+        .mystery-box { aspect-ratio: 1/1; background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border-radius: 12px; border: 2px solid #334155; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.3); perspective: 1000px; }
+        .mystery-box:not(.revealed):not(.disabled):not(.opening):hover { transform: translateY(-5px) scale(1.02); border-color: #8B5CF6; box-shadow: 0 10px 15px -3px rgba(139,92,246,0.3); }
+        .mystery-box.disabled { cursor: not-allowed; opacity: 0.8; }
+        .mystery-box.opening { animation: suspenseShake 0.1s infinite; border-color: #F59E0B; box-shadow: 0 0 20px rgba(245,158,11,0.6); z-index: 10; transform: scale(1.05); }
+        .mystery-box.revealed { background: #0B0E14; border-color: #151A25; transform: scale(0.95); box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        .mystery-box.revealed.prize { border-color: #10B981; background: rgba(16, 185, 129, 0.15); animation: prizePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .mystery-box.revealed.trap { border-color: #EF4444; background: rgba(239, 68, 68, 0.15); animation: trapShake 0.5s ease; filter: grayscale(0.5); }
+        .mystery-box.transparent { opacity: 0.5; }
+        .mystery-prize-text { font-size: 1.1rem; font-weight: 800; color: #10B981; font-family: 'Space Mono', monospace; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        @media (min-width: 640px) { .mystery-prize-text { font-size: 1.4rem; } }
+
+        @keyframes suspenseShake {
+            0%, 100% { transform: rotate(0deg) scale(1.05); }
+            25% { transform: rotate(-3deg) scale(1.05); }
+            75% { transform: rotate(3deg) scale(1.05); }
+        }
+
         /* Toast */
         #toast-container { position: fixed; bottom: 150px; right: 10px; z-index: 100; display: flex; flex-direction: column; gap: 8px; max-width: 90vw; }
         @media (min-width: 768px) { #toast-container { bottom: 30px; right: 100px; max-width: 400px; } }
@@ -385,6 +405,13 @@
         <section id="games" class="view-section hidden">
             <h2 class="text-2xl sm:text-3xl font-extrabold mb-6 sm:mb-8 text-center">Select a Game</h2>
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <!-- Mystery Box Tile -->
+                <div onclick="navigate('game-mystery')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(139,92,246,0.2)]">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-violet-500 to-purple-700 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">🎁</div>
+                    <h3 class="text-lg font-bold mb-1">Mystery Box</h3>
+                    <p class="text-xs text-gray-400">Open boxes, dodge traps!</p>
+                </div>
+                
                 <!-- Balloon Pump Game Tile -->
                 <div onclick="navigate('game-balloon')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(6,182,212,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-cyan-400 to-blue-600 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">🎈</div>
@@ -533,6 +560,40 @@
         </section>
 
         <!-- Games Component Views -->
+        <section id="game-mystery" class="view-section hidden max-w-4xl mx-auto w-full">
+            <div class="flex justify-between items-center mb-4 sm:mb-6">
+                <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
+                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
+            </div>
+            <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col md:flex-row gap-6">
+                <div class="w-full md:w-64 flex flex-col justify-start space-y-4 border-b md:border-b-0 md:border-r border-gray-800 pb-6 md:pb-0 md:pr-6">
+                    <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">🎁 Mystery Box</h2>
+                    <p class="text-xs text-gray-400">Open boxes to build your multiplier. Cashout before hitting a trap!</p>
+                    
+                    <div class="space-y-2 mt-2">
+                        <label class="block text-xs font-medium text-gray-400 uppercase tracking-wide">Bet Amount</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">₹</span>
+                            <input type="number" id="mysteryBet" value="10" min="1" class="w-full bg-dark border border-gray-700 rounded-xl py-3 pl-8 pr-4 text-white font-mono focus:outline-none focus:border-violet-500 transition">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center bg-dark border border-gray-700 rounded-xl px-4 py-3 mt-4">
+                        <span class="text-xs text-gray-400 uppercase tracking-wider">Total Multiplier:</span>
+                        <span id="mysteryMultDisplay" class="font-mono font-bold text-violet-400 text-lg">0.00x</span>
+                    </div>
+
+                    <button id="btnMysteryStart" onclick="startMystery()" class="w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-auto">Bet</button>
+                    <button id="btnMysteryCashout" onclick="cashoutMystery()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg hidden mt-auto">Cashout</button>
+                </div>
+
+                <div class="flex-grow flex items-center justify-center bg-dark/50 rounded-2xl border border-gray-800 p-4 sm:p-6">
+                    <div id="mysteryGrid" class="mystery-grid">
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="game-balloon" class="view-section hidden max-w-4xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
@@ -1916,6 +1977,199 @@ My referal code - ${refCode}`;
             }
         };
 
+        // --- MYSTERY BOX GAME ---
+        let mysteryState = {
+            active: false,
+            bet: 0,
+            grid: [],
+            revealedCount: 0,
+            currentMult: 0,
+            isOpening: false,
+            totalBoxes: 12,
+            trapCount: 3
+        };
+
+        const initMysteryGrid = () => {
+            const gridEl = document.getElementById('mysteryGrid');
+            gridEl.innerHTML = '';
+            for(let i=0; i<12; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'mystery-box disabled';
+                cell.id = `mystery-box-${i}`;
+                cell.innerHTML = '🎁';
+                cell.onclick = () => clickMysteryBox(i);
+                gridEl.appendChild(cell);
+            }
+        };
+
+        const startMystery = () => {
+            if(mysteryState.active || state.gameIsRunning || mysteryState.isOpening) return;
+            const bet = validateBet('mysteryBet');
+            if(!bet) return;
+
+            state.gameIsRunning = true;
+            processBet(bet);
+
+            mysteryState.active = true;
+            mysteryState.bet = bet;
+            mysteryState.revealedCount = 0;
+            mysteryState.currentMult = 0;
+            mysteryState.isOpening = false;
+
+            mysteryState.grid = new Array(12).fill(0);
+            
+            let placedTraps = 0;
+            while(placedTraps < 3) {
+                let r = Math.floor(Math.random() * 12);
+                if(mysteryState.grid[r] !== 'trap') {
+                    mysteryState.grid[r] = 'trap';
+                    placedTraps++;
+                }
+            }
+
+            const possiblePrizes = [0.2, 0.5, 0.5, 1.0, 1.0, 1.5, 2.0, 3.0, 5.0];
+            for(let i=0; i<12; i++) {
+                if(mysteryState.grid[i] !== 'trap') {
+                    let p = possiblePrizes[Math.floor(Math.random() * possiblePrizes.length)];
+                    mysteryState.grid[i] = p;
+                }
+            }
+
+            for(let i=0; i<12; i++) {
+                const cell = document.getElementById(`mystery-box-${i}`);
+                cell.className = 'mystery-box';
+                cell.innerHTML = '🎁';
+            }
+
+            document.getElementById('mysteryBet').disabled = true;
+            document.getElementById('btnMysteryStart').classList.add('hidden');
+            const cashBtn = document.getElementById('btnMysteryCashout');
+            cashBtn.classList.remove('hidden');
+            cashBtn.disabled = true;
+            cashBtn.classList.add('opacity-50');
+            cashBtn.innerText = `Cashout ₹0.00`;
+
+            document.getElementById('mysteryMultDisplay').innerText = `0.00x`;
+        };
+
+        const clickMysteryBox = (index) => {
+            if(!mysteryState.active || mysteryState.isOpening) return;
+            const cell = document.getElementById(`mystery-box-${index}`);
+            if(cell.classList.contains('revealed')) return;
+
+            mysteryState.isOpening = true;
+            cell.classList.add('opening');
+
+            // Suspense time: 1.2s before reveal
+            setTimeout(() => {
+                resolveMysteryBox(index, cell);
+            }, 1200);
+        };
+
+        const resolveMysteryBox = (index, cell) => {
+            cell.classList.remove('opening');
+            
+            let content = mysteryState.grid[index];
+            let isTrap = (content === 'trap');
+
+            // --- STRICT LIMITS & DBR INTERVENTION ---
+            const dbr = getDBRMultiplier();
+            let potentialWinMult = mysteryState.currentMult + (isTrap ? 0 : content);
+            const potentialWin = mysteryState.bet * potentialWinMult;
+
+            let forceStrictLoss = !isTrap && isStrictLossRequired(potentialWin);
+            let forceDbrLoss = (dbr < 1.0 && !isTrap && Math.random() > dbr);
+            let forceDbrWin = (dbr > 1.0 && isTrap && Math.random() < (dbr - 1.0));
+
+            if (forceStrictLoss || forceDbrLoss) {
+                let unrevealedTrap = mysteryState.grid.findIndex((v, i) => v === 'trap' && !document.getElementById(`mystery-box-${i}`).classList.contains('revealed'));
+                if (unrevealedTrap !== -1) {
+                    mysteryState.grid[index] = 'trap';
+                    mysteryState.grid[unrevealedTrap] = content;
+                    content = 'trap';
+                    isTrap = true;
+                }
+            } else if (forceDbrWin) {
+                let unrevealedPrize = mysteryState.grid.findIndex((v, i) => v !== 'trap' && i !== index && !document.getElementById(`mystery-box-${i}`).classList.contains('revealed'));
+                if (unrevealedPrize !== -1) {
+                    let newPrize = mysteryState.grid[unrevealedPrize];
+                    mysteryState.grid[index] = newPrize;
+                    mysteryState.grid[unrevealedPrize] = 'trap';
+                    content = newPrize;
+                    isTrap = false;
+                }
+            }
+
+            cell.classList.add('revealed');
+
+            if(isTrap) {
+                cell.classList.add('trap');
+                cell.innerHTML = '😭';
+                endMysteryGame(false);
+            } else {
+                cell.classList.add('prize');
+                cell.innerHTML = `<span class="mystery-prize-text">+${content}x</span>`;
+                
+                mysteryState.revealedCount++;
+                mysteryState.currentMult += content;
+                
+                document.getElementById('mysteryMultDisplay').innerText = `${mysteryState.currentMult.toFixed(2)}x`;
+                
+                const cashBtn = document.getElementById('btnMysteryCashout');
+                cashBtn.disabled = false;
+                cashBtn.classList.remove('opacity-50');
+                cashBtn.innerText = `Cashout ${formatMoney(mysteryState.bet * mysteryState.currentMult)}`;
+                
+                // If 9 out of 12 opened (all non-traps) -> Force auto cashout
+                if(mysteryState.revealedCount === 9) {
+                    cashoutMystery();
+                } else {
+                    mysteryState.isOpening = false;
+                }
+            }
+        };
+
+        const cashoutMystery = () => {
+            if(!mysteryState.active || mysteryState.currentMult === 0 || mysteryState.isOpening) return;
+            endMysteryGame(true);
+        };
+
+        const endMysteryGame = (isWin) => {
+            mysteryState.active = false;
+            mysteryState.isOpening = false;
+            
+            for(let i=0; i<12; i++) {
+                const cell = document.getElementById(`mystery-box-${i}`);
+                if(!cell.classList.contains('revealed')) {
+                    cell.classList.add('revealed', 'transparent');
+                    let content = mysteryState.grid[i];
+                    if(content === 'trap') {
+                        cell.innerHTML = '😭';
+                    } else {
+                        cell.innerHTML = `<span class="mystery-prize-text text-sm sm:text-lg">+${content}x</span>`;
+                    }
+                }
+            }
+
+            let winAmt = 0;
+            if(isWin) {
+                winAmt = mysteryState.bet * mysteryState.currentMult;
+                processWin(winAmt);
+                showToast(`Mystery Box: Cashed out ${formatMoney(winAmt)}!`, "win");
+            } else {
+                showToast(`Hit a trap! You lost.`, "error");
+            }
+            
+            registerGameResult(mysteryState.bet, winAmt);
+
+            document.getElementById('btnMysteryStart').classList.remove('hidden');
+            document.getElementById('btnMysteryCashout').classList.add('hidden');
+            document.getElementById('mysteryBet').disabled = false;
+            
+            state.gameIsRunning = false;
+        };
+
+
         // --- BALLOON PUMP GAME ---
         let balloonState = {
             active: false,
@@ -3195,6 +3449,7 @@ My referal code - ${refCode}`;
 
         // --- INITIAL BOOT ---
         initMinesGrid();
+        initMysteryGrid();
         initPlinko();
         
         // Insert initial SVG into balloon container immediately
