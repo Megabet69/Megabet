@@ -108,30 +108,6 @@
         }
         @media (min-width: 640px) { .roulette-pointer { top: -12px; border-left-width: 15px; border-right-width: 15px; border-top-width: 25px; } }
 
-        /* Wheel of Fortune */
-        .wof-container { position: relative; width: 220px; height: 220px; margin: 0 auto; }
-        @media (min-width: 640px) { .wof-container { width: 280px; height: 280px; } }
-        .wof-wheel {
-            width: 100%; height: 100%; border-radius: 50%;
-            border: 8px solid #1E293B; box-shadow: 0 0 25px rgba(0,0,0,0.8);
-            position: relative; transition: transform 4s cubic-bezier(0.2, 0.8, 0.2, 1);
-            overflow: hidden;
-        }
-        .wof-pointer {
-            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
-            width: 0; height: 0; border-left: 15px solid transparent;
-            border-right: 15px solid transparent; border-top: 35px solid #FDE047;
-            z-index: 10; filter: drop-shadow(0 4px 5px rgba(0,0,0,0.6));
-        }
-        .wof-segment-text {
-            position: absolute; top: 0; left: 50%; width: 40px; height: 50%;
-            margin-left: -20px; transform-origin: bottom center;
-            display: flex; align-items: flex-start; justify-content: center;
-            padding-top: 15px; font-weight: 800; color: white; font-size: 1rem;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8); font-family: 'Space Mono', monospace;
-        }
-        @media (min-width: 640px) { .wof-segment-text { font-size: 1.25rem; padding-top: 20px; } }
-
         /* Slots Animation */
         .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #0f172a; padding: 10px; border-radius: 12px; border: 3px solid #334155; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         @media (min-width: 640px) { .slot-grid { gap: 10px; padding: 15px; border-radius: 16px; border-width: 4px; box-shadow: inset 0 0 30px rgba(0,0,0,0.8); } }
@@ -429,14 +405,6 @@
         <section id="games" class="view-section hidden">
             <h2 class="text-2xl sm:text-3xl font-extrabold mb-6 sm:mb-8 text-center">Select a Game</h2>
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                
-                <!-- Wheel of Fortune Tile -->
-                <div onclick="navigate('game-wheel')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(59,130,246,0.2)]">
-                    <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-blue-400 to-indigo-600 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">🎡</div>
-                    <h3 class="text-lg font-bold mb-1">Wheel of Fortune</h3>
-                    <p class="text-xs text-gray-400">Spin the wheel to win big!</p>
-                </div>
-                
                 <!-- Mystery Box Tile -->
                 <div onclick="navigate('game-mystery')" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(139,92,246,0.2)]">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-violet-500 to-purple-700 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">🎁</div>
@@ -592,48 +560,6 @@
         </section>
 
         <!-- Games Component Views -->
-        <section id="game-wheel" class="view-section hidden max-w-4xl mx-auto w-full">
-            <div class="flex justify-between items-center mb-4 sm:mb-6">
-                <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
-                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
-            </div>
-            <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col md:flex-row gap-6">
-                <div class="w-full md:w-64 flex flex-col justify-start space-y-4 border-b md:border-b-0 md:border-r border-gray-800 pb-6 md:pb-0 md:pr-6">
-                    <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">🎡 Wheel of Fortune</h2>
-                    <p class="text-xs text-gray-400">Spin the wheel and multiply your bet based on where it lands!</p>
-                    
-                    <div class="space-y-2 mt-2">
-                        <label class="block text-xs font-medium text-gray-400 uppercase tracking-wide">Bet Amount</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">₹</span>
-                            <input type="number" id="wofBet" value="10" min="1" class="w-full bg-dark border border-gray-700 rounded-xl py-3 pl-8 pr-4 text-white font-mono focus:outline-none focus:border-blue-500 transition">
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-2">
-                        <label class="block text-xs font-medium text-gray-400 uppercase tracking-wide">Risk Level</label>
-                        <select id="wofRisk" onchange="renderWheel()" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-blue-500 transition appearance-none cursor-pointer">
-                            <option value="low">Low Risk</option>
-                            <option value="medium" selected>Medium Risk</option>
-                            <option value="high">High Risk</option>
-                        </select>
-                    </div>
-
-                    <button id="btnSpinWof" onclick="playWheel()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-auto active:transform active:translate-y-1">Spin to Win</button>
-                </div>
-
-                <div class="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 bg-dark/50 rounded-2xl border border-gray-800/50">
-                    <div class="wof-container">
-                        <div class="wof-pointer"></div>
-                        <div id="wofWheel" class="wof-wheel">
-                            <!-- SVG segments drawn via JS -->
-                        </div>
-                    </div>
-                    <div id="wofResultDisplay" class="text-center mt-4 text-xl sm:text-2xl font-bold h-8 flex items-center justify-center"></div>
-                </div>
-            </div>
-        </section>
-
         <section id="game-mystery" class="view-section hidden max-w-4xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
@@ -1092,11 +1018,11 @@
             <p class="text-xs sm:text-sm text-gray-400 mb-4">Minimum deposit is ₹20. Pay to the UPI ID below and enter the UTR/Reference number.</p>
             
             <div class="bg-dark border border-gray-700 rounded-xl p-3 mb-4 flex justify-between items-center">
-                <div class="truncate">
+                <div>
                     <div class="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Official UPI ID (GPay, PhonePe, Paytm)</div>
-                    <div class="text-white font-mono text-sm tracking-wide truncate" id="adminUpiId">Loading...</div>
+                    <div class="text-white font-mono text-sm tracking-wide" id="adminUpiId">priyanshugogoi594@oksbi</div>
                 </div>
-                <button onclick="copyUpi()" class="text-brand hover:text-white p-2 ml-2 flex-shrink-0 rounded-lg bg-panel hover:bg-gray-800 transition" title="Copy UPI ID"><i class="fas fa-copy"></i></button>
+                <button onclick="copyUpi()" class="text-brand hover:text-white p-2 rounded-lg bg-panel hover:bg-gray-800 transition" title="Copy UPI ID"><i class="fas fa-copy"></i></button>
             </div>
 
             <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
@@ -1192,22 +1118,9 @@
             gameIsRunning: false,
             freeSpins: 0,
             diceTarget: 'low',
-            coinTarget: 'heads',
-            activeUpiId: "priyanshugogoi594@oksbi" // Default Fallback
+            coinTarget: 'heads'
         };
         
-        // Listen to active global settings for Payment UPI ID
-        db.ref('settings').on('value', (snapshot) => {
-            if(snapshot.exists()) {
-                const data = snapshot.val();
-                if(data.activeUpiId) {
-                    state.activeUpiId = data.activeUpiId;
-                    const adminUpiIdEl = document.getElementById('adminUpiId');
-                    if(adminUpiIdEl) adminUpiIdEl.innerText = state.activeUpiId;
-                }
-            }
-        });
-
         // Setup Live Listener
         let liveListener = null;
 
@@ -1624,8 +1537,6 @@ My referal code - ${refCode}`;
                 mainContent.classList.remove('py-6', 'pb-24', 'md:pb-8', 'my-auto');
                 mainContent.classList.add('py-4', 'pb-4');
                 if (floatingMailBtn) floatingMailBtn.classList.remove('hidden');
-                
-                if (viewId === 'game-wheel') renderWheel(); // Re-render correct scale
             } else {
                 mainNav.classList.remove('hidden');
                 mobileNav.classList.remove('hidden');
@@ -1840,11 +1751,7 @@ My referal code - ${refCode}`;
         const openModal = (modalId) => {
             if(state.gameIsRunning) return showToast("Cannot transact while game is running.", "error");
             if(modalId === 'withdrawModal') document.getElementById('withdrawAvailable').innerText = formatMoney(state.withdrawableBalance || 0);
-            if(modalId === 'depositModal') { 
-                document.getElementById('depositAmount').value = 20; 
-                document.getElementById('depositUtr').value = ""; 
-                document.getElementById('adminUpiId').innerText = state.activeUpiId;
-            }
+            if(modalId === 'depositModal') { document.getElementById('depositAmount').value = 20; document.getElementById('depositUtr').value = ""; }
             if(modalId === 'mailModal') renderMails();
 
             const modal = document.getElementById(modalId);
@@ -1870,7 +1777,7 @@ My referal code - ${refCode}`;
         
         const copyUpi = () => {
             const tempInput = document.createElement("input");
-            tempInput.value = state.activeUpiId;
+            tempInput.value = "priyanshugogoi594@oksbi";
             document.body.appendChild(tempInput);
             tempInput.select();
             document.execCommand("copy");
@@ -1882,7 +1789,7 @@ My referal code - ${refCode}`;
             const amt = parseFloat(document.getElementById('depositAmount').value);
             if(isNaN(amt) || amt < 20) return showToast("Minimum deposit amount is ₹20", "error");
             
-            const upiId = state.activeUpiId;
+            const upiId = "priyanshugogoi594@oksbi";
             const payeeName = "MegaBet";
             
             const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amt.toFixed(2)}&cu=INR`;
@@ -2068,155 +1975,6 @@ My referal code - ${refCode}`;
                 state.users[state.currentUser].claimableCashback += (loss * 0.05);
                 updateUI(true);
             }
-        };
-
-        // --- WHEEL OF FORTUNE GAME ---
-        const WHEEL_CONFIG = {
-            low: [
-                { mult: 1.5, color: '#10B981' }, 
-                { mult: 0.5, color: '#EF4444' },
-                { mult: 1.2, color: '#3B82F6' },
-                { mult: 0.5, color: '#EF4444' },
-                { mult: 1.1, color: '#8B5CF6' },
-                { mult: 0.5, color: '#EF4444' },
-                { mult: 1.2, color: '#3B82F6' },
-                { mult: 0.5, color: '#EF4444' },
-                { mult: 1.5, color: '#10B981' },
-                { mult: 0.5, color: '#EF4444' }
-            ],
-            medium: [
-                { mult: 3.0, color: '#F59E0B' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 1.5, color: '#3B82F6' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 2.0, color: '#8B5CF6' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 1.5, color: '#3B82F6' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 2.0, color: '#8B5CF6' },
-                { mult: 0.0, color: '#334155' }
-            ],
-            high: [
-                { mult: 10.0, color: '#EC4899' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 2.0, color: '#3B82F6' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 5.0, color: '#F59E0B' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 0.0, color: '#334155' },
-                { mult: 2.0, color: '#3B82F6' }
-            ]
-        };
-
-        let wofRot = 0;
-
-        const renderWheel = () => {
-            if(state.gameIsRunning) return;
-            const risk = document.getElementById('wofRisk').value;
-            const segments = WHEEL_CONFIG[risk];
-            const wheel = document.getElementById('wofWheel');
-
-            let gradientParts = [];
-            let html = '';
-
-            segments.forEach((seg, i) => {
-                let startAngle = i * 36;
-                let endAngle = (i + 1) * 36;
-                gradientParts.push(`${seg.color} ${startAngle}deg ${endAngle}deg`);
-
-                let rotation = i * 36 + 18; 
-                html += `<div class="wof-segment-text" style="transform: rotate(${rotation}deg)">${seg.mult}x</div>`;
-            });
-
-            wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
-            wheel.innerHTML = html;
-        };
-
-        const playWheel = () => {
-            if(state.gameIsRunning) return;
-            const bet = validateBet('wofBet');
-            if(!bet) return;
-
-            state.gameIsRunning = true;
-            processBet(bet);
-
-            const risk = document.getElementById('wofRisk').value;
-            const segments = WHEEL_CONFIG[risk];
-
-            const btn = document.getElementById('btnSpinWof');
-            btn.disabled = true;
-            btn.classList.add('opacity-50');
-
-            const resDisplay = document.getElementById('wofResultDisplay');
-            resDisplay.innerText = '';
-
-            let resultIdx = Math.floor(Math.random() * 10);
-            let resultMult = segments[resultIdx].mult;
-
-            // --- STRICT LIMITS & DBR INTERVENTION ---
-            const dbr = getDBRMultiplier();
-            let potentialWin = bet * resultMult;
-            let isWin = resultMult >= 1.0;
-
-            if (isWin && isStrictLossRequired(potentialWin)) {
-                let lossIndices = segments.map((s, i) => s.mult < 1.0 ? i : -1).filter(i => i !== -1);
-                if(lossIndices.length > 0) resultIdx = lossIndices[Math.floor(Math.random() * lossIndices.length)];
-                resultMult = segments[resultIdx].mult;
-                isWin = false;
-            } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                let lossIndices = segments.map((s, i) => s.mult < 1.0 ? i : -1).filter(i => i !== -1);
-                if(lossIndices.length > 0) resultIdx = lossIndices[Math.floor(Math.random() * lossIndices.length)];
-                resultMult = segments[resultIdx].mult;
-                isWin = false;
-            } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                let winIndices = segments.map((s, i) => s.mult >= 1.0 ? i : -1).filter(i => i !== -1);
-                if(winIndices.length > 0) resultIdx = winIndices[Math.floor(Math.random() * winIndices.length)];
-                resultMult = segments[resultIdx].mult;
-                isWin = true;
-            }
-
-            const spins = 5;
-            const randomOffset = Math.floor(Math.random() * 20) + 8; 
-            const targetAngle = 360 - (resultIdx * 36 + randomOffset);
-
-            const currentMod = wofRot % 360;
-            let rotationNeeded = targetAngle - currentMod;
-            if(rotationNeeded < 0) rotationNeeded += 360;
-
-            wofRot += (spins * 360) + rotationNeeded;
-
-            const wheelEl = document.getElementById('wofWheel');
-            wheelEl.style.transform = `rotate(${wofRot}deg)`;
-
-            setTimeout(() => {
-                const winAmt = bet * resultMult;
-
-                if(winAmt >= bet) {
-                    processWin(winAmt);
-                    showToast(`Wheel of Fortune: Won ${formatMoney(winAmt)}!`, "win");
-                    resDisplay.innerText = `WIN: ${formatMoney(winAmt)}`;
-                    resDisplay.className = "text-center text-xl sm:text-2xl font-bold mt-4 h-8 text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]";
-                } else {
-                    processWin(winAmt);
-                    if(winAmt > 0) {
-                        showToast(`Returned ${formatMoney(winAmt)}`, "info");
-                        resDisplay.innerText = `${resultMult}x`;
-                        resDisplay.className = "text-center text-xl sm:text-2xl font-bold mt-4 h-8 text-yellow-400";
-                    } else {
-                        showToast(`Hit 0x. You lost.`, "error");
-                        resDisplay.innerText = `0x`;
-                        resDisplay.className = "text-center text-xl sm:text-2xl font-bold mt-4 h-8 text-gray-500";
-                    }
-                }
-
-                registerGameResult(bet, winAmt);
-
-                btn.disabled = false;
-                btn.classList.remove('opacity-50');
-                state.gameIsRunning = false;
-            }, 4000);
         };
 
         // --- MYSTERY BOX GAME ---
@@ -3505,7 +3263,9 @@ My referal code - ${refCode}`;
             if(state.gameIsRunning) return;
             const bet = validateBet('plinkoBet');
             if(!bet) return;
-
+            
+            const risk = document.getElementById('plinkoRisk').value;
+            
             state.gameIsRunning = true;
             processBet(bet);
             
@@ -3513,130 +3273,189 @@ My referal code - ${refCode}`;
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
-            const risk = document.getElementById('plinkoRisk').value;
-            const mults = PLINKO_MULTIPLIERS[risk];
-            
-            let resultBin = 0;
-            for(let i=0; i<PLINKO_LEVELS; i++) {
-                if(Math.random() > 0.5) resultBin++;
+            document.querySelectorAll('.plinko-mult-box').forEach(el => el.classList.remove('active'));
+
+            let currentBin = 0;
+            const path = [];
+            for(let i=0; i < PLINKO_LEVELS; i++) {
+                const dir = Math.random() > 0.5 ? 1 : 0;
+                currentBin += dir;
+                path.push(dir);
             }
 
-            let resultMult = mults[resultBin];
-
-            // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
-            let potentialWin = bet * resultMult;
-            let isWin = resultMult >= 1.0;
+            const mults = PLINKO_MULTIPLIERS[risk];
+            let isWin = mults[currentBin] >= 2; 
 
-            if (isWin && isStrictLossRequired(potentialWin)) {
-                let lossIndices = mults.map((m, i) => m < 1.0 ? i : -1).filter(i => i !== -1);
-                if(lossIndices.length > 0) resultBin = lossIndices[Math.floor(Math.random() * lossIndices.length)];
-                resultMult = mults[resultBin];
-                isWin = false;
+            let minBin = 0;
+            let minMult = mults[0];
+            for(let i=1; i<PLINKO_LEVELS; i++) {
+                if(mults[i] < minMult) { minMult = mults[i]; minBin = i; }
+            }
+
+            if (isStrictLossRequired(bet * mults[currentBin])) {
+                currentBin = minBin;
+                path.length = 0;
+                for(let i=0; i<PLINKO_LEVELS; i++) path.push(i < currentBin ? 1 : 0);
+                path.sort(() => Math.random() - 0.5); 
             } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                let lossIndices = mults.map((m, i) => m < 1.0 ? i : -1).filter(i => i !== -1);
-                if(lossIndices.length > 0) resultBin = lossIndices[Math.floor(Math.random() * lossIndices.length)];
-                resultMult = mults[resultBin];
-                isWin = false;
+                currentBin = Math.floor(PLINKO_LEVELS / 2);
+                path.length = 0;
+                for(let i=0; i<PLINKO_LEVELS; i++) path.push(i < currentBin ? 1 : 0);
+                path.sort(() => Math.random() - 0.5); 
             } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                let winIndices = mults.map((m, i) => m >= 1.0 ? i : -1).filter(i => i !== -1);
-                if(winIndices.length > 0) resultBin = winIndices[Math.floor(Math.random() * winIndices.length)];
-                resultMult = mults[resultBin];
-                isWin = true;
+                currentBin = Math.random() > 0.5 ? 0 : PLINKO_LEVELS;
+                path.length = 0;
+                for(let i=0; i<PLINKO_LEVELS; i++) path.push(currentBin === 0 ? 0 : 1);
             }
 
             const ball = document.getElementById('plinkoBall');
+            ball.style.transition = 'none';
+            ball.style.top = '0%';
+            ball.style.left = '50%';
             ball.classList.add('active');
-            
-            let row = 0;
-            let currentPath = [];
-            let simulatedBin = 0;
 
-            // Animate path calculation based on forced result
-            for(let i = 0; i < PLINKO_LEVELS; i++) {
-                let goRight = false;
-                if(simulatedBin < resultBin && Math.random() > 0.2) { goRight = true; simulatedBin++; }
-                else if (PLINKO_LEVELS - i === resultBin - simulatedBin) { goRight = true; simulatedBin++; }
-                else if (Math.random() > 0.5 && simulatedBin < resultBin) { goRight = true; simulatedBin++; }
+            let currentStep = 0;
+            let currentLeft = 50; 
+            const horizontalSpread = 45; 
+
+            const dropStep = () => {
+                currentStep++;
+                const topPerc = (currentStep / PLINKO_LEVELS) * 90; 
+                let rightsSoFar = path.slice(0, currentStep).reduce((a,b) => a+b, 0);
+                let normalizedPos = (rightsSoFar / currentStep) * 2 - 1; 
+                let targetLeft = 50 + (normalizedPos * horizontalSpread * (currentStep / PLINKO_LEVELS));
                 
-                currentPath.push(goRight);
-            }
+                ball.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 1, 1), left 0.3s cubic-bezier(0.4, 0, 1, 1)';
+                ball.style.top = `${topPerc}%`;
+                ball.style.left = `${targetLeft}%`;
 
-            // Fallback correct simulated bin
-            while (simulatedBin < resultBin) {
-                for(let i=0; i<PLINKO_LEVELS; i++) {
-                    if(!currentPath[i]) { currentPath[i] = true; simulatedBin++; break; }
-                }
-            }
-            while(simulatedBin > resultBin) {
-                for(let i=0; i<PLINKO_LEVELS; i++) {
-                    if(currentPath[i]) { currentPath[i] = false; simulatedBin--; break; }
-                }
-            }
-
-            let currentCol = 1; 
-            const dropInterval = setInterval(() => {
-                if(row > PLINKO_LEVELS) {
-                    clearInterval(dropInterval);
-                    
-                    document.querySelectorAll('.plinko-mult-box').forEach(b => b.classList.remove('active'));
-                    document.getElementById(`plinko-bin-${resultBin}`).classList.add('active');
-
-                    const winAmt = bet * resultMult;
-                    if(winAmt >= bet) {
-                        processWin(winAmt);
-                        showToast(`Plinko: Dropped into ${resultMult}x! Won ${formatMoney(winAmt)}`, "win");
-                    } else {
-                        processWin(winAmt);
-                        showToast(`Plinko: Dropped into ${resultMult}x.`, "info");
-                    }
-                    
-                    registerGameResult(bet, winAmt);
-
-                    setTimeout(() => {
-                        ball.classList.remove('active');
-                        document.querySelectorAll('.plinko-mult-box').forEach(b => b.classList.remove('active'));
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-50');
-                        state.gameIsRunning = false;
-                    }, 1000);
-                    return;
-                }
-
-                let numPegs = row + 3;
-                let pegSpacing = 100 / numPegs;
-                let rowHeightPerc = ((row + 1) / (PLINKO_LEVELS + 1)) * 100;
-                
-                if(row === PLINKO_LEVELS) {
-                    rowHeightPerc = 95;
-                    pegSpacing = 100 / (PLINKO_LEVELS + 1);
-                    currentCol = resultBin; 
-                    let offset = pegSpacing / 2;
-                    let leftPerc = (currentCol * pegSpacing) + offset;
-                    
-                    ball.style.top = `${rowHeightPerc}%`;
-                    ball.style.left = `${leftPerc}%`;
+                if(currentStep < PLINKO_LEVELS) {
+                    setTimeout(dropStep, 300);
                 } else {
-                    let goRight = currentPath[row];
-                    if(goRight) currentCol++;
-                    
-                    let offset = pegSpacing / 2;
-                    let leftPerc = (currentCol * pegSpacing) + offset;
-                    
-                    ball.style.top = `${rowHeightPerc}%`;
-                    ball.style.left = `${leftPerc}%`;
+                    setTimeout(() => {
+                        ball.style.top = '100%';
+                        const targetBinOffset = (currentBin / PLINKO_LEVELS) * 96 + 2; 
+                        ball.style.left = `${targetBinOffset}%`;
+                        
+                        setTimeout(() => {
+                            const mult = PLINKO_MULTIPLIERS[risk][currentBin];
+                            const winAmt = bet * mult;
+                            const binEl = document.getElementById(`plinko-bin-${currentBin}`);
+                            binEl.classList.add('active');
+
+                            if(winAmt >= bet) {
+                                processWin(winAmt);
+                                showToast(`Plinko: Won ${formatMoney(winAmt)}!`, "win");
+                            } else {
+                                processWin(winAmt);
+                            }
+
+                            registerGameResult(bet, winAmt);
+                            
+                            setTimeout(() => { ball.classList.remove('active'); }, 500);
+                            
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-50');
+                            state.gameIsRunning = false;
+                        }, 200);
+                    }, 300);
                 }
-                
-                row++;
-            }, 300);
+            };
+
+            setTimeout(dropStep, 100);
         };
 
-        // --- INIT APP ---
-        const initApp = async () => {
-            initMinesGrid();
-            initMysteryGrid();
-            initPlinko();
+        // --- DRAGGABLE MAIL BUTTON ---
+        const draggableMailBtn = document.getElementById('floatingMailBtn');
+        let isDraggingMail = false;
+        let mailDragStartX = 0;
+        let mailDragStartY = 0;
+        let mailDragInitialLeft = 0;
+        let mailDragInitialTop = 0;
+        let mailHasMoved = false;
+
+        const startMailDrag = (e) => {
+            isDraggingMail = true;
+            mailHasMoved = false;
             
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            
+            const rect = draggableMailBtn.getBoundingClientRect();
+            mailDragInitialLeft = rect.left;
+            mailDragInitialTop = rect.top;
+            
+            mailDragStartX = clientX;
+            mailDragStartY = clientY;
+            
+            draggableMailBtn.style.transition = 'none';
+            draggableMailBtn.style.bottom = 'auto';
+            draggableMailBtn.style.right = 'auto';
+        };
+
+        const moveMailDrag = (e) => {
+            if (!isDraggingMail) return;
+            
+            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+
+            let deltaX = clientX - mailDragStartX;
+            let deltaY = clientY - mailDragStartY;
+
+            if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                mailHasMoved = true;
+            }
+
+            let newX = mailDragInitialLeft + deltaX;
+            let newY = mailDragInitialTop + deltaY;
+
+            const maxX = window.innerWidth - draggableMailBtn.offsetWidth;
+            const maxY = window.innerHeight - draggableMailBtn.offsetHeight;
+            newX = Math.max(0, Math.min(newX, maxX));
+            newY = Math.max(0, Math.min(newY, maxY));
+
+            requestAnimationFrame(() => {
+                draggableMailBtn.style.left = `${newX}px`;
+                draggableMailBtn.style.top = `${newY}px`;
+            });
+            
+            if(e.type === 'touchmove' && e.cancelable) e.preventDefault(); 
+        };
+
+        const stopMailDrag = () => {
+            if (!isDraggingMail) return;
+            isDraggingMail = false;
+            draggableMailBtn.style.transition = ''; 
+        };
+
+        draggableMailBtn.addEventListener('mousedown', startMailDrag);
+        document.addEventListener('mousemove', moveMailDrag, { passive: false });
+        document.addEventListener('mouseup', stopMailDrag);
+
+        draggableMailBtn.addEventListener('touchstart', startMailDrag, { passive: false });
+        document.addEventListener('touchmove', moveMailDrag, { passive: false });
+        document.addEventListener('touchmove', moveMailDrag, { passive: false });
+        document.addEventListener('touchend', stopMailDrag);
+
+        draggableMailBtn.addEventListener('click', (e) => {
+            if (mailHasMoved) {
+                e.preventDefault();
+                e.stopPropagation();
+            } else {
+                openModal('mailModal');
+            }
+        });
+
+        // --- INITIAL BOOT ---
+        initMinesGrid();
+        initMysteryGrid();
+        initPlinko();
+        
+        // Insert initial SVG into balloon container immediately
+        document.getElementById('balloonObj').innerHTML = BALLOON_SVG;
+        
+        const initApp = async () => {
             const savedCurrentUser = localStorage.getItem('megabet_currentUser') || null;
             
             if (savedCurrentUser) {
