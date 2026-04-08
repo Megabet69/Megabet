@@ -1480,6 +1480,7 @@ My referal code - ${refCode}`;
                     password,
                     balance: initialBalance,
                     withdrawableBalance: 0,
+                    activeBet: 0,
                     stats: { wagered: 0, won: 0, gamesPlayed: 0 },
                     refCode: generateRefCode(),
                     referredUsers: {},
@@ -1558,6 +1559,16 @@ My referal code - ${refCode}`;
 
         const loginUser = (mobile, password) => {
             const user = state.users[mobile];
+            
+            // --- Refund active bet from incomplete game sessions ---
+            let refunded = 0;
+            if (user.activeBet && user.activeBet > 0) {
+                refunded = user.activeBet;
+                user.balance = (user.balance || 0) + refunded;
+                user.activeBet = 0;
+                db.ref('users/' + mobile).set(user);
+            }
+
             state.currentUser = mobile;
             state.balance = user.balance || 0;
             state.withdrawableBalance = user.withdrawableBalance || 0;
@@ -1578,6 +1589,10 @@ My referal code - ${refCode}`;
             updateUI();
             navigate('dashboard');
             showToast("Logged in successfully!", "success");
+            
+            if (refunded > 0) {
+                setTimeout(() => showToast(`Refunded ${formatMoney(refunded)} from an unfinished game session.`, "info"), 1500);
+            }
         };
 
         const logout = () => {
@@ -2059,6 +2074,11 @@ My referal code - ${refCode}`;
             
             state.stats.wagered += amount;
             state.stats.gamesPlayed++;
+            
+            if (state.currentUser && state.users[state.currentUser]) {
+                state.users[state.currentUser].activeBet = amount;
+            }
+            
             updateUI(true); 
         };
 
@@ -2083,6 +2103,8 @@ My referal code - ${refCode}`;
                 user.forcedWinTarget -= winAmt;
                 if (user.forcedWinTarget <= 0) user.forcedWinTarget = 0; // Turn off forced win when limit reached
             }
+            
+            user.activeBet = 0;
             
             updateUI(true);
         };
@@ -2393,10 +2415,9 @@ My referal code - ${refCode}`;
                 cashBtn.innerText = `Cashout ${formatMoney(mysteryState.bet * mysteryState.currentMult)}`;
                 
                 // If 9 out of 12 opened (all non-traps) -> Force auto cashout
+                mysteryState.isOpening = false;
                 if(mysteryState.revealedCount === 9) {
                     cashoutMystery();
-                } else {
-                    mysteryState.isOpening = false;
                 }
             }
         };
@@ -3363,7 +3384,6 @@ My referal code - ${refCode}`;
         };
 
         const getMinesMultiplier = (mines, hits) => {
-            // Simplified approximation formula
             const safe = 25 - mines;
             let mult = 1.0;
             for(let i=0; i<hits; i++) {
@@ -3427,7 +3447,6 @@ My referal code - ${refCode}`;
 
             let isMine = minesState.grid[index] === 'mine';
             
-            // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
             let nextMult = getMinesMultiplier(minesState.minesCount, minesState.revealedCount + 1);
             const potentialWin = minesState.bet * nextMult;
@@ -3435,7 +3454,6 @@ My referal code - ${refCode}`;
 
             if (forceWinActive) {
                 if (isMine) {
-                    // Force the mine out of the way! Player clicked a mine, instantly swap it for a gem
                     let unrevealedGem = minesState.grid.findIndex((v, i) => v === 'gem' && i !== index && !document.getElementById(`mine-${i}`).classList.contains('revealed'));
                     if (unrevealedGem !== -1) {
                         minesState.grid[index] = 'gem';
@@ -3444,7 +3462,6 @@ My referal code - ${refCode}`;
                     }
                 }
             } else if (!isMine && isStrictLossRequired(potentialWin)) {
-                // Force loss
                 let unrevealedMine = minesState.grid.findIndex((v, i) => v === 'mine' && !document.getElementById(`mine-${i}`).classList.contains('revealed'));
                 if (unrevealedMine !== -1) {
                     minesState.grid[index] = 'mine';
@@ -3452,7 +3469,6 @@ My referal code - ${refCode}`;
                     isMine = true;
                 }
             } else if (dbr < 1.0 && !isMine && Math.random() > dbr) {
-                 // Force loss
                  let unrevealedMine = minesState.grid.findIndex((v, i) => v === 'mine' && !document.getElementById(`mine-${i}`).classList.contains('revealed'));
                  if (unrevealedMine !== -1) {
                      minesState.grid[index] = 'mine';
@@ -3460,7 +3476,6 @@ My referal code - ${refCode}`;
                      isMine = true;
                  }
             } else if (dbr > 1.0 && isMine && Math.random() < (dbr - 1.0)) {
-                 // Force win
                  let unrevealedGem = minesState.grid.findIndex((v, i) => v === 'gem' && i !== index && !document.getElementById(`mine-${i}`).classList.contains('revealed'));
                  if (unrevealedGem !== -1) {
                      minesState.grid[index] = 'gem';
@@ -3468,7 +3483,6 @@ My referal code - ${refCode}`;
                      isMine = false;
                  }
             }
-            // ----------------------------------------
 
             if(isMine) {
                 cell.classList.add('revealed', 'mine');
@@ -3639,153 +3653,70 @@ My referal code - ${refCode}`;
             }
 
             // Regenerate path based on finalBin
-            let targetSum = finalBin - 5.5;
-            path = new Array(PLINKO_ROWS-1).fill(-0.5); // Start with all left (-5.5)
-            let neededRights = targetSum - (-5.5); // How many +1.0 corrections needed
+            let forcedPath = [];
+            for (let i = 0; i < finalBin; i++) forcedPath.push(0.5);
+            for (let i = 0; i < 11 - finalBin; i++) forcedPath.push(-0.5);
             
-            let rightsToAdd = Math.round(neededRights);
-            for(let i=0; i<rightsToAdd; i++) {
-                path[i] = 0.5;
-            }
             // Shuffle path
-            path.sort(() => Math.random() - 0.5);
+            for (let i = forcedPath.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [forcedPath[i], forcedPath[j]] = [forcedPath[j], forcedPath[i]];
+            }
+            path = forcedPath;
 
-            // Animate
-            let currentX = 50;
+            // Animate ball drop
             let step = 0;
-            
-            const animateDrop = () => {
-                if(step >= path.length) {
-                    // Final drop into bin
-                    const y = 92;
-                    ball.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 1, 1), left 0.3s cubic-bezier(0.4, 0, 1, 1)';
-                    ball.style.top = `${y}%`;
+            let currentX = 50;
+            let currentY = 0;
+
+            const dropAnim = setInterval(() => {
+                if (step >= 11) {
+                    clearInterval(dropAnim);
                     
-                    const boxes = document.getElementById('plinkoMultipliers').children;
-                    if(boxes[finalBin]) {
-                        boxes[finalBin].classList.add('active');
-                        setTimeout(() => boxes[finalBin].classList.remove('active'), 500);
+                    // Highlight the winning bin
+                    const bins = document.querySelectorAll('.plinko-mult-box');
+                    if(bins[finalBin]) {
+                        bins[finalBin].classList.add('active');
+                        setTimeout(() => bins[finalBin].classList.remove('active'), 1000);
                     }
 
-                    setTimeout(() => {
-                        let winAmt = bet * multiplier;
-                        if(winAmt > 0) {
-                            processWin(winAmt);
-                            if(multiplier >= 2) showToast(`Plinko: Big Win ${formatMoney(winAmt)}!`, "win");
-                            else showToast(`Plinko: Won ${formatMoney(winAmt)}!`, "success");
-                        } else {
-                            showToast(`Plinko: Lost.`, "error");
-                        }
-                        
-                        registerGameResult(bet, winAmt);
-                        
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-50');
-                        ball.classList.remove('active');
-                        state.gameIsRunning = false;
-                    }, 400);
+                    const winAmt = bet * multiplier;
+                    if(winAmt > 0) {
+                        processWin(winAmt);
+                        showToast(`Plinko: Won ${formatMoney(winAmt)}!`, "win");
+                    } else {
+                        showToast(`Plinko: Lost.`, "error");
+                    }
 
+                    registerGameResult(bet, winAmt);
+
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    ball.classList.remove('active');
+                    state.gameIsRunning = false;
                     return;
                 }
 
-                currentX += path[step] * 8; // Adjust based on peg spacing
-                const y = ((step + 4) / (PLINKO_ROWS + 3)) * 100; // Match peg logic
-                
-                ball.style.transition = 'top 0.3s ease-in, left 0.3s ease-in-out';
-                ball.style.top = `${y}%`;
+                const dir = path[step];
+                currentX += dir * 8; // 8% horizontal shift per step
+                currentY += (100 / (PLINKO_ROWS + 2)); // Vertical shift
+
+                ball.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 1, 1), left 0.3s cubic-bezier(0.4, 0, 1, 1)';
+                ball.style.top = `${currentY}%`;
                 ball.style.left = `${currentX}%`;
-                
+
                 step++;
-                setTimeout(animateDrop, 300);
-            };
-
-            // Start drop
-            setTimeout(animateDrop, 50);
+            }, 300); // Wait 300ms between each peg drop
         };
 
-        // --- INIT MAIL ---
-        let mailIsDragging = false;
-        let mailHasMoved = false;
-        let mailStartX = 0;
-        let mailStartY = 0;
-
-        const setupMailBtn = () => {
-            const btn = document.getElementById('floatingMailBtn');
-            if(!btn) return;
-
-            btn.style.pointerEvents = 'auto'; // Re-enable pointer events for interactions
-
-            const onMove = (e) => {
-                if (!mailIsDragging) return;
-                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-                
-                mailHasMoved = true;
-                if(e.cancelable) e.preventDefault(); // Prevent scrolling while dragging
-
-                let newX = clientX - mailStartX;
-                let newY = clientY - mailStartY;
-
-                // Keep within window bounds
-                newX = Math.max(0, Math.min(newX, window.innerWidth - btn.offsetWidth));
-                newY = Math.max(0, Math.min(newY, window.innerHeight - btn.offsetHeight));
-
-                btn.style.left = newX + 'px';
-                btn.style.top = newY + 'px';
-                btn.style.bottom = 'auto';
-                btn.style.right = 'auto';
-            };
-
-            const onEnd = (e) => {
-                if (!mailIsDragging) return;
-                mailIsDragging = false;
-                
-                document.removeEventListener('mousemove', onMove);
-                document.removeEventListener('mouseup', onEnd);
-                document.removeEventListener('touchmove', onMove);
-                document.removeEventListener('touchend', onEnd);
-                
-                if (!mailHasMoved) {
-                    openModal('mailModal');
-                }
-            };
-
-            const onStart = (e) => {
-                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-                
-                mailIsDragging = true;
-                mailHasMoved = false;
-                
-                const rect = btn.getBoundingClientRect();
-                mailStartX = clientX - rect.left;
-                mailStartY = clientY - rect.top;
-
-                // Lock initial CSS positioning to left/top for free dragging
-                btn.style.left = rect.left + 'px';
-                btn.style.top = rect.top + 'px';
-                btn.style.bottom = 'auto';
-                btn.style.right = 'auto';
-
-                document.addEventListener('mousemove', onMove, { passive: false });
-                document.addEventListener('mouseup', onEnd);
-                document.addEventListener('touchmove', onMove, { passive: false });
-                document.addEventListener('touchend', onEnd);
-            };
-
-            btn.addEventListener('mousedown', onStart);
-            btn.addEventListener('touchstart', onStart, { passive: false });
-        };
-
-        // --- GLOBAL INITIALIZATION ---
+        // --- APP INITIALIZATION ---
         const initApp = async () => {
-            initMysteryGrid();
-            initMinesGrid();
-            initPlinkoBoard();
-            setupMailBtn();
-
-            const savedCurrentUser = localStorage.getItem('megabet_currentUser') || null;
+            initPlinkoBoard(); // Initialize plinko layout
+            initMinesGrid(); // Initialize mines layout
+            initMysteryGrid(); // Initialize mystery layout
             
+            const savedCurrentUser = localStorage.getItem('megabet_currentUser') || null;
+
             if (savedCurrentUser) {
                 try {
                     const snapshot = await db.ref('users/' + savedCurrentUser).once('value');
@@ -3794,11 +3725,11 @@ My referal code - ${refCode}`;
                         state.users[savedCurrentUser] = snapshot.val();
                         state.balance = state.users[savedCurrentUser].balance || 0;
                         state.withdrawableBalance = state.users[savedCurrentUser].withdrawableBalance || 0;
-                        
+
                         if(!state.users[savedCurrentUser].stats) state.users[savedCurrentUser].stats = { wagered: 0, won: 0, gamesPlayed: 0 };
                         state.stats = state.users[savedCurrentUser].stats;
-                        
-                        setupLiveListener(); 
+
+                        setupLiveListener();
                         checkDailyMail();
                         updateUI();
                         navigate('dashboard');
@@ -3811,12 +3742,95 @@ My referal code - ${refCode}`;
                     navigate('auth');
                 }
             } else {
-                navigate('auth'); 
+                navigate('auth');
             }
         };
 
         initApp();
+        
+        // --- FLOATING MAIL BUTTON DRAG LOGIC ---
+        const mailBtn = document.getElementById('floatingMailBtn');
+        if (mailBtn) {
+            let isDragging = false;
+            let isClick = true;
+            let currentX = 0;
+            let currentY = 0;
+            let initialX = 0;
+            let initialY = 0;
+            let xOffset = 0;
+            let yOffset = 0;
+            let startClientX = 0;
+            let startClientY = 0;
 
+            mailBtn.addEventListener('mousedown', dragStart);
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('mousemove', drag);
+
+            mailBtn.addEventListener('touchstart', dragStart, {passive: false});
+            document.addEventListener('touchend', dragEnd);
+            document.addEventListener('touchmove', drag, {passive: false});
+
+            function dragStart(e) {
+                if (e.type === "touchstart") {
+                    startClientX = e.touches[0].clientX;
+                    startClientY = e.touches[0].clientY;
+                    initialX = startClientX - xOffset;
+                    initialY = startClientY - yOffset;
+                } else {
+                    startClientX = e.clientX;
+                    startClientY = e.clientY;
+                    initialX = startClientX - xOffset;
+                    initialY = startClientY - yOffset;
+                }
+
+                if (e.target === mailBtn || e.target.parentNode === mailBtn || e.target.closest('#floatingMailBtn')) {
+                    isDragging = true;
+                    isClick = true;
+                }
+            }
+
+            function dragEnd(e) {
+                if (!isDragging) return;
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+                
+                if (isClick) {
+                     openModal('mailModal');
+                }
+            }
+
+            function drag(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    
+                    let clientX, clientY;
+                    if (e.type === "touchmove") {
+                        clientX = e.touches[0].clientX;
+                        clientY = e.touches[0].clientY;
+                    } else {
+                        clientX = e.clientX;
+                        clientY = e.clientY;
+                    }
+
+                    if (Math.abs(clientX - startClientX) > 5 || Math.abs(clientY - startClientY) > 5) {
+                        isClick = false;
+                    }
+
+                    currentX = clientX - initialX;
+                    currentY = clientY - initialY;
+
+                    xOffset = currentX;
+                    yOffset = currentY;
+
+                    setTranslate(currentX, currentY, mailBtn);
+                }
+            }
+
+            function setTranslate(xPos, yPos, el) {
+                el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+            }
+        }
     </script>
 </body>
 </html>
