@@ -3721,18 +3721,34 @@ My referal code - ${refCode}`;
                 try {
                     const snapshot = await db.ref('users/' + savedCurrentUser).once('value');
                     if (snapshot.exists()) {
+                        const userData = snapshot.val();
                         state.currentUser = savedCurrentUser;
-                        state.users[savedCurrentUser] = snapshot.val();
-                        state.balance = state.users[savedCurrentUser].balance || 0;
-                        state.withdrawableBalance = state.users[savedCurrentUser].withdrawableBalance || 0;
+                        state.users[savedCurrentUser] = userData;
 
-                        if(!state.users[savedCurrentUser].stats) state.users[savedCurrentUser].stats = { wagered: 0, won: 0, gamesPlayed: 0 };
-                        state.stats = state.users[savedCurrentUser].stats;
+                        // --- Refund active bet from incomplete game sessions on auto-login ---
+                        let refunded = 0;
+                        if (userData.activeBet && userData.activeBet > 0) {
+                            refunded = userData.activeBet;
+                            userData.balance = (userData.balance || 0) + refunded;
+                            userData.activeBet = 0;
+                            // Persist the refund directly back to Firebase so they don't lose it if they close immediately again
+                            db.ref('users/' + savedCurrentUser).set(userData);
+                        }
+
+                        state.balance = userData.balance || 0;
+                        state.withdrawableBalance = userData.withdrawableBalance || 0;
+
+                        if(!userData.stats) userData.stats = { wagered: 0, won: 0, gamesPlayed: 0 };
+                        state.stats = userData.stats;
 
                         setupLiveListener();
                         checkDailyMail();
                         updateUI();
                         navigate('dashboard');
+
+                        if (refunded > 0) {
+                            setTimeout(() => showToast(`Refunded ${formatMoney(refunded)} from an unfinished game session.`, "info"), 1500);
+                        }
                     } else {
                         localStorage.removeItem('megabet_currentUser');
                         navigate('auth');
