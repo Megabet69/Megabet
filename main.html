@@ -108,6 +108,18 @@
         }
         @media (min-width: 640px) { .roulette-pointer { top: -12px; border-left-width: 15px; border-right-width: 15px; border-top-width: 25px; } }
 
+        /* Wheel of Fortune Animation */
+        .wheel-container { position: relative; width: 260px; height: 260px; margin: 0 auto; }
+        @media (min-width: 640px) { .wheel-container { width: 320px; height: 320px; } }
+        .fortune-wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #1E293B; transition: transform 4s cubic-bezier(0.2, 0.8, 0.2, 1); background: #0B0E14;}
+        @media (min-width: 640px) { .fortune-wheel { border-width: 8px; } }
+        .wheel-pointer {
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 15px solid transparent;
+            border-right: 15px solid transparent; border-top: 30px solid #F59E0B; z-index: 20;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));
+        }
+
         /* Slots Animation */
         .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #0f172a; padding: 10px; border-radius: 12px; border: 3px solid #334155; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         @media (min-width: 640px) { .slot-grid { gap: 10px; padding: 15px; border-radius: 16px; border-width: 4px; box-shadow: inset 0 0 30px rgba(0,0,0,0.8); } }
@@ -459,6 +471,11 @@
                     <h3 class="text-lg font-bold mb-1">Plinko</h3>
                     <p class="text-xs text-gray-400">Drop the ball!</p>
                 </div>
+                <div onclick="navigate('game-wheel'); setTimeout(drawWheel, 100);" class="bg-panel hover:bg-panelHover group cursor-pointer border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center transition transform hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(245,158,11,0.2)]">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-amber-400 to-amber-600 rounded-[1rem] flex items-center justify-center text-3xl sm:text-4xl text-white mb-3 sm:mb-4 group-hover:scale-110 transition shadow-lg">🎡</div>
+                    <h3 class="text-lg font-bold mb-1">Wheel of Fortune</h3>
+                    <p class="text-xs text-gray-400">Spin to multiply!</p>
+                </div>
             </div>
         </section>
 
@@ -560,6 +577,46 @@
         </section>
 
         <!-- Games Component Views -->
+        <section id="game-wheel" class="view-section hidden max-w-4xl mx-auto w-full">
+            <div class="flex justify-between items-center mb-4 sm:mb-6">
+                <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
+                <div class="bg-dark px-3 py-1.5 rounded-lg border border-gray-700 text-green-400 font-mono font-bold text-xs sm:text-sm gameBalanceDisplay">₹0.00</div>
+            </div>
+            <div class="bg-panel border border-gray-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col md:flex-row gap-6">
+                <div class="w-full md:w-64 flex flex-col justify-start space-y-4 border-b md:border-b-0 md:border-r border-gray-800 pb-6 md:pb-0 md:pr-6">
+                    <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">🎡 Wheel of Fortune</h2>
+                    <p class="text-xs text-gray-400">Spin the wheel to multiply your bet. The RTP adjusts to your risk level!</p>
+                    
+                    <div class="space-y-2 mt-2">
+                        <label class="block text-xs font-medium text-gray-400 uppercase tracking-wide">Bet Amount</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">₹</span>
+                            <input type="number" id="wheelBet" value="10" min="1" class="w-full bg-dark border border-gray-700 rounded-xl py-3 pl-8 pr-4 text-white font-mono focus:outline-none focus:border-amber-500 transition">
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-gray-400 uppercase tracking-wide">Risk Level</label>
+                        <select id="wheelRisk" onchange="drawWheel()" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-amber-500 transition appearance-none cursor-pointer">
+                            <option value="low">Low Risk</option>
+                            <option value="medium" selected>Medium Risk</option>
+                            <option value="high">High Risk</option>
+                        </select>
+                    </div>
+
+                    <button id="btnWheelSpin" onclick="playWheel()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-auto active:transform active:translate-y-1">Spin Wheel</button>
+                </div>
+
+                <div class="flex-grow flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden relative min-h-[350px]">
+                    <div class="wheel-container relative">
+                        <div class="wheel-pointer"></div>
+                        <canvas id="wheelCanvas" width="320" height="320" class="fortune-wheel shadow-[0_0_30px_rgba(245,158,11,0.15)]"></canvas>
+                    </div>
+                    <div id="wheelResultText" class="mt-8 text-2xl font-bold h-8 text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
+                </div>
+            </div>
+        </section>
+
         <section id="game-mystery" class="view-section hidden max-w-4xl mx-auto w-full">
             <div class="flex justify-between items-center mb-4 sm:mb-6">
                 <button onclick="navigate('games')" class="text-gray-400 hover:text-white flex items-center text-sm sm:text-base"><i class="fas fa-arrow-left mr-2"></i> Back to Games</button>
@@ -1015,14 +1072,16 @@
                 <button onclick="closeModal('depositModal')" class="text-gray-400 hover:text-white text-xl p-1"><i class="fas fa-times"></i></button>
             </div>
             
-            <p class="text-xs sm:text-sm text-gray-400 mb-4">Minimum deposit is ₹20. Pay to the UPI ID below and enter the UTR/Reference number.</p>
+            <p class="text-xs sm:text-sm text-gray-400 mb-4">Minimum deposit is ₹20. Select a UPI ID to pay to and enter your Ref/UTR.</p>
             
-            <div class="bg-dark border border-gray-700 rounded-xl p-3 mb-4 flex justify-between items-center">
-                <div>
-                    <div class="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Official UPI ID (GPay, PhonePe, Paytm)</div>
-                    <div class="text-white font-mono text-sm tracking-wide" id="adminUpiId">priyanshugogoi594@oksbi</div>
+            <div class="mb-4 relative">
+                <label class="block text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Official UPI ID</label>
+                <div class="flex items-center gap-2">
+                    <select id="adminUpiSelect" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white font-mono text-sm focus:outline-none focus:border-brand appearance-none cursor-pointer">
+                        <option value="priyanshugogoi594@oksbi">priyanshugogoi594@oksbi</option>
+                    </select>
+                    <button onclick="copySelectedUpi()" class="bg-dark border border-gray-700 text-brand hover:text-white px-4 py-3 rounded-xl transition shadow-lg" title="Copy ID"><i class="fas fa-copy"></i></button>
                 </div>
-                <button onclick="copyUpi()" class="text-brand hover:text-white p-2 rounded-lg bg-panel hover:bg-gray-800 transition" title="Copy UPI ID"><i class="fas fa-copy"></i></button>
             </div>
 
             <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
@@ -1151,6 +1210,22 @@
             });
         };
 
+        // Sync available Admin UPIs
+        let activeAdminUpis = ["priyanshugogoi594@oksbi"];
+        db.ref('adminSettings/upiOptions').on('value', (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                if(Array.isArray(data)) activeAdminUpis = data;
+                else if (typeof data === 'string') activeAdminUpis = data.split(',').map(s => s.trim());
+                else if (typeof data === 'object') activeAdminUpis = Object.values(data);
+                
+                if(activeAdminUpis.length > 0) {
+                    const sel = document.getElementById('adminUpiSelect');
+                    if (sel) sel.innerHTML = activeAdminUpis.map(upi => `<option value="${upi}">${upi}</option>`).join('');
+                }
+            }
+        });
+
         // --- WHATSAPP SHARE LOGIC ---
         const shareWhatsApp = () => {
             if(!state.currentUser || !state.users[state.currentUser]) return;
@@ -1158,7 +1233,7 @@
             
             const text = `💰 MEGA BET — CLAIM YOUR FREE CASH 💰
 GET ₹10-100 INSTANTLY on signup + ₹25 EXTRA with referral code. No deposit needed. Zero risk. Pure profit.
-🎰 NEW SLOT JUST DROPPED — plus Dice, Roulette, Crash, Mines, Plinko & more. Win real money in minutes.
+🎰 NEW SLOT JUST DROPPED — plus Wheel of Fortune, Dice, Roulette, Crash, Mines, Plinko & more. Win real money in minutes.
 ⚡ INSTANT WITHDRAWAL to UPI & Bank. Your money. Your way. No waiting.
 This free cash won't last. Grab it before it's gone.
 👇 REGISTER NOW
@@ -1546,9 +1621,8 @@ My referal code - ${refCode}`;
                 if (floatingMailBtn) floatingMailBtn.classList.remove('hidden');
             }
             
-            if (viewId === 'history') {
-                fetchHistory();
-            }
+            if (viewId === 'history') fetchHistory();
+            if (viewId === 'game-wheel') setTimeout(drawWheel, 100);
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
@@ -1775,9 +1849,12 @@ My referal code - ${refCode}`;
 
         const setDepositAmount = (amount) => { document.getElementById('depositAmount').value = amount; };
         
-        const copyUpi = () => {
+        const copySelectedUpi = () => {
+            const sel = document.getElementById('adminUpiSelect');
+            if(!sel) return;
+            const val = sel.value;
             const tempInput = document.createElement("input");
-            tempInput.value = "priyanshugogoi594@oksbi";
+            tempInput.value = val;
             document.body.appendChild(tempInput);
             tempInput.select();
             document.execCommand("copy");
@@ -1789,7 +1866,8 @@ My referal code - ${refCode}`;
             const amt = parseFloat(document.getElementById('depositAmount').value);
             if(isNaN(amt) || amt < 20) return showToast("Minimum deposit amount is ₹20", "error");
             
-            const upiId = "priyanshugogoi594@oksbi";
+            const sel = document.getElementById('adminUpiSelect');
+            const upiId = sel ? sel.value : "priyanshugogoi594@oksbi";
             const payeeName = "MegaBet";
             
             const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amt.toFixed(2)}&cu=INR`;
@@ -1808,9 +1886,13 @@ My referal code - ${refCode}`;
             if(isNaN(amt) || amt < 20) return showToast("Minimum deposit amount is ₹20", "error");
             if(!utr || utr.length < 6) return showToast("Please enter a valid UTR or Reference Number", "error");
             
+            const sel = document.getElementById('adminUpiSelect');
+            const upiUsed = sel ? sel.value : "priyanshugogoi594@oksbi";
+
             const req = {
                 amount: amt,
                 utr: utr,
+                upiSentTo: upiUsed,
                 status: 'pending',
                 timestamp: Date.now()
             };
@@ -1975,6 +2057,143 @@ My referal code - ${refCode}`;
                 state.users[state.currentUser].claimableCashback += (loss * 0.05);
                 updateUI(true);
             }
+        };
+
+        // --- WHEEL OF FORTUNE GAME ---
+        const WHEEL_SLICES = {
+            low: [1.5, 0.5, 1.2, 0.8, 1.5, 0.5, 1.2, 0.8, 1.5, 0.5, 1.2, 0.0],
+            medium: [2.0, 0.0, 1.5, 0.0, 2.0, 0.0, 1.5, 0.0, 3.0, 0.0, 1.5, 0.0],
+            high: [4.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0]
+        };
+
+        let currentWheelRot = 0;
+
+        const drawWheel = () => {
+            const canvas = document.getElementById('wheelCanvas');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const risk = document.getElementById('wheelRisk').value || 'medium';
+            const slices = WHEEL_SLICES[risk];
+            
+            const numSlices = slices.length;
+            const sliceAngle = (2 * Math.PI) / numSlices;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < numSlices; i++) {
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, i * sliceAngle, (i + 1) * sliceAngle);
+                
+                // Color based on multiplier
+                if (slices[i] === 0) {
+                    ctx.fillStyle = i % 2 === 0 ? '#3F3F46' : '#27272A'; // Grayish
+                } else if (slices[i] < 1) {
+                    ctx.fillStyle = i % 2 === 0 ? '#EF4444' : '#DC2626'; // Red
+                } else if (slices[i] >= 2) {
+                    ctx.fillStyle = i % 2 === 0 ? '#10B981' : '#059669'; // Green
+                } else {
+                    ctx.fillStyle = i % 2 === 0 ? '#F59E0B' : '#D97706'; // Amber/Yellow
+                }
+                
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#1E293B';
+                ctx.stroke();
+
+                // Draw Text
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(i * sliceAngle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 20px "Space Mono", monospace';
+                
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 4;
+                
+                ctx.fillText(slices[i] + 'x', radius - 20, 0);
+                ctx.restore();
+            }
+        };
+
+        const playWheel = () => {
+            if(state.gameIsRunning) return;
+            const bet = validateBet('wheelBet');
+            if(!bet) return;
+            
+            const risk = document.getElementById('wheelRisk').value;
+            const slices = WHEEL_SLICES[risk];
+            
+            state.gameIsRunning = true;
+            processBet(bet);
+            
+            const btn = document.getElementById('btnWheelSpin');
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            document.getElementById('wheelResultText').innerText = '';
+
+            let targetIdx = Math.floor(Math.random() * slices.length);
+            let multiplier = slices[targetIdx];
+            let potentialWin = bet * multiplier;
+
+            const dbr = getDBRMultiplier();
+
+            if (isStrictLossRequired(potentialWin)) {
+                const losingIndices = slices.map((val, idx) => val < 1 ? idx : -1).filter(idx => idx !== -1);
+                if (losingIndices.length > 0) targetIdx = losingIndices[Math.floor(Math.random() * losingIndices.length)];
+            } else if (dbr < 1.0 && multiplier > 1 && Math.random() > dbr) {
+                const losingIndices = slices.map((val, idx) => val < 1 ? idx : -1).filter(idx => idx !== -1);
+                if (losingIndices.length > 0) targetIdx = losingIndices[Math.floor(Math.random() * losingIndices.length)];
+            } else if (dbr > 1.0 && multiplier <= 1 && Math.random() < (dbr - 1.0)) {
+                const winningIndices = slices.map((val, idx) => val > 1 ? idx : -1).filter(idx => idx !== -1);
+                if(winningIndices.length > 0) {
+                    targetIdx = winningIndices[Math.floor(Math.random() * winningIndices.length)];
+                }
+            }
+
+            multiplier = slices[targetIdx];
+            const winAmt = bet * multiplier;
+
+            const sliceAngle = 360 / slices.length;
+            let targetAngle = 270 - (targetIdx * sliceAngle + sliceAngle / 2);
+            const randomOffset = (Math.random() - 0.5) * (sliceAngle * 0.8);
+            targetAngle += randomOffset;
+
+            while (targetAngle < 0) targetAngle += 360;
+
+            const spins = 5 * 360;
+            const currentMod = currentWheelRot % 360;
+            let rotationNeeded = targetAngle - currentMod;
+            if (rotationNeeded <= 0) rotationNeeded += 360;
+
+            currentWheelRot += (spins + rotationNeeded);
+
+            const canvas = document.getElementById('wheelCanvas');
+            canvas.style.transform = `rotate(${currentWheelRot}deg)`;
+
+            setTimeout(() => {
+                const resDisplay = document.getElementById('wheelResultText');
+                if (winAmt > 0) {
+                    processWin(winAmt);
+                    resDisplay.innerText = `Won ${formatMoney(winAmt)}!`;
+                    resDisplay.className = "mt-8 text-2xl font-bold h-8 text-green-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]";
+                    showToast(`Wheel of Fortune: Won ${formatMoney(winAmt)}!`, "win");
+                } else {
+                    resDisplay.innerText = `You won ${formatMoney(0)}. Try again!`;
+                    resDisplay.className = "mt-8 text-2xl font-bold h-8 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]";
+                }
+
+                registerGameResult(bet, winAmt);
+                
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+                state.gameIsRunning = false;
+            }, 4000); // 4s matches CSS
         };
 
         // --- MYSTERY BOX GAME ---
@@ -2983,57 +3202,46 @@ My referal code - ${refCode}`;
             const dbr = getDBRMultiplier();
             let potentialWin = bet * target;
 
+            // --- STRICT LIMITS & DBR INTERVENTION ---
             if (isWin && isStrictLossRequired(potentialWin)) {
-                crashPoint = 1.00 + (Math.random() * Math.max(0, target - 1.01));
-                isWin = false;
+                isWin = false; // Strict forced loss
+                crashPoint = 1.00 + Math.random() * (target - 1.01);
             } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                crashPoint = 1.00 + (Math.random() * Math.max(0, target - 1.01));
-                isWin = false;
+                isWin = false; // DBR forced loss
+                crashPoint = 1.00 + Math.random() * (target - 1.01);
             } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                crashPoint = target + (Math.random() * 2.00); 
-                isWin = true;
+                isWin = true; // DBR forced win
+                crashPoint = target + Math.random() * 2.00;
             }
-            
-            let currentDisplay = 1.00;
-            const duration = 800; 
-            const startTime = performance.now();
+            // ----------------------------------------
 
-            const animateLimbo = (time) => {
-                const elapsed = time - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                const easeOutExpo = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-                
-                currentDisplay = 1.00 + (crashPoint - 1.00) * easeOutExpo;
-                resDisplay.innerText = `${currentDisplay.toFixed(2)}x`;
-
-                if(progress < 1) {
-                    requestAnimationFrame(animateLimbo);
-                } else {
-                    resDisplay.innerText = `${crashPoint.toFixed(2)}x`;
-                    resDisplay.classList.add('limbo-pop');
+            let currentMult = 1.00;
+            const animateLimbo = setInterval(() => {
+                currentMult += (crashPoint - currentMult) * 0.1;
+                if(crashPoint - currentMult < 0.05) {
+                    clearInterval(animateLimbo);
+                    currentMult = crashPoint;
                     
+                    resDisplay.innerText = `${currentMult.toFixed(2)}x`;
                     let winAmt = 0;
                     if(isWin) {
-                        winAmt = bet * target;
+                        winAmt = potentialWin;
                         processWin(winAmt);
-                        resDisplay.classList.replace('text-white', 'text-green-500');
+                        resDisplay.classList.add('text-green-500', 'limbo-pop');
                         showToast(`Limbo: Won ${formatMoney(winAmt)}!`, "win");
                     } else {
-                        resDisplay.classList.replace('text-white', 'text-red-500');
+                        resDisplay.classList.add('text-red-500');
                     }
-
+                    
                     registerGameResult(bet, winAmt);
                     
                     btn.disabled = false;
                     btn.classList.remove('opacity-50');
                     state.gameIsRunning = false;
-                    
-                    setTimeout(() => resDisplay.classList.remove('limbo-pop'), 300);
+                } else {
+                    resDisplay.innerText = `${currentMult.toFixed(2)}x`;
                 }
-            };
-            
-            requestAnimationFrame(animateLimbo);
+            }, 50);
         };
 
         // --- MINES GAME ---
@@ -3041,18 +3249,10 @@ My referal code - ${refCode}`;
             active: false,
             bet: 0,
             minesCount: 3,
-            grid: [], 
+            grid: [],
             revealedCount: 0,
-            currentMult: 1.00
-        };
-
-        const calcMinesMult = (mines, revealed) => {
-            if(revealed === 0) return 1.00;
-            let prob = 1;
-            for (let i = 0; i < revealed; i++) {
-                prob *= (25 - mines - i) / (25 - i);
-            }
-            return 0.99 / prob;
+            currentMult: 1.00,
+            gameOver: false
         };
 
         const initMinesGrid = () => {
@@ -3061,10 +3261,20 @@ My referal code - ${refCode}`;
             for(let i=0; i<25; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'mine-cell disabled';
-                cell.id = `mine-cell-${i}`;
+                cell.id = `mine-${i}`;
                 cell.onclick = () => clickMine(i);
                 gridEl.appendChild(cell);
             }
+        };
+
+        const getMinesMultiplier = (mines, hits) => {
+            // Simplified approximation formula
+            const safe = 25 - mines;
+            let mult = 1.0;
+            for(let i=0; i<hits; i++) {
+                mult *= (25 - i) / (safe - i);
+            }
+            return mult * 0.98; // 2% house edge
         };
 
         const startMines = () => {
@@ -3073,116 +3283,125 @@ My referal code - ${refCode}`;
             if(!bet) return;
             
             const minesCount = parseInt(document.getElementById('minesCount').value);
-            if(isNaN(minesCount) || minesCount < 1 || minesCount > 24) return showToast("Mines must be between 1 and 24", "error");
+            if(isNaN(minesCount) || minesCount < 1 || minesCount > 24) return showToast("Invalid Mines count (1-24)", "error");
 
             state.gameIsRunning = true;
             processBet(bet);
 
             minesState.active = true;
+            minesState.gameOver = false;
             minesState.bet = bet;
             minesState.minesCount = minesCount;
             minesState.revealedCount = 0;
             minesState.currentMult = 1.00;
-
-            minesState.grid = new Array(25).fill(0);
+            
+            minesState.grid = new Array(25).fill('gem');
             let placed = 0;
             while(placed < minesCount) {
                 let r = Math.floor(Math.random() * 25);
-                if(minesState.grid[r] === 0) {
-                    minesState.grid[r] = 1;
+                if(minesState.grid[r] !== 'mine') {
+                    minesState.grid[r] = 'mine';
                     placed++;
                 }
             }
 
             for(let i=0; i<25; i++) {
-                const cell = document.getElementById(`mine-cell-${i}`);
+                const cell = document.getElementById(`mine-${i}`);
                 cell.className = 'mine-cell';
                 cell.innerHTML = '';
             }
 
-            document.getElementById('minesCount').disabled = true;
             document.getElementById('minesBet').disabled = true;
-            
+            document.getElementById('minesCount').disabled = true;
             document.getElementById('btnMinesStart').classList.add('hidden');
             const cashBtn = document.getElementById('btnMinesCashout');
             cashBtn.classList.remove('hidden');
             cashBtn.disabled = true;
             cashBtn.classList.add('opacity-50');
-            cashBtn.innerText = `Cashout ${formatMoney(bet)}`;
+            cashBtn.innerText = `Cashout ₹0.00`;
 
             document.getElementById('minesMultiBox').classList.remove('hidden');
-            document.getElementById('minesNextMult').innerText = `${calcMinesMult(minesCount, 1).toFixed(2)}x`;
+            const nextMult = getMinesMultiplier(minesCount, 1);
+            document.getElementById('minesNextMult').innerText = `${nextMult.toFixed(2)}x`;
         };
 
         const clickMine = (index) => {
-            if(!minesState.active) return;
-            const cell = document.getElementById(`mine-cell-${index}`);
+            if(!minesState.active || minesState.gameOver) return;
+            const cell = document.getElementById(`mine-${index}`);
             if(cell.classList.contains('revealed')) return;
 
-            let isMine = minesState.grid[index] === 1;
-
+            let isMine = minesState.grid[index] === 'mine';
+            
+            // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
-            const nextMult = calcMinesMult(minesState.minesCount, minesState.revealedCount + 1);
+            let nextMult = getMinesMultiplier(minesState.minesCount, minesState.revealedCount + 1);
             const potentialWin = minesState.bet * nextMult;
 
-            let forceStrictLoss = !isMine && isStrictLossRequired(potentialWin);
-            let forceDbrLoss = (dbr < 1.0 && !isMine && Math.random() > dbr);
-            let forceDbrWin = (dbr > 1.0 && isMine && Math.random() < (dbr - 1.0));
-
-            if (forceStrictLoss || forceDbrLoss) {
-                let unrevealedMine = minesState.grid.findIndex((v, i) => v === 1 && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
+            if (!isMine && isStrictLossRequired(potentialWin)) {
+                // Force loss
+                let unrevealedMine = minesState.grid.findIndex((v, i) => v === 'mine' && !document.getElementById(`mine-${i}`).classList.contains('revealed'));
                 if (unrevealedMine !== -1) {
-                    minesState.grid[index] = 1;
-                    minesState.grid[unrevealedMine] = 0;
+                    minesState.grid[index] = 'mine';
+                    minesState.grid[unrevealedMine] = 'gem';
                     isMine = true;
                 }
-            } else if (forceDbrWin) {
-                let unrevealedGem = minesState.grid.findIndex((v, i) => v === 0 && i !== index && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
-                if (unrevealedGem !== -1) {
-                    minesState.grid[index] = 0;
-                    minesState.grid[unrevealedGem] = 1;
-                    isMine = false;
-                }
+            } else if (dbr < 1.0 && !isMine && Math.random() > dbr) {
+                 // Force loss
+                 let unrevealedMine = minesState.grid.findIndex((v, i) => v === 'mine' && !document.getElementById(`mine-${i}`).classList.contains('revealed'));
+                 if (unrevealedMine !== -1) {
+                     minesState.grid[index] = 'mine';
+                     minesState.grid[unrevealedMine] = 'gem';
+                     isMine = true;
+                 }
+            } else if (dbr > 1.0 && isMine && Math.random() < (dbr - 1.0)) {
+                 // Force win
+                 let unrevealedGem = minesState.grid.findIndex((v, i) => v === 'gem' && i !== index && !document.getElementById(`mine-${i}`).classList.contains('revealed'));
+                 if (unrevealedGem !== -1) {
+                     minesState.grid[index] = 'gem';
+                     minesState.grid[unrevealedGem] = 'mine';
+                     isMine = false;
+                 }
             }
-
-            cell.classList.add('revealed');
+            // ----------------------------------------
 
             if(isMine) {
-                cell.classList.add('mine');
+                cell.classList.add('revealed', 'mine');
                 cell.innerHTML = '💣';
                 endMinesGame(false);
             } else {
-                cell.classList.add('gem');
+                cell.classList.add('revealed', 'gem');
                 cell.innerHTML = '💎';
                 minesState.revealedCount++;
-                minesState.currentMult = calcMinesMult(minesState.minesCount, minesState.revealedCount);
+                minesState.currentMult = getMinesMultiplier(minesState.minesCount, minesState.revealedCount);
                 
                 const cashBtn = document.getElementById('btnMinesCashout');
                 cashBtn.disabled = false;
                 cashBtn.classList.remove('opacity-50');
                 cashBtn.innerText = `Cashout ${formatMoney(minesState.bet * minesState.currentMult)}`;
-                
-                if(minesState.revealedCount === (25 - minesState.minesCount)) {
+
+                if(minesState.revealedCount === 25 - minesState.minesCount) {
                     cashoutMines();
                 } else {
-                    document.getElementById('minesNextMult').innerText = `${calcMinesMult(minesState.minesCount, minesState.revealedCount + 1).toFixed(2)}x`;
+                    const nMult = getMinesMultiplier(minesState.minesCount, minesState.revealedCount + 1);
+                    document.getElementById('minesNextMult').innerText = `${nMult.toFixed(2)}x`;
                 }
             }
         };
 
         const cashoutMines = () => {
-            if(!minesState.active || minesState.revealedCount === 0) return;
+            if(!minesState.active || minesState.gameOver || minesState.revealedCount === 0) return;
             endMinesGame(true);
         };
 
         const endMinesGame = (isWin) => {
             minesState.active = false;
-            
+            minesState.gameOver = true;
+
             for(let i=0; i<25; i++) {
-                const cell = document.getElementById(`mine-cell-${i}`);
+                const cell = document.getElementById(`mine-${i}`);
                 if(!cell.classList.contains('revealed')) {
                     cell.classList.add('revealed', 'transparent');
-                    cell.innerHTML = minesState.grid[i] === 1 ? '💣' : '💎';
+                    cell.innerHTML = minesState.grid[i] === 'mine' ? '💣' : '💎';
                 }
             }
 
@@ -3199,62 +3418,56 @@ My referal code - ${refCode}`;
 
             document.getElementById('btnMinesStart').classList.remove('hidden');
             document.getElementById('btnMinesCashout').classList.add('hidden');
-            document.getElementById('minesMultiBox').classList.add('hidden');
-            document.getElementById('minesCount').disabled = false;
             document.getElementById('minesBet').disabled = false;
+            document.getElementById('minesCount').disabled = false;
+            document.getElementById('minesMultiBox').classList.add('hidden');
             
             state.gameIsRunning = false;
         };
 
-
         // --- PLINKO GAME ---
-        const PLINKO_LEVELS = 8;
-        const PLINKO_MULTIPLIERS = {
-            low: [5.6, 2.1, 1.1, 1.0, 0.5, 1.0, 1.1, 2.1, 5.6],
-            medium: [29, 4, 1.5, 0.3, 0.2, 0.3, 1.5, 4, 29],
-            high: [120, 14, 2.0, 0.2, 0.2, 0.2, 2.0, 14, 120]
+        const PLINKO_ROWS = 12; // Must match CSS and layout logic
+        const PLINKO_MULTS = {
+            low: [5.6, 2.1, 1.1, 1.0, 0.5, 0.4, 0.4, 0.5, 1.0, 1.1, 2.1, 5.6],
+            medium: [18, 4, 1.5, 0.5, 0.3, 0.2, 0.2, 0.3, 0.5, 1.5, 4, 18],
+            high: [76, 12, 2.5, 0.5, 0.2, 0.1, 0.1, 0.2, 0.5, 2.5, 12, 76]
         };
 
-        const initPlinko = () => {
+        const initPlinkoBoard = () => {
             const pegsContainer = document.getElementById('plinkoPegs');
             pegsContainer.innerHTML = '';
             
-            for(let row = 0; row < PLINKO_LEVELS; row++) {
-                let numPegs = row + 3; 
-                for(let col = 0; col < numPegs; col++) {
+            for(let row = 3; row <= PLINKO_ROWS + 2; row++) {
+                const y = (row / (PLINKO_ROWS + 3)) * 100;
+                const pegsInRow = row;
+                
+                for(let col = 0; col < pegsInRow; col++) {
+                    const x = 50 + (col - (pegsInRow - 1) / 2) * 8;
+                    
                     const peg = document.createElement('div');
                     peg.className = 'plinko-peg';
-                    const rowHeightPerc = (row + 1) / (PLINKO_LEVELS + 1) * 100;
-                    const pegSpacing = 100 / numPegs;
-                    const offset = pegSpacing / 2;
-                    const colWidthPerc = (col * pegSpacing) + offset;
-                    
-                    peg.style.top = `${rowHeightPerc}%`;
-                    peg.style.left = `${colWidthPerc}%`;
+                    peg.style.top = `${y}%`;
+                    peg.style.left = `${x}%`;
                     pegsContainer.appendChild(peg);
                 }
             }
-
             updatePlinkoMultipliers();
         };
 
         const updatePlinkoMultipliers = () => {
-            if(state.gameIsRunning) return;
-            const risk = document.getElementById('plinkoRisk').value;
-            const mults = PLINKO_MULTIPLIERS[risk];
+            const risk = document.getElementById('plinkoRisk').value || 'medium';
+            const mults = PLINKO_MULTS[risk];
             const container = document.getElementById('plinkoMultipliers');
             container.innerHTML = '';
+            
+            let colorClass = 'p-color-med';
+            if(risk === 'high') colorClass = 'p-color-high';
+            else if(risk === 'low') colorClass = 'p-color-low';
 
-            mults.forEach((m, idx) => {
+            mults.forEach(m => {
                 const box = document.createElement('div');
-                let colorClass = 'p-color-low';
-                if(m >= 10) colorClass = 'p-color-high';
-                else if(m >= 2) colorClass = 'p-color-med';
-                else if (m < 1) { box.style.backgroundColor = '#334155'; box.style.color = '#94A3B8'; }
-                
                 box.className = `plinko-mult-box ${colorClass}`;
-                box.id = `plinko-bin-${idx}`;
-                box.innerText = `${m}x`;
+                box.innerText = m < 1 ? m.toFixed(1) : (m % 1 === 0 ? m : m.toFixed(1));
                 container.appendChild(box);
             });
         };
@@ -3263,199 +3476,205 @@ My referal code - ${refCode}`;
             if(state.gameIsRunning) return;
             const bet = validateBet('plinkoBet');
             if(!bet) return;
-            
-            const risk = document.getElementById('plinkoRisk').value;
-            
+
+            const risk = document.getElementById('plinkoRisk').value || 'medium';
+            const mults = PLINKO_MULTS[risk];
+
             state.gameIsRunning = true;
             processBet(bet);
-            
+
             const btn = document.getElementById('btnPlinkoDrop');
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
-            document.querySelectorAll('.plinko-mult-box').forEach(el => el.classList.remove('active'));
-
-            let currentBin = 0;
-            const path = [];
-            for(let i=0; i < PLINKO_LEVELS; i++) {
-                const dir = Math.random() > 0.5 ? 1 : 0;
-                currentBin += dir;
-                path.push(dir);
-            }
-
-            const dbr = getDBRMultiplier();
-            const mults = PLINKO_MULTIPLIERS[risk];
-            let isWin = mults[currentBin] >= 2; 
-
-            let minBin = 0;
-            let minMult = mults[0];
-            for(let i=1; i<PLINKO_LEVELS; i++) {
-                if(mults[i] < minMult) { minMult = mults[i]; minBin = i; }
-            }
-
-            if (isStrictLossRequired(bet * mults[currentBin])) {
-                currentBin = minBin;
-                path.length = 0;
-                for(let i=0; i<PLINKO_LEVELS; i++) path.push(i < currentBin ? 1 : 0);
-                path.sort(() => Math.random() - 0.5); 
-            } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                currentBin = Math.floor(PLINKO_LEVELS / 2);
-                path.length = 0;
-                for(let i=0; i<PLINKO_LEVELS; i++) path.push(i < currentBin ? 1 : 0);
-                path.sort(() => Math.random() - 0.5); 
-            } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                currentBin = Math.random() > 0.5 ? 0 : PLINKO_LEVELS;
-                path.length = 0;
-                for(let i=0; i<PLINKO_LEVELS; i++) path.push(currentBin === 0 ? 0 : 1);
-            }
-
             const ball = document.getElementById('plinkoBall');
+            ball.classList.add('active');
             ball.style.transition = 'none';
             ball.style.top = '0%';
             ball.style.left = '50%';
-            ball.classList.add('active');
+            
+            // Plinko path generation
+            let path = [];
+            let currentCol = 0; // Starts at 0 relative center
 
-            let currentStep = 0;
-            let currentLeft = 50; 
-            const horizontalSpread = 45; 
+            for(let row=0; row<PLINKO_ROWS-1; row++) { // 11 drops
+                let dir = Math.random() < 0.5 ? -0.5 : 0.5;
+                path.push(dir);
+                currentCol += dir;
+            }
+            
+            let finalBin = Math.round(currentCol + 5.5);
+            if(finalBin < 0) finalBin = 0;
+            if(finalBin > 11) finalBin = 11;
 
-            const dropStep = () => {
-                currentStep++;
-                const topPerc = (currentStep / PLINKO_LEVELS) * 90; 
-                let rightsSoFar = path.slice(0, currentStep).reduce((a,b) => a+b, 0);
-                let normalizedPos = (rightsSoFar / currentStep) * 2 - 1; 
-                let targetLeft = 50 + (normalizedPos * horizontalSpread * (currentStep / PLINKO_LEVELS));
-                
-                ball.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 1, 1), left 0.3s cubic-bezier(0.4, 0, 1, 1)';
-                ball.style.top = `${topPerc}%`;
-                ball.style.left = `${targetLeft}%`;
+            let multiplier = mults[finalBin];
+            let potentialWin = bet * multiplier;
 
-                if(currentStep < PLINKO_LEVELS) {
-                    setTimeout(dropStep, 300);
-                } else {
+            // --- STRICT LIMITS & DBR INTERVENTION ---
+            const dbr = getDBRMultiplier();
+            let forceLoss = false;
+            let forceWin = false;
+
+            if (isStrictLossRequired(potentialWin)) forceLoss = true;
+            else if (dbr < 1.0 && multiplier > 1 && Math.random() > dbr) forceLoss = true;
+            else if (dbr > 1.0 && multiplier <= 1 && Math.random() < (dbr - 1.0)) forceWin = true;
+
+            if(forceLoss) {
+                // Target middle bins (low multipliers)
+                finalBin = [4,5,6,7][Math.floor(Math.random()*4)];
+                multiplier = mults[finalBin];
+            } else if (forceWin) {
+                // Target outer bins (high multipliers)
+                finalBin = [0,1, 10,11][Math.floor(Math.random()*4)];
+                multiplier = mults[finalBin];
+            }
+
+            // Regenerate path based on finalBin
+            let targetSum = finalBin - 5.5;
+            path = new Array(PLINKO_ROWS-1).fill(-0.5); // Start with all left (-5.5)
+            let neededRights = targetSum - (-5.5); // How many +1.0 corrections needed
+            
+            let rightsToAdd = Math.round(neededRights);
+            for(let i=0; i<rightsToAdd; i++) {
+                path[i] = 0.5;
+            }
+            // Shuffle path
+            path.sort(() => Math.random() - 0.5);
+
+            // Animate
+            let currentX = 50;
+            let step = 0;
+            
+            const animateDrop = () => {
+                if(step >= path.length) {
+                    // Final drop into bin
+                    const y = 92;
+                    ball.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 1, 1), left 0.3s cubic-bezier(0.4, 0, 1, 1)';
+                    ball.style.top = `${y}%`;
+                    
+                    const boxes = document.getElementById('plinkoMultipliers').children;
+                    if(boxes[finalBin]) {
+                        boxes[finalBin].classList.add('active');
+                        setTimeout(() => boxes[finalBin].classList.remove('active'), 500);
+                    }
+
                     setTimeout(() => {
-                        ball.style.top = '100%';
-                        const targetBinOffset = (currentBin / PLINKO_LEVELS) * 96 + 2; 
-                        ball.style.left = `${targetBinOffset}%`;
+                        let winAmt = bet * multiplier;
+                        if(winAmt > 0) {
+                            processWin(winAmt);
+                            if(multiplier >= 2) showToast(`Plinko: Big Win ${formatMoney(winAmt)}!`, "win");
+                            else showToast(`Plinko: Won ${formatMoney(winAmt)}!`, "success");
+                        } else {
+                            showToast(`Plinko: Lost.`, "error");
+                        }
                         
-                        setTimeout(() => {
-                            const mult = PLINKO_MULTIPLIERS[risk][currentBin];
-                            const winAmt = bet * mult;
-                            const binEl = document.getElementById(`plinko-bin-${currentBin}`);
-                            binEl.classList.add('active');
+                        registerGameResult(bet, winAmt);
+                        
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50');
+                        ball.classList.remove('active');
+                        state.gameIsRunning = false;
+                    }, 400);
 
-                            if(winAmt >= bet) {
-                                processWin(winAmt);
-                                showToast(`Plinko: Won ${formatMoney(winAmt)}!`, "win");
-                            } else {
-                                processWin(winAmt);
-                            }
+                    return;
+                }
 
-                            registerGameResult(bet, winAmt);
-                            
-                            setTimeout(() => { ball.classList.remove('active'); }, 500);
-                            
-                            btn.disabled = false;
-                            btn.classList.remove('opacity-50');
-                            state.gameIsRunning = false;
-                        }, 200);
-                    }, 300);
+                currentX += path[step] * 8; // Adjust based on peg spacing
+                const y = ((step + 4) / (PLINKO_ROWS + 3)) * 100; // Match peg logic
+                
+                ball.style.transition = 'top 0.3s ease-in, left 0.3s ease-in-out';
+                ball.style.top = `${y}%`;
+                ball.style.left = `${currentX}%`;
+                
+                step++;
+                setTimeout(animateDrop, 300);
+            };
+
+            // Start drop
+            setTimeout(animateDrop, 50);
+        };
+
+        // --- INIT MAIL ---
+        let mailIsDragging = false;
+        let mailHasMoved = false;
+        let mailStartX = 0;
+        let mailStartY = 0;
+
+        const setupMailBtn = () => {
+            const btn = document.getElementById('floatingMailBtn');
+            if(!btn) return;
+
+            btn.style.pointerEvents = 'auto'; // Re-enable pointer events for interactions
+
+            const onMove = (e) => {
+                if (!mailIsDragging) return;
+                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                
+                mailHasMoved = true;
+                if(e.cancelable) e.preventDefault(); // Prevent scrolling while dragging
+
+                let newX = clientX - mailStartX;
+                let newY = clientY - mailStartY;
+
+                // Keep within window bounds
+                newX = Math.max(0, Math.min(newX, window.innerWidth - btn.offsetWidth));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - btn.offsetHeight));
+
+                btn.style.left = newX + 'px';
+                btn.style.top = newY + 'px';
+                btn.style.bottom = 'auto';
+                btn.style.right = 'auto';
+            };
+
+            const onEnd = (e) => {
+                if (!mailIsDragging) return;
+                mailIsDragging = false;
+                
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onEnd);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onEnd);
+                
+                if (!mailHasMoved) {
+                    openModal('mailModal');
                 }
             };
 
-            setTimeout(dropStep, 100);
+            const onStart = (e) => {
+                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                
+                mailIsDragging = true;
+                mailHasMoved = false;
+                
+                const rect = btn.getBoundingClientRect();
+                mailStartX = clientX - rect.left;
+                mailStartY = clientY - rect.top;
+
+                // Lock initial CSS positioning to left/top for free dragging
+                btn.style.left = rect.left + 'px';
+                btn.style.top = rect.top + 'px';
+                btn.style.bottom = 'auto';
+                btn.style.right = 'auto';
+
+                document.addEventListener('mousemove', onMove, { passive: false });
+                document.addEventListener('mouseup', onEnd);
+                document.addEventListener('touchmove', onMove, { passive: false });
+                document.addEventListener('touchend', onEnd);
+            };
+
+            btn.addEventListener('mousedown', onStart);
+            btn.addEventListener('touchstart', onStart, { passive: false });
         };
 
-        // --- DRAGGABLE MAIL BUTTON ---
-        const draggableMailBtn = document.getElementById('floatingMailBtn');
-        let isDraggingMail = false;
-        let mailDragStartX = 0;
-        let mailDragStartY = 0;
-        let mailDragInitialLeft = 0;
-        let mailDragInitialTop = 0;
-        let mailHasMoved = false;
-
-        const startMailDrag = (e) => {
-            isDraggingMail = true;
-            mailHasMoved = false;
-            
-            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-            
-            const rect = draggableMailBtn.getBoundingClientRect();
-            mailDragInitialLeft = rect.left;
-            mailDragInitialTop = rect.top;
-            
-            mailDragStartX = clientX;
-            mailDragStartY = clientY;
-            
-            draggableMailBtn.style.transition = 'none';
-            draggableMailBtn.style.bottom = 'auto';
-            draggableMailBtn.style.right = 'auto';
-        };
-
-        const moveMailDrag = (e) => {
-            if (!isDraggingMail) return;
-            
-            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-
-            let deltaX = clientX - mailDragStartX;
-            let deltaY = clientY - mailDragStartY;
-
-            if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-                mailHasMoved = true;
-            }
-
-            let newX = mailDragInitialLeft + deltaX;
-            let newY = mailDragInitialTop + deltaY;
-
-            const maxX = window.innerWidth - draggableMailBtn.offsetWidth;
-            const maxY = window.innerHeight - draggableMailBtn.offsetHeight;
-            newX = Math.max(0, Math.min(newX, maxX));
-            newY = Math.max(0, Math.min(newY, maxY));
-
-            requestAnimationFrame(() => {
-                draggableMailBtn.style.left = `${newX}px`;
-                draggableMailBtn.style.top = `${newY}px`;
-            });
-            
-            if(e.type === 'touchmove' && e.cancelable) e.preventDefault(); 
-        };
-
-        const stopMailDrag = () => {
-            if (!isDraggingMail) return;
-            isDraggingMail = false;
-            draggableMailBtn.style.transition = ''; 
-        };
-
-        draggableMailBtn.addEventListener('mousedown', startMailDrag);
-        document.addEventListener('mousemove', moveMailDrag, { passive: false });
-        document.addEventListener('mouseup', stopMailDrag);
-
-        draggableMailBtn.addEventListener('touchstart', startMailDrag, { passive: false });
-        document.addEventListener('touchmove', moveMailDrag, { passive: false });
-        document.addEventListener('touchmove', moveMailDrag, { passive: false });
-        document.addEventListener('touchend', stopMailDrag);
-
-        draggableMailBtn.addEventListener('click', (e) => {
-            if (mailHasMoved) {
-                e.preventDefault();
-                e.stopPropagation();
-            } else {
-                openModal('mailModal');
-            }
-        });
-
-        // --- INITIAL BOOT ---
-        initMinesGrid();
-        initMysteryGrid();
-        initPlinko();
-        
-        // Insert initial SVG into balloon container immediately
-        document.getElementById('balloonObj').innerHTML = BALLOON_SVG;
-        
+        // --- GLOBAL INITIALIZATION ---
         const initApp = async () => {
+            initMysteryGrid();
+            initMinesGrid();
+            initPlinkoBoard();
+            setupMailBtn();
+
             const savedCurrentUser = localStorage.getItem('megabet_currentUser') || null;
             
             if (savedCurrentUser) {
