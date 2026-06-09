@@ -326,6 +326,9 @@
                 <div id="formLogin" class="space-y-4">
                     <input type="tel" id="loginMobile" placeholder="Mobile Number" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
                     <input type="password" id="loginPassword" placeholder="Password" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
+                    <div class="text-right">
+                        <button onclick="switchAuthTab('forgot')" class="text-brand text-xs font-bold hover:underline transition">Forgot Password?</button>
+                    </div>
                     <button onclick="handleLogin()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-2">Login</button>
                 </div>
 
@@ -339,6 +342,20 @@
                     <input type="text" id="regRefCode" placeholder="Referral Code (Optional)" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand uppercase transition tracking-widest">
                     <p class="text-[10px] text-gray-400 text-left px-1">Use a referral code to instantly get a ₹25 Bonus!</p>
                     <button onclick="handleRegister()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-2">Create Account</button>
+                </div>
+
+                <div id="formForgot" class="space-y-4 hidden">
+                    <h3 class="text-lg font-bold text-white mb-1">Reset Password</h3>
+                    <p class="text-xs text-gray-400 mb-4 text-left leading-relaxed">Verify your identity by entering your last withdrawal amount. Enter <span class="text-brand font-bold">0</span> if you have never made a withdrawal.</p>
+                    
+                    <input type="tel" id="forgotMobile" placeholder="Registered Mobile Number" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
+                    <input type="number" id="forgotWithdraw" placeholder="Last Withdraw Amount" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
+                    <input type="password" id="forgotNewPassword" placeholder="Enter New Password" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-brand transition">
+                    
+                    <button onclick="handleForgotPassword()" class="w-full bg-brand hover:bg-brandHover text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-2">Set New Password</button>
+                    <div class="text-center mt-3">
+                        <button onclick="switchAuthTab('login')" class="text-gray-400 text-xs hover:text-white transition">Back to Login</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -511,7 +528,7 @@
                                 <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-wide" id="vipProfileMobile">+91 ----------</h2>
                                 <span id="vipProfileLevel" class="inline-block px-4 py-1 rounded-full bg-gray-800/50 text-gray-300 text-xs font-bold uppercase tracking-widest border border-gray-700 shadow-sm">BEGINNER</span>
                             </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-5">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 mt-5">
                                 <div class="bg-dark/80 rounded-xl p-3 border border-gray-800">
                                     <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 font-bold">Total Bet</div>
                                     <div class="font-mono text-white font-bold text-sm sm:text-base truncate" id="vipProfileWagered">₹0.00</div>
@@ -527,6 +544,18 @@
                                 <div class="bg-dark/80 rounded-xl p-3 border border-gray-800">
                                     <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 font-bold">Linked A/C</div>
                                     <div class="font-mono text-blue-400 font-bold text-xs sm:text-sm truncate" id="vipProfileLinkedAcc">None</div>
+                                </div>
+                                <div class="bg-dark/80 rounded-xl p-3 border border-gray-800">
+                                    <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 font-bold">Account Age</div>
+                                    <div class="font-mono text-white font-bold text-sm sm:text-base truncate" id="vipProfileDays">1 Day</div>
+                                </div>
+                                <div class="bg-dark/80 rounded-xl p-3 border border-gray-800">
+                                    <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 font-bold">Avg. Active/Day</div>
+                                    <div class="font-mono text-white font-bold text-sm sm:text-base truncate" id="vipProfileAvgHours">0.0 hrs</div>
+                                </div>
+                                <div class="bg-dark/80 rounded-xl p-3 border border-gray-800 sm:col-span-3 md:col-span-2">
+                                    <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1 font-bold">Last Big Win</div>
+                                    <div class="font-mono text-purple-400 font-bold text-sm sm:text-base truncate" id="vipProfileLastBigWin">None</div>
                                 </div>
                             </div>
                         </div>
@@ -1632,6 +1661,38 @@
                     profileLinked.title = linkedText; // Adds a hover tooltip
                 }
                 
+                // Account Age and Avg Hours
+                const profileDays = document.getElementById('vipProfileDays');
+                if (profileDays) {
+                    const created = user.createdAt || Date.now();
+                    let days = Math.max(1, Math.ceil((Date.now() - created) / (1000 * 60 * 60 * 24)));
+                    profileDays.innerText = `${days} Day${days > 1 ? 's' : ''}`;
+                    
+                    const profileAvgHours = document.getElementById('vipProfileAvgHours');
+                    if (profileAvgHours) {
+                        const totalHours = (user.activeTimeMs || 0) / (1000 * 60 * 60);
+                        const avgHours = totalHours / days;
+                        profileAvgHours.innerText = `${avgHours.toFixed(1)} hrs`;
+                    }
+                }
+
+                // Last Big Win
+                const profileLastBigWin = document.getElementById('vipProfileLastBigWin');
+                if (profileLastBigWin) {
+                    if (user.gameHistory) {
+                        const bigWins = Object.values(user.gameHistory)
+                                              .filter(h => h.isBigWin)
+                                              .sort((a,b) => b.timestamp - a.timestamp);
+                        if (bigWins.length > 0) {
+                            profileLastBigWin.innerText = formatMoney(bigWins[0].win);
+                        } else {
+                            profileLastBigWin.innerText = "None";
+                        }
+                    } else {
+                        profileLastBigWin.innerText = "None";
+                    }
+                }
+                
                 // --- Update Linked Accounts UI ---
                 const upiArea = document.getElementById('upiBindArea');
                 if (upiArea) {
@@ -1746,20 +1807,36 @@
         };
 
         const switchAuthTab = (tab) => {
+            const formLogin = document.getElementById('formLogin');
+            const formReg = document.getElementById('formRegister');
+            const formForgot = document.getElementById('formForgot');
+            const tabLogin = document.getElementById('tabLogin');
+            const tabReg = document.getElementById('tabRegister');
+
             if(tab === 'login') {
-                document.getElementById('formLogin').classList.remove('hidden');
-                document.getElementById('formRegister').classList.add('hidden');
-                document.getElementById('tabLogin').classList.replace('border-transparent', 'border-brand');
-                document.getElementById('tabLogin').classList.replace('text-gray-500', 'text-white');
-                document.getElementById('tabRegister').classList.replace('border-brand', 'border-transparent');
-                document.getElementById('tabRegister').classList.replace('text-white', 'text-gray-500');
-            } else {
-                document.getElementById('formRegister').classList.remove('hidden');
-                document.getElementById('formLogin').classList.add('hidden');
-                document.getElementById('tabRegister').classList.replace('border-transparent', 'border-brand');
-                document.getElementById('tabRegister').classList.replace('text-white', 'text-gray-500');
-                document.getElementById('tabLogin').classList.replace('border-brand', 'border-transparent');
-                document.getElementById('tabLogin').classList.replace('text-white', 'text-gray-500');
+                formLogin.classList.remove('hidden');
+                formReg.classList.add('hidden');
+                formForgot.classList.add('hidden');
+                tabLogin.classList.replace('border-transparent', 'border-brand');
+                tabLogin.classList.replace('text-gray-500', 'text-white');
+                tabReg.classList.replace('border-brand', 'border-transparent');
+                tabReg.classList.replace('text-white', 'text-gray-500');
+            } else if(tab === 'register') {
+                formReg.classList.remove('hidden');
+                formLogin.classList.add('hidden');
+                formForgot.classList.add('hidden');
+                tabReg.classList.replace('border-transparent', 'border-brand');
+                tabReg.classList.replace('text-white', 'text-gray-500');
+                tabLogin.classList.replace('border-brand', 'border-transparent');
+                tabLogin.classList.replace('text-white', 'text-gray-500');
+            } else if(tab === 'forgot') {
+                formForgot.classList.remove('hidden');
+                formLogin.classList.add('hidden');
+                formReg.classList.add('hidden');
+                tabLogin.classList.replace('border-brand', 'border-transparent');
+                tabLogin.classList.replace('text-white', 'text-gray-500');
+                tabReg.classList.replace('border-brand', 'border-transparent');
+                tabReg.classList.replace('text-white', 'text-gray-500');
             }
         };
 
@@ -1818,6 +1895,8 @@
                     commissionBalance: 0,
                     lastCheckIn: "",
                     claimableCashback: 0,
+                    createdAt: Date.now(),
+                    activeTimeMs: 0,
                     mails: {}
                 };
 
@@ -1850,6 +1929,53 @@
 
                 state.users[mobile] = user;
                 loginUser(mobile, password);
+
+            } catch (err) {
+                showToast("Connection error. Please try again.", "error");
+                console.error(err);
+            }
+        };
+
+        const handleForgotPassword = async () => {
+            const mobile = document.getElementById('forgotMobile').value.trim();
+            const withdrawStr = document.getElementById('forgotWithdraw').value.trim();
+            const newPassword = document.getElementById('forgotNewPassword').value;
+
+            if(!mobile || withdrawStr === '' || !newPassword) return showToast("Please fill all fields", "error");
+            if(newPassword.length < 4) return showToast("Password must be at least 4 characters", "error");
+
+            const enteredWithdrawAmt = parseFloat(withdrawStr);
+
+            try {
+                const snapshot = await db.ref('users/' + mobile).once('value');
+                if (!snapshot.exists()) {
+                    return showToast("Account not found", "error");
+                }
+
+                const user = snapshot.val();
+                let actualLastWithdraw = 0;
+
+                // Find the latest withdrawal amount
+                if (user.withdrawals) {
+                    const withs = Object.values(user.withdrawals).sort((a,b) => b.timestamp - a.timestamp);
+                    if (withs.length > 0) {
+                        actualLastWithdraw = withs[0].amount;
+                    }
+                }
+
+                if (actualLastWithdraw !== enteredWithdrawAmt) {
+                    return showToast("Verification failed. Incorrect last withdrawal amount.", "error");
+                }
+
+                // Everything matches, save new password
+                await db.ref('users/' + mobile + '/password').set(newPassword);
+                
+                document.getElementById('forgotMobile').value = '';
+                document.getElementById('forgotWithdraw').value = '';
+                document.getElementById('forgotNewPassword').value = '';
+                
+                showToast("Password reset successfully! Please login.", "success");
+                switchAuthTab('login');
 
             } catch (err) {
                 showToast("Connection error. Please try again.", "error");
