@@ -999,7 +999,7 @@
                     <div class="space-y-2">
                         <label class="block text-xs font-medium text-gray-400 uppercase tracking-wide">Auto Cashout</label>
                         <div class="relative">
-                            <input type="number" id="crAutoCashout" value="2.00" min="1.01" step="0.01" class="w-full bg-dark border border-gray-700 rounded-xl py-3 pl-4 pr-8 text-white font-mono focus:outline-none focus:border-emerald-500 transition">
+                            <input type="number" id="crAutoCashout" value="2.00" min="1.10" step="0.01" class="w-full bg-dark border border-gray-700 rounded-xl py-3 pl-4 pr-8 text-white font-mono focus:outline-none focus:border-emerald-500 transition">
                             <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400">x</span>
                         </div>
                     </div>
@@ -1039,7 +1039,7 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Target Multiplier</label>
                         <div class="relative">
-                            <input type="number" id="limboTarget" value="2.00" min="1.01" step="0.01" class="w-full bg-dark border border-gray-700 rounded-xl py-3 pl-4 pr-8 text-white font-mono focus:outline-none focus:border-orange-500 transition">
+                            <input type="number" id="limboTarget" value="2.00" min="1.10" step="0.01" class="w-full bg-dark border border-gray-700 rounded-xl py-3 pl-4 pr-8 text-white font-mono focus:outline-none focus:border-orange-500 transition">
                             <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400">x</span>
                         </div>
                     </div>
@@ -1304,8 +1304,91 @@
             gameIsRunning: false,
             freeSpins: 0,
             diceTarget: 'low',
-            coinTarget: 'heads'
+            coinTarget: 'heads',
+            // Default game statuses, will be overridden by Firebase Admin Settings
+            gameStatus: {
+                wheel: true, mystery: true, balloon: true, dice: true, coin: true,
+                roulette: true, slots: true, chicken: true, limbo: true, mines: true, plinko: true
+            }
         };
+
+        const gameMap = {
+            'game-wheel': 'wheel', 'game-mystery': 'mystery', 'game-balloon': 'balloon',
+            'game-dice': 'dice', 'game-coin': 'coin', 'game-roulette': 'roulette',
+            'game-slots': 'slots', 'game-chicken': 'chicken', 'game-limbo': 'limbo',
+            'game-mines': 'mines', 'game-plinko': 'plinko'
+        };
+
+        // --- GLOBAL ADMIN LISTENERS ---
+        db.ref('adminSettings/marqueeMessage').on('value', (snap) => {
+            const marqueeCont = document.getElementById('marqueeContainer');
+            if(snap.exists() && snap.val().trim() !== '') {
+                document.getElementById('marqueeText').innerText = snap.val();
+                marqueeCont.classList.remove('hidden');
+            } else {
+                marqueeCont.classList.add('hidden');
+            }
+        });
+
+        const updateGameStatusUI = () => {
+            Object.keys(gameMap).forEach(viewId => {
+                const gameKey = gameMap[viewId];
+                // Select game tiles that navigate to this game
+                const tiles = document.querySelectorAll(`[onclick^="navigate('${viewId}')"]`);
+                
+                tiles.forEach(tile => {
+                    if (state.gameStatus[gameKey] === false) {
+                        tile.classList.add('opacity-50', 'grayscale', 'pointer-events-none');
+                        let badge = tile.querySelector('.maintenance-badge');
+                        if (!badge) {
+                            badge = document.createElement('div');
+                            badge.className = 'maintenance-badge absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg z-10 uppercase tracking-widest';
+                            badge.innerText = 'Maintenance';
+                            tile.style.position = 'relative';
+                            tile.appendChild(badge);
+                        }
+                    } else {
+                        tile.classList.remove('opacity-50', 'grayscale', 'pointer-events-none');
+                        const badge = tile.querySelector('.maintenance-badge');
+                        if (badge) badge.remove();
+                    }
+                });
+            });
+        };
+
+        db.ref('adminSettings/gameStatus').on('value', (snap) => {
+            if (snap.exists()) {
+                state.gameStatus = { ...state.gameStatus, ...snap.val() };
+                updateGameStatusUI();
+                
+                // If the user is inside a game that was just turned off, kick them to dashboard
+                const activeSections = document.querySelectorAll('.view-section:not(.hidden)');
+                if (activeSections.length > 0) {
+                    const currentView = activeSections[0].id;
+                    if (gameMap[currentView] && state.gameStatus[gameMap[currentView]] === false) {
+                        if (!state.gameIsRunning) {
+                            showToast("This game is now under maintenance.", "error");
+                            navigate('games');
+                        }
+                    }
+                }
+            }
+        });
+
+        let activeAdminUpis = ["priyanshugogoi594@oksbi"];
+        db.ref('adminSettings/upiOptions').on('value', (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                if(Array.isArray(data)) activeAdminUpis = data;
+                else if (typeof data === 'string') activeAdminUpis = data.split(',').map(s => s.trim());
+                else if (typeof data === 'object') activeAdminUpis = Object.values(data);
+                
+                if(activeAdminUpis.length > 0) {
+                    const sel = document.getElementById('adminUpiSelect');
+                    if (sel) sel.innerHTML = activeAdminUpis.map(upi => `<option value="${upi}">${upi}</option>`).join('');
+                }
+            }
+        });
         
         let liveListener = null;
 
@@ -1341,32 +1424,7 @@
             db.ref('users/' + state.currentUser + '/chat').on('value', snap => {
                 renderChat(snap.val());
             });
-
-            db.ref('adminSettings/marqueeMessage').on('value', (snap) => {
-                const marqueeCont = document.getElementById('marqueeContainer');
-                if(snap.exists() && snap.val().trim() !== '') {
-                    document.getElementById('marqueeText').innerText = snap.val();
-                    marqueeCont.classList.remove('hidden');
-                } else {
-                    marqueeCont.classList.add('hidden');
-                }
-            });
         };
-
-        let activeAdminUpis = ["priyanshugogoi594@oksbi"];
-        db.ref('adminSettings/upiOptions').on('value', (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                if(Array.isArray(data)) activeAdminUpis = data;
-                else if (typeof data === 'string') activeAdminUpis = data.split(',').map(s => s.trim());
-                else if (typeof data === 'object') activeAdminUpis = Object.values(data);
-                
-                if(activeAdminUpis.length > 0) {
-                    const sel = document.getElementById('adminUpiSelect');
-                    if (sel) sel.innerHTML = activeAdminUpis.map(upi => `<option value="${upi}">${upi}</option>`).join('');
-                }
-            }
-        });
 
         // --- SUPPORT CHAT LOGIC ---
         const switchSupportTab = (tab) => {
@@ -1575,6 +1633,10 @@
             if (state.currentUser && state.users[state.currentUser]) {
                 const user = state.users[state.currentUser];
                 if(!user.mails) user.mails = {};
+
+                // Enforce strict 2-decimal precision for internal state logic
+                state.balance = parseFloat(Number(state.balance || 0).toFixed(2));
+                state.withdrawableBalance = parseFloat(Number(state.withdrawableBalance || 0).toFixed(2));
 
                 if (saveToDb) {
                     user.balance = state.balance;
@@ -2076,10 +2138,18 @@
                 viewId = 'auth';
             }
 
+            const isGameView = viewId.startsWith('game-');
+            
+            // Check if game is disabled/under maintenance
+            if (isGameView && gameMap[viewId]) {
+                if (state.gameStatus && state.gameStatus[gameMap[viewId]] === false) {
+                    return showToast("This game is currently under maintenance.", "error");
+                }
+            }
+
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             document.getElementById(viewId).classList.remove('hidden');
 
-            const isGameView = viewId.startsWith('game-');
             const mainNav = document.getElementById('mainNav');
             const mobileNav = document.getElementById('mobileNav');
             const mainFooter = document.getElementById('mainFooter');
@@ -2111,7 +2181,7 @@
                 mainContent.classList.remove('justify-center', 'my-auto', 'py-4', 'pb-4');
                 mainContent.classList.add('py-6', 'pb-24', 'md:pb-8');
                 if (floatingMailBtn) floatingMailBtn.classList.remove('hidden');
-                if (floatingBalanceBtn) floatingBalanceBtn.classList.add('hidden'); // hidden on non-game views
+                if (floatingBalanceBtn) floatingBalanceBtn.classList.add('hidden'); 
             }
             
             if (viewId === 'history') fetchHistory();
@@ -2608,7 +2678,7 @@
 
         const validateBet = (betInputId) => {
             const bet = parseFloat(document.getElementById(betInputId).value);
-            if(isNaN(bet) || bet <= 0) { showToast("Invalid bet amount", "error"); return false; }
+            if(isNaN(bet) || bet < 1) { showToast("Minimum bet amount is ₹1", "error"); return false; }
             
             const totalAvailable = state.balance + (state.withdrawableBalance || 0);
             if(bet > totalAvailable && state.freeSpins === 0) { showToast("Insufficient balance", "error"); return false; }
@@ -2624,6 +2694,9 @@
                 state.withdrawableBalance -= remaining;
             }
             
+            state.balance = parseFloat(state.balance.toFixed(2));
+            state.withdrawableBalance = parseFloat(state.withdrawableBalance.toFixed(2));
+            
             state.stats.wagered += amount;
             state.stats.gamesPlayed++;
             
@@ -2637,6 +2710,7 @@
         const processWin = (amount) => {
             if(!state.withdrawableBalance) state.withdrawableBalance = 0;
             state.withdrawableBalance += amount;
+            state.withdrawableBalance = parseFloat(state.withdrawableBalance.toFixed(2));
             state.stats.won += amount;
             updateUI(true); 
         };
@@ -2736,6 +2810,8 @@
 
         const playWheel = () => {
             if(state.gameIsRunning) return;
+            if(state.gameStatus['wheel'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('wheelBet');
             if(!bet) return;
             
@@ -2845,6 +2921,8 @@
 
         const startMystery = () => {
             if(mysteryState.active || state.gameIsRunning || mysteryState.isOpening) return;
+            if(state.gameStatus['mystery'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('mysteryBet');
             if(!bet) return;
 
@@ -3048,6 +3126,8 @@
 
         const startBalloon = () => {
             if (balloonState.active || state.gameIsRunning) return;
+            if (state.gameStatus['balloon'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('balloonBet');
             if (!bet) return;
 
@@ -3258,6 +3338,8 @@
 
         const playDice = () => {
             if(state.gameIsRunning) return;
+            if(state.gameStatus['dice'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('diceBet');
             if(!bet) return;
 
@@ -3355,6 +3437,8 @@
 
         const playCoin = () => {
             if(state.gameIsRunning) return;
+            if(state.gameStatus['coin'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('coinBet');
             if(!bet) return;
 
@@ -3365,201 +3449,152 @@
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
-            let result = Math.random() < 0.5 ? 'heads' : 'tails';
-            let isWin = result === state.coinTarget;
-
+            const coinObj = document.getElementById('coinObj');
+            
+            let spins = 5;
+            let resultSide = Math.random() < 0.5 ? 'heads' : 'tails';
+            
             const dbr = getDBRMultiplier();
             const potentialWin = bet * 1.95;
             const forceWinActive = isForcedWinRequired(potentialWin);
 
             if (forceWinActive) {
-                isWin = true;
-                result = state.coinTarget;
-            } else if (isWin && isStrictLossRequired(potentialWin)) {
-                isWin = false; 
-                result = state.coinTarget === 'heads' ? 'tails' : 'heads';
-            } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                isWin = false; 
-                result = state.coinTarget === 'heads' ? 'tails' : 'heads';
-            } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                isWin = true; 
-                result = state.coinTarget;
+                resultSide = state.coinTarget;
+            } else if (isStrictLossRequired(potentialWin)) {
+                resultSide = state.coinTarget === 'heads' ? 'tails' : 'heads';
+            } else if (dbr < 1.0 && Math.random() > dbr) {
+                resultSide = state.coinTarget === 'heads' ? 'tails' : 'heads';
+            } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
+                resultSide = state.coinTarget;
             }
 
-            const coin = document.getElementById('coinObj');
-            const spins = 5; 
+            let extraSpins = resultSide === 'heads' ? 0 : 0.5;
+            let totalTurns = spins + extraSpins;
             
-            let addedRot = spins * 360;
-            if(result === 'tails') addedRot += 180;
-            
-            coin.style.transition = 'none';
-            coin.style.transform = `rotateY(0deg)`;
-            
-            setTimeout(() => {
-                coin.style.transition = 'transform 3s cubic-bezier(0.2, 0.8, 0.2, 1)';
-                let finalRot = addedRot;
-                if(result === 'tails') finalRot = spins * 360 + 180;
-                else finalRot = spins * 360;
-                
-                coin.style.transform = `rotateY(${finalRot}deg)`;
+            coinObj.style.transition = 'transform 3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            coinObj.style.transform = `rotateY(${totalTurns * 360}deg)`;
 
+            setTimeout(() => {
+                let isWin = (resultSide === state.coinTarget);
+                let winAmt = 0;
+                
+                if(isWin) {
+                    winAmt = bet * 1.95;
+                    processWin(winAmt);
+                    showToast(`Coin Flip: Won ${formatMoney(winAmt)}!`, "win");
+                } else {
+                    showToast(`Coin landed on ${resultSide}. You lost.`, "error");
+                }
+                
+                registerGameResult(bet, winAmt, 'Coin Flip');
+
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+                state.gameIsRunning = false;
+                
                 setTimeout(() => {
-                    let winAmt = 0;
-                    if(isWin) {
-                        winAmt = potentialWin;
-                        processWin(winAmt);
-                        showToast(`Coin landed on ${result.toUpperCase()}! Won ${formatMoney(winAmt)}`, "win");
-                    } else {
-                        showToast(`Coin landed on ${result.toUpperCase()}. You lost.`, "error");
-                    }
-                    
-                    registerGameResult(bet, winAmt, 'Coin Flip');
-                    
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50');
-                    state.gameIsRunning = false;
-                }, 3000);
-            }, 50);
+                    coinObj.style.transition = 'none';
+                    coinObj.style.transform = `rotateY(${resultSide === 'heads' ? 0 : 180}deg)`;
+                }, 500);
+
+            }, 3000);
         };
 
         // --- ROULETTE GAME ---
-        let rouletteRot = 0;
-        const playRoulette = (target) => {
+        let currentRouletteRot = 0;
+        const playRoulette = (betOn) => {
             if(state.gameIsRunning) return;
+            if(state.gameStatus['roulette'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('rouletteBet');
             if(!bet) return;
 
             state.gameIsRunning = true;
             processBet(bet);
-
+            
+            const wheel = document.getElementById('rouletteWheel');
             const resText = document.getElementById('rouletteResult');
             resText.innerText = '';
             
-            const wheel = document.getElementById('rouletteWheel');
-            
-            let resultNum = Math.floor(Math.random() * 37);
-            let resultColor = 'green';
-            if(resultNum >= 1 && resultNum <= 18) resultColor = 'red';
-            else if (resultNum >= 19 && resultNum <= 36) resultColor = 'black';
-            
-            let isWin = target === resultColor;
-
+            let resultColor;
+            const r = Math.random();
             const dbr = getDBRMultiplier();
-            let multiplier = target === 'green' ? 14 : 2;
-            const potentialWin = bet * multiplier;
+            const potentialWin = betOn === 'green' ? bet * 14 : bet * 2;
             const forceWinActive = isForcedWinRequired(potentialWin);
 
             if (forceWinActive) {
-                isWin = true;
-                resultColor = target;
-            } else if (isWin && isStrictLossRequired(potentialWin)) {
-                isWin = false; 
-                const losingColors = ['red', 'black', 'green'].filter(c => c !== target);
-                resultColor = losingColors[Math.floor(Math.random() * losingColors.length)];
-            } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                isWin = false; 
-                const losingColors = ['red', 'black', 'green'].filter(c => c !== target);
-                resultColor = losingColors[Math.floor(Math.random() * losingColors.length)];
-            } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                isWin = true; 
-                resultColor = target;
+                resultColor = betOn;
+            } else if (isStrictLossRequired(potentialWin)) {
+                if (betOn === 'red') resultColor = Math.random() < 0.9 ? 'black' : 'green';
+                else if (betOn === 'black') resultColor = Math.random() < 0.9 ? 'red' : 'green';
+                else resultColor = Math.random() < 0.5 ? 'red' : 'black';
+            } else if (dbr < 1.0 && Math.random() > dbr) {
+                if (betOn === 'red') resultColor = Math.random() < 0.9 ? 'black' : 'green';
+                else if (betOn === 'black') resultColor = Math.random() < 0.9 ? 'red' : 'green';
+                else resultColor = Math.random() < 0.5 ? 'red' : 'black';
+            } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
+                resultColor = betOn;
+            } else {
+                if(r < 0.05) resultColor = 'green';
+                else if(r < 0.525) resultColor = 'red';
+                else resultColor = 'black';
             }
 
-            let targetAngle = 0; 
-            if(resultColor === 'red') targetAngle = 20 + Math.random() * 165; 
-            else if (resultColor === 'black') targetAngle = 195 + Math.random() * 160;
-            else targetAngle = 2 + Math.random() * 14;
+            let targetDeg = 0;
+            // Green is at 0-18 deg on wheel. To land on it, rotate by 342-360.
+            if(resultColor === 'green') targetDeg = 345 + Math.random()*10; 
+            // Red is at 18-189 deg on wheel. To land on it, rotate by 171-342.
+            if(resultColor === 'red') targetDeg = 200 + Math.random()*100; 
+            // Black is at 189-360 deg. To land on it, rotate by 0-171.
+            if(resultColor === 'black') targetDeg = 40 + Math.random()*100;
 
-            const spins = 5;
-            const targetRotationMod = 360 - targetAngle;
-            const currentMod = rouletteRot % 360;
-            
-            let rotationNeeded = targetRotationMod - currentMod;
-            if (rotationNeeded < 0) rotationNeeded += 360;
+            const spins = 5 * 360;
+            const currentMod = currentRouletteRot % 360;
+            let rotationNeeded = targetDeg - currentMod;
+            if (rotationNeeded <= 0) rotationNeeded += 360;
 
-            const finalRot = (spins * 360) + rotationNeeded;
-
-            rouletteRot += finalRot;
-            wheel.style.transform = `rotate(${rouletteRot}deg)`;
+            currentRouletteRot += (spins + rotationNeeded);
+            wheel.style.transform = `rotate(${currentRouletteRot}deg)`;
 
             setTimeout(() => {
+                let isWin = (resultColor === betOn);
                 let winAmt = 0;
-                
+
                 if(isWin) {
-                    winAmt = potentialWin;
+                    const mult = resultColor === 'green' ? 14 : 2;
+                    winAmt = bet * mult;
                     processWin(winAmt);
-                    resText.innerText = `Landed on ${resultColor.toUpperCase()}`;
-                    resText.className = `mt-6 sm:mt-8 text-xl sm:text-2xl font-bold h-8 tracking-widest uppercase flex items-center justify-center ${resultColor === 'red' ? 'text-red-500' : (resultColor==='green' ? 'text-emerald-500' : 'text-gray-400')}`;
+                    resText.innerText = `${resultColor.toUpperCase()}! You won ${formatMoney(winAmt)}`;
+                    resText.className = "mt-6 sm:mt-8 text-xl sm:text-2xl font-bold h-8 tracking-widest uppercase flex items-center justify-center text-green-400";
                     showToast(`Roulette: Won ${formatMoney(winAmt)}!`, "win");
                 } else {
-                    resText.innerText = `Landed on ${resultColor.toUpperCase()}`;
-                    resText.className = `mt-6 sm:mt-8 text-xl sm:text-2xl font-bold h-8 tracking-widest uppercase flex items-center justify-center ${resultColor === 'red' ? 'text-red-500' : (resultColor==='green' ? 'text-emerald-500' : 'text-gray-400')}`;
+                    resText.innerText = `${resultColor.toUpperCase()}. You lost.`;
+                    resText.className = "mt-6 sm:mt-8 text-xl sm:text-2xl font-bold h-8 tracking-widest uppercase flex items-center justify-center text-red-500";
                 }
                 
                 registerGameResult(bet, winAmt, 'Roulette');
+
                 state.gameIsRunning = false;
             }, 4000);
         };
 
-        // --- SLOT MACHINE GAME ---
-        const SYMBOLS = ['🍒', '🍋', '🍉', '🍇', '💎', '7️⃣', '🌟'];
-        const WEIGHTS = [30,   25,   20,   12,   8,    3,    2]; 
-
-        const getRandomSymbol = () => {
-            let rnd = Math.random() * 100;
-            let sum = 0;
-            for(let i=0; i<SYMBOLS.length; i++) {
-                sum += WEIGHTS[i];
-                if(rnd <= sum) return SYMBOLS[i];
-            }
-            return SYMBOLS[0];
-        };
-
-        const checkLines = (grid) => {
-            const lines = [
-                [0,1,2], [3,4,5], [6,7,8], 
-                [0,3,6], [1,4,7], [2,5,8], 
-                [0,4,8], [2,4,6]           
-            ];
-            
-            let winMultiplier = 0;
-            let winningLines = [];
-
-            lines.forEach(line => {
-                const s1 = grid[line[0]];
-                const s2 = grid[line[1]];
-                const s3 = grid[line[2]];
-                
-                if(s1 === s2 && s2 === s3 && s1 !== '🌟') {
-                    winningLines.push(line);
-                    if(s1 === '7️⃣') winMultiplier += 50;
-                    else if(s1 === '💎') winMultiplier += 25;
-                    else if(s1 === '🍇') winMultiplier += 10;
-                    else if(s1 === '🍉') winMultiplier += 5;
-                    else if(s1 === '🍋') winMultiplier += 3;
-                    else if(s1 === '🍒') winMultiplier += 2;
-                }
-            });
-
-            const scatters = grid.filter(s => s === '🌟').length;
-            return { multiplier: winMultiplier, lines: winningLines, scatters };
-        };
-
+        // --- SLOTS GAME ---
+        const SLOT_SYMBOLS = ['🍒', '🍋', '🍉', '🍇', '💎', '7️⃣'];
         const playSlot = () => {
             if(state.gameIsRunning) return;
+            if(state.gameStatus['slots'] === false) return showToast("This game is under maintenance.", "error");
+
+            let isFreeSpin = state.freeSpins > 0;
+            let bet = 0;
             
-            let bet = parseFloat(document.getElementById('slotBet').value);
-            let actualBetDeducted = 0;
-            
-            if(state.freeSpins > 0) {
-                bet = parseFloat(document.getElementById('slotBet').value); 
-                state.freeSpins--;
-                updateUI(true); 
-            } else {
+            if(!isFreeSpin) {
                 bet = validateBet('slotBet');
                 if(!bet) return;
-                actualBetDeducted = bet;
                 processBet(bet);
+            } else {
+                bet = parseFloat(document.getElementById('slotBet').value) || 5; 
+                state.freeSpins--;
+                updateUI(true);
             }
 
             state.gameIsRunning = true;
@@ -3567,374 +3602,375 @@
             const btn = document.getElementById('btnSpinSlot');
             btn.disabled = true;
             btn.classList.add('opacity-50');
-            
-            const resDisplay = document.getElementById('slotWinDisplay');
-            resDisplay.innerText = '';
+            document.getElementById('slotWinDisplay').innerText = '';
 
+            const cells = [];
             for(let i=0; i<9; i++) {
-                const el = document.getElementById(`slot-${i}`);
-                el.classList.remove('win-line', 'slot-stop');
-                el.classList.add('slot-spinning');
+                const cell = document.getElementById(`slot-${i}`);
+                cell.className = 'slot-cell slot-spinning';
+                cell.innerText = '';
+                cells.push(cell);
             }
-
-            const grid = [];
-            for(let i=0; i<9; i++) grid.push(getRandomSymbol());
-            let result = checkLines(grid);
-
-            const dbr = getDBRMultiplier();
-            let potentialWin = bet * result.multiplier;
-            const forceWinActive = isForcedWinRequired();
-
-            if (forceWinActive) {
-                grid[3] = '🍒'; grid[4] = '🍒'; grid[5] = '🍒'; 
-                result = checkLines(grid);
-                
-                if (bet * result.multiplier > state.users[state.currentUser].forcedWinTarget) {
-                    grid[4] = '🌟'; 
-                    result = checkLines(grid);
-                }
-            } else if (result.multiplier > 0 && isStrictLossRequired(potentialWin)) {
-                for(let i=0; i<9; i++) grid[i] = SYMBOLS[i % 5];
-                grid[4] = SYMBOLS[6]; 
-                result = checkLines(grid); 
-            } else if (dbr < 1.0 && result.multiplier > 0 && Math.random() > dbr) {
-                for(let i=0; i<9; i++) grid[i] = SYMBOLS[i % 5]; 
-                grid[4] = SYMBOLS[6]; 
-                result = checkLines(grid); 
-            } else if (dbr > 1.0 && result.multiplier === 0 && Math.random() < (dbr - 1.0)) {
-                grid[3] = '🍒'; grid[4] = '🍒'; grid[5] = '🍒';
-                result = checkLines(grid);
-            }
-
-            const stopColumn = (colIndex, delay) => {
-                setTimeout(() => {
-                    for(let r=0; r<3; r++) {
-                        const idx = r * 3 + colIndex;
-                        const el = document.getElementById(`slot-${idx}`);
-                        el.classList.remove('slot-spinning');
-                        el.innerText = grid[idx];
-                        el.classList.add('slot-stop');
-                    }
-                }, delay);
-            };
-
-            stopColumn(0, 600);
-            stopColumn(1, 1200);
-            stopColumn(2, 1800);
 
             setTimeout(() => {
-                let totalWin = bet * result.multiplier;
-                
-                result.lines.forEach(line => {
-                    line.forEach(idx => document.getElementById(`slot-${idx}`).classList.add('win-line'));
-                });
+                let resultGrid = [];
+                const dbr = getDBRMultiplier();
+                const potentialWinCheck = bet * 5.0; 
+                const forceWinActive = isForcedWinRequired(potentialWinCheck);
 
-                if(result.multiplier > 0) {
-                    processWin(totalWin);
-                    resDisplay.innerText = `WIN: ${formatMoney(totalWin)}!`;
-                    showToast(`Slots: Big Win ${formatMoney(totalWin)}!`, "win");
-                } else if (result.scatters >= 3) {
-                    resDisplay.innerText = ``;
+                const forcedWinTier = forceWinActive ? Math.random() : -1;
+                let overrideWin = null;
+                
+                if (forceWinActive) {
+                     if (forcedWinTier > 0.9) overrideWin = '7️⃣'; 
+                     else if (forcedWinTier > 0.7) overrideWin = '💎'; 
+                     else if (forcedWinTier > 0.4) overrideWin = '🍇'; 
+                     else overrideWin = '🍉'; 
+                } else if (!isFreeSpin && isStrictLossRequired(potentialWinCheck)) {
+                    overrideWin = 'LOSS';
+                } else if (!isFreeSpin && dbr < 1.0 && Math.random() > dbr) {
+                    overrideWin = 'LOSS';
+                } else if (dbr > 1.0 && Math.random() < (dbr - 1.0) * 0.5) {
+                    const wins = ['🍒', '🍋', '🍉', '🍇'];
+                    overrideWin = wins[Math.floor(Math.random()*wins.length)];
+                } else if (Math.random() < 0.05 && !isFreeSpin) {
+                    overrideWin = '🌟'; 
+                }
+
+                const PAYLINES = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Horizontal
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Vertical
+                    [0, 4, 8], [2, 4, 6]             // Diagonal
+                ];
+
+                if (overrideWin === 'LOSS') {
+                    let hasWin = true;
+                    while(hasWin) {
+                        resultGrid = [];
+                        for(let i=0; i<9; i++) resultGrid.push(SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]);
+                        hasWin = PAYLINES.some(line => resultGrid[line[0]] === resultGrid[line[1]] && resultGrid[line[1]] === resultGrid[line[2]]);
+                        if (resultGrid.filter(s => s === '🌟').length >= 3) hasWin = true;
+                    }
+                } else if (overrideWin === '🌟') {
+                    for(let i=0; i<9; i++) resultGrid.push(SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]);
+                    let starPositions = [];
+                    while(starPositions.length < 3) {
+                        let r = Math.floor(Math.random()*9);
+                        if(!starPositions.includes(r)) starPositions.push(r);
+                    }
+                    starPositions.forEach(p => resultGrid[p] = '🌟');
+                } else if (overrideWin) {
+                    let validGrid = false;
+                    while(!validGrid) {
+                        resultGrid = [];
+                        for(let i=0; i<9; i++) resultGrid.push(SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]);
+                        const targetLine = PAYLINES[Math.floor(Math.random() * PAYLINES.length)];
+                        resultGrid[targetLine[0]] = overrideWin;
+                        resultGrid[targetLine[1]] = overrideWin;
+                        resultGrid[targetLine[2]] = overrideWin;
+                        
+                        let winCount = 0;
+                        PAYLINES.forEach(line => {
+                            if (resultGrid[line[0]] === resultGrid[line[1]] && resultGrid[line[1]] === resultGrid[line[2]]) winCount++;
+                        });
+                        if (winCount === 1 && resultGrid.filter(s => s === '🌟').length < 3) validGrid = true;
+                    }
                 } else {
-                    resDisplay.innerText = `Try Again`;
-                    resDisplay.className = "text-center mt-5 sm:mt-6 text-xl sm:text-2xl font-bold h-8 text-gray-500 flex items-center justify-center";
+                    for(let i=0; i<9; i++) {
+                        let r = Math.random();
+                        let sym = '🍒';
+                        if(r>0.4) sym = '🍋';
+                        if(r>0.7) sym = '🍉';
+                        if(r>0.85) sym = '🍇';
+                        if(r>0.95) sym = '💎';
+                        if(r>0.99) sym = '7️⃣';
+                        resultGrid.push(sym);
+                    }
                 }
-                
-                registerGameResult(actualBetDeducted, totalWin, 'Crypto Slots');
 
-                if(result.scatters >= 3) {
-                    state.freeSpins += 10;
+                [0, 1, 2].forEach(col => {
                     setTimeout(() => {
-                        showToast("🎰 10 FREE SPINS TRIGGERED! 🎰", "win");
-                        updateUI(true);
-                    }, 500);
+                        [0, 1, 2].forEach(row => {
+                            const idx = row * 3 + col;
+                            cells[idx].className = 'slot-cell slot-stop';
+                            cells[idx].innerText = resultGrid[idx];
+                        });
+                        
+                        if(col === 2) {
+                            setTimeout(() => { evaluateSlotWin(resultGrid, bet, isFreeSpin); }, 400);
+                        }
+                    }, col * 400);
+                });
+            }, 1000);
+        };
+
+        const evaluateSlotWin = (grid, bet, wasFreeSpin) => {
+            let totalWinAmt = 0;
+            let totalMult = 0;
+            let isWin = false;
+            let wonFreeSpins = false;
+            
+            const PAYLINES = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Horizontal
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Vertical
+                [0, 4, 8], [2, 4, 6]             // Diagonal
+            ];
+
+            PAYLINES.forEach(line => {
+                if(grid[line[0]] === grid[line[1]] && grid[line[1]] === grid[line[2]]) {
+                    const sym = grid[line[0]];
+                    let mult = 0;
+                    if(sym === '🍒') mult = 2;
+                    if(sym === '🍋') mult = 3;
+                    if(sym === '🍉') mult = 5;
+                    if(sym === '🍇') mult = 10;
+                    if(sym === '💎') mult = 25;
+                    if(sym === '7️⃣') mult = 50;
+                    
+                    if(mult > 0) {
+                        isWin = true;
+                        totalMult += mult;
+                        document.getElementById(`slot-${line[0]}`).classList.add('win-line');
+                        document.getElementById(`slot-${line[1]}`).classList.add('win-line');
+                        document.getElementById(`slot-${line[2]}`).classList.add('win-line');
+                    }
                 }
+            });
 
-                btn.disabled = false;
-                btn.classList.remove('opacity-50');
-                state.gameIsRunning = false;
+            let starCount = grid.filter(s => s === '🌟').length;
+            if(starCount >= 3) {
+                wonFreeSpins = true;
+                grid.forEach((s, idx) => {
+                    if(s === '🌟') document.getElementById(`slot-${idx}`).classList.add('win-line');
+                });
+            }
 
-            }, 2000); 
+            const resDisplay = document.getElementById('slotWinDisplay');
+            
+            if(isWin && totalMult > 0) {
+                totalWinAmt = bet * totalMult;
+                processWin(totalWinAmt);
+                resDisplay.innerText = `WIN! ${formatMoney(totalWinAmt)}`;
+                showToast(`Slots: Won ${formatMoney(totalWinAmt)}!`, "win");
+            } else if (wonFreeSpins) {
+                state.freeSpins += 10;
+                resDisplay.innerText = `10 FREE SPINS WON!`;
+                showToast("You won 10 Free Spins!", "success");
+                updateUI(true);
+            } else {
+                if(!wasFreeSpin) resDisplay.innerText = 'No win this time.';
+                else resDisplay.innerText = 'Free spin used.';
+            }
+
+            if(!wasFreeSpin || totalWinAmt > 0) {
+                registerGameResult(wasFreeSpin ? 0 : bet, totalWinAmt, 'Slots');
+            }
+
+            const btn = document.getElementById('btnSpinSlot');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            state.gameIsRunning = false;
         };
 
         // --- CRASH ROAD GAME ---
-        let crState = {
-            active: false,
-            bet: 0,
-            currentMultiplier: 1.00,
-            crashPoint: 1.00,
-            autoCashout: Infinity,
-            animationFrame: null,
-            startTime: 0,
-            cashedOut: false
-        };
+        let chickenState = { active: false, bet: 0, autoCashout: 2.00, currentMult: 1.00 };
+        let chickenInterval;
 
         const startChicken = () => {
-            if(crState.active || state.gameIsRunning) return;
+            if(state.gameIsRunning || chickenState.active) return;
+            if(state.gameStatus['chicken'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('chickenBet');
             if(!bet) return;
 
-            let autoCash = parseFloat(document.getElementById('crAutoCashout').value);
-            if(isNaN(autoCash) || autoCash <= 1.00) autoCash = Infinity;
+            const targetMult = parseFloat(document.getElementById('crAutoCashout').value);
+            if(isNaN(targetMult) || targetMult < 1.10) return showToast("Auto Cashout must be at least 1.10x", "error");
 
-            state.gameIsRunning = true; 
+            state.gameIsRunning = true;
             processBet(bet);
-            
-            crState.active = true;
-            crState.bet = bet;
-            crState.autoCashout = autoCash;
-            crState.currentMultiplier = 1.00;
-            crState.cashedOut = false;
 
-            let crashPoint = Math.max(1.00, 0.99 / Math.random());
-            let isForcedLoss = false;
-            const forceWinActive = isForcedWinRequired();
-
-            if (forceWinActive) {
-                crashPoint = Math.min(1000.0, state.users[state.currentUser].forcedWinTarget / bet);
-                if (crashPoint < 1.01) crashPoint = 1.01;
-            } else {
-                const dbr = getDBRMultiplier();
-                if (dbr < 1.0 && Math.random() > dbr) {
-                    isForcedLoss = true;
-                } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
-                    crashPoint = 2.00 + (Math.random() * 3.00);
-                }
-
-                const user = state.users[state.currentUser];
-                const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
-                const totalBal = state.balance + (state.withdrawableBalance || 0);
-
-                if (Math.floor(totalBal) <= 0) {
-                    isForcedLoss = true;
-                } else {
-                    const maxAllowedMult = (peak - totalBal) / bet;
-                    if (crashPoint > maxAllowedMult) {
-                        crashPoint = 1.01 + (Math.random() * Math.max(0, maxAllowedMult - 1.01));
-                    }
-                }
-
-                if (isForcedLoss) {
-                    const maxSafeMult = Math.min(1.12, crState.autoCashout - 0.01);
-                    const minSafeMult = 1.02;
-                    
-                    if (maxSafeMult <= minSafeMult) {
-                        crashPoint = 1.00; 
-                    } else {
-                        crashPoint = minSafeMult + (Math.random() * (maxSafeMult - minSafeMult));
-                    }
-                }
-            }
-
-            if (crashPoint < 1.00) crashPoint = 1.00;
-            crState.crashPoint = crashPoint;
+            chickenState.active = true;
+            chickenState.bet = bet;
+            chickenState.autoCashout = targetMult;
+            chickenState.currentMult = 1.00;
 
             document.getElementById('btnChickenStart').classList.add('hidden');
             const cashBtn = document.getElementById('btnChickenCashout');
             cashBtn.classList.remove('hidden');
-            cashBtn.disabled = false;
-            cashBtn.classList.remove('opacity-50');
-            cashBtn.innerText = `Cashout ${formatMoney(bet)}`;
-
-            const multDisplay = document.getElementById('crMultiplierDisplay');
-            multDisplay.innerText = "1.00x";
-            multDisplay.className = "absolute top-10 left-1/2 transform -translate-x-1/2 text-6xl sm:text-7xl font-extrabold font-mono text-white z-20 drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)] transition-colors duration-300";
-
-            const road = document.getElementById('crRoad');
-            road.classList.add('cr-animating');
+            cashBtn.innerText = `Cashout ₹${bet.toFixed(2)}`;
+            
+            const roadContainer = document.querySelector('.cr-road-container');
+            roadContainer.classList.add('cr-animating');
             
             const chicken = document.getElementById('crChicken');
-            chicken.innerText = "🚎";
-            chicken.style.transform = "translateX(0) translateY(0)";
-            chicken.style.transition = "none";
+            chicken.innerText = '🚎';
+            chicken.style.transform = 'translate(0,0)';
+            
+            const display = document.getElementById('crMultiplierDisplay');
+            display.innerText = "1.00x";
+            display.classList.replace('text-red-500', 'text-white');
+            display.classList.replace('text-green-500', 'text-white');
 
-            crState.startTime = performance.now();
-            crState.animationFrame = requestAnimationFrame(chickenLoop);
-        };
+            let crashPoint = Math.max(1.00, 0.99 / Math.random());
+            const dbr = getDBRMultiplier();
+            const forceWinActive = isForcedWinRequired();
 
-        const chickenLoop = (time) => {
-            if(!crState.active) return;
-
-            const elapsed = time - crState.startTime;
-            crState.currentMultiplier = Math.pow(Math.E, 0.00015 * elapsed);
-            if (crState.currentMultiplier < 1.00) crState.currentMultiplier = 1.00;
-
-            if (crState.currentMultiplier >= crState.crashPoint) {
-                crashChicken();
-                return;
+            if (forceWinActive) {
+                crashPoint = Math.min(100.0, state.users[state.currentUser].forcedWinTarget / bet);
+                if (crashPoint < chickenState.autoCashout) crashPoint = chickenState.autoCashout + 0.1; 
+            } else if (isStrictLossRequired(bet * chickenState.autoCashout)) {
+                crashPoint = 1.00 + (Math.random() * Math.max(0, (chickenState.autoCashout - 1.05)));
+            } else if (dbr < 1.0 && Math.random() > dbr) {
+                crashPoint = 1.00 + (Math.random() * Math.max(0, (chickenState.autoCashout - 1.05)));
+            } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
+                crashPoint = chickenState.autoCashout + (Math.random() * 5.0);
             }
 
-            const displayMult = crState.currentMultiplier.toFixed(2);
-            document.getElementById('crMultiplierDisplay').innerText = `${displayMult}x`;
-            document.getElementById('btnChickenCashout').innerText = `Cashout ${formatMoney(crState.bet * crState.currentMultiplier)}`;
+            if(crashPoint < 1.00) crashPoint = 1.00;
 
-            if (crState.currentMultiplier >= crState.autoCashout && !crState.cashedOut) {
-                crState.currentMultiplier = crState.autoCashout;
-                cashoutChicken(true);
-                return;
+            let tick = 0;
+            chickenInterval = setInterval(() => {
+                if(!chickenState.active) return clearInterval(chickenInterval);
+                
+                tick++;
+                chickenState.currentMult = Math.pow(1.01, tick);
+                
+                if (chickenState.currentMult >= crashPoint) {
+                    chickenState.currentMult = crashPoint;
+                    display.innerText = `${chickenState.currentMult.toFixed(2)}x`;
+                    endChicken(false);
+                } else if (chickenState.currentMult >= chickenState.autoCashout) {
+                    chickenState.currentMult = chickenState.autoCashout;
+                    display.innerText = `${chickenState.currentMult.toFixed(2)}x`;
+                    cashoutChicken();
+                } else {
+                    display.innerText = `${chickenState.currentMult.toFixed(2)}x`;
+                    cashBtn.innerText = `Cashout ${formatMoney(chickenState.bet * chickenState.currentMult)}`;
+                }
+            }, 50);
+        };
+
+        const cashoutChicken = () => {
+            if(!chickenState.active) return;
+            endChicken(true);
+        };
+
+        const endChicken = (isWin) => {
+            chickenState.active = false;
+            clearInterval(chickenInterval);
+            
+            const roadContainer = document.querySelector('.cr-road-container');
+            roadContainer.classList.remove('cr-animating');
+            
+            const chicken = document.getElementById('crChicken');
+            const display = document.getElementById('crMultiplierDisplay');
+            
+            let winAmt = 0;
+            if(isWin) {
+                winAmt = chickenState.bet * chickenState.currentMult;
+                processWin(winAmt);
+                display.classList.replace('text-white', 'text-green-500');
+                showToast(`Cashed out at ${chickenState.currentMult.toFixed(2)}x!`, "win");
+            } else {
+                chicken.innerText = '💥';
+                display.classList.replace('text-white', 'text-red-500');
+                showToast(`Crashed at ${chickenState.currentMult.toFixed(2)}x!`, "error");
             }
 
-            crState.animationFrame = requestAnimationFrame(chickenLoop);
-        };
+            registerGameResult(chickenState.bet, winAmt, 'Crash Road');
 
-        const cashoutChicken = (isAuto = false) => {
-            if(!crState.active || crState.cashedOut) return;
-            crState.cashedOut = true;
-            crState.active = false;
-
-            const winAmt = crState.bet * crState.currentMultiplier;
-            processWin(winAmt);
-            registerGameResult(crState.bet, winAmt, 'Crash Road');
-
-            document.getElementById('crMultiplierDisplay').innerText = `${crState.currentMultiplier.toFixed(2)}x`;
-            document.getElementById('crMultiplierDisplay').classList.replace('text-white', 'text-green-500');
-            
-            document.getElementById('crRoad').classList.remove('cr-animating');
-            const chicken = document.getElementById('crChicken');
-            chicken.innerText = "💨🚎"; 
-            chicken.style.transition = "transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
-            chicken.style.transform = "translateX(150px) translateY(-10px)";
-
-            showToast(`${isAuto ? 'Auto ' : ''}Cashed out! Won ${formatMoney(winAmt)}`, "win");
-            
-            resetChickenUI();
-        };
-
-        const crashChicken = () => {
-            crState.active = false;
-            
-            document.getElementById('crMultiplierDisplay').innerText = `${crState.crashPoint.toFixed(2)}x`;
-            document.getElementById('crMultiplierDisplay').classList.replace('text-white', 'text-red-500');
-            
-            document.getElementById('crRoad').classList.remove('cr-animating');
-            const chicken = document.getElementById('crChicken');
-            chicken.innerText = "💥";
-            chicken.style.transition = "none";
-            chicken.style.transform = "translateX(0) translateY(0) scale(1.5)";
-            
-            registerGameResult(crState.bet, 0, 'Crash Road');
-            showToast(`Crashed at ${crState.crashPoint.toFixed(2)}x!`, "error");
-
-            resetChickenUI();
-        };
-
-        const resetChickenUI = () => {
-            state.gameIsRunning = false;
             setTimeout(() => {
                 document.getElementById('btnChickenStart').classList.remove('hidden');
                 document.getElementById('btnChickenCashout').classList.add('hidden');
-                
-                const multDisplay = document.getElementById('crMultiplierDisplay');
-                multDisplay.innerText = "1.00x";
-                multDisplay.classList.replace('text-green-500', 'text-white');
-                multDisplay.classList.replace('text-red-500', 'text-white');
-                
-                const chicken = document.getElementById('crChicken');
-                chicken.innerText = "🚎";
-                chicken.style.transition = "none";
-                chicken.style.transform = "translateX(0) translateY(0)";
-            }, 2000);
+                state.gameIsRunning = false;
+            }, 1500);
         };
 
         // --- LIMBO GAME ---
         const playLimbo = () => {
             if(state.gameIsRunning) return;
+            if(state.gameStatus['limbo'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('limboBet');
             if(!bet) return;
-            
-            const targetStr = document.getElementById('limboTarget').value;
-            const target = parseFloat(targetStr);
-            if(isNaN(target) || target <= 1.00) return showToast("Target must be > 1.00", "error");
+
+            const target = parseFloat(document.getElementById('limboTarget').value);
+            if(isNaN(target) || target < 1.10) return showToast("Target must be at least 1.10x", "error");
 
             state.gameIsRunning = true;
             processBet(bet);
-            
+
             const btn = document.getElementById('btnPlayLimbo');
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
-            document.getElementById('limboSubtext').innerText = `Target: ${target.toFixed(2)}x`;
-            const resDisplay = document.getElementById('limboResult');
-            resDisplay.className = "text-6xl sm:text-7xl font-extrabold font-mono text-white transition-colors duration-300";
-            
             let resultMult = Math.max(1.00, 0.99 / Math.random());
-            let isWin = resultMult >= target;
-
             const dbr = getDBRMultiplier();
             const potentialWin = bet * target;
             const forceWinActive = isForcedWinRequired(potentialWin);
 
             if (forceWinActive) {
-                isWin = true;
-                resultMult = target + (Math.random() * (target * 0.5));
-            } else if (isWin && isStrictLossRequired(potentialWin)) {
-                isWin = false;
-                resultMult = 1.00 + (Math.random() * (target - 1.01));
-            } else if (dbr < 1.0 && isWin && Math.random() > dbr) {
-                isWin = false;
-                resultMult = 1.00 + (Math.random() * (target - 1.01));
-            } else if (dbr > 1.0 && !isWin && Math.random() < (dbr - 1.0)) {
-                isWin = true;
-                resultMult = target + (Math.random() * (target * 0.5));
+                 resultMult = target + (Math.random() * 2.0);
+            } else if (isStrictLossRequired(potentialWin)) {
+                 resultMult = 1.00 + (Math.random() * Math.max(0, target - 1.01));
+            } else if (dbr < 1.0 && Math.random() > dbr) {
+                 resultMult = 1.00 + (Math.random() * Math.max(0, target - 1.01));
+            } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
+                 resultMult = target + (Math.random() * 5.0);
             }
-
+            
             if(resultMult < 1.00) resultMult = 1.00;
 
-            let currentVal = 1.00;
-            const duration = 800;
-            const startTime = performance.now();
+            const resDisplay = document.getElementById('limboResult');
+            resDisplay.classList.replace('text-red-500', 'text-white');
+            resDisplay.classList.replace('text-green-500', 'text-white');
+            
+            let currentDisplay = 1.00;
+            const steps = 20;
+            const stepMult = Math.pow(resultMult, 1/steps);
+            let stepCount = 0;
 
-            const animateLimbo = (time) => {
-                const elapsed = time - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                const easeOutQuad = t => t * (2 - t);
-                const easedProgress = easeOutQuad(progress);
-                
-                currentVal = 1.00 + (resultMult - 1.00) * easedProgress;
-                resDisplay.innerText = `${currentVal.toFixed(2)}x`;
-
-                if (progress < 1) {
-                    requestAnimationFrame(animateLimbo);
-                } else {
-                    resDisplay.innerText = `${resultMult.toFixed(2)}x`;
+            const animInterval = setInterval(() => {
+                stepCount++;
+                currentDisplay *= stepMult;
+                if(stepCount >= steps) {
+                    clearInterval(animInterval);
+                    currentDisplay = resultMult;
                     
+                    resDisplay.innerText = `${currentDisplay.toFixed(2)}x`;
+                    resDisplay.classList.remove('limbo-pop');
+                    void resDisplay.offsetWidth; 
+                    resDisplay.classList.add('limbo-pop');
+
                     let winAmt = 0;
-                    if (isWin) {
-                        winAmt = potentialWin;
+                    if(currentDisplay >= target) {
+                        winAmt = bet * target;
                         processWin(winAmt);
                         resDisplay.classList.replace('text-white', 'text-green-500');
-                        resDisplay.classList.add('drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]');
                         showToast(`Limbo: Won ${formatMoney(winAmt)}!`, "win");
                     } else {
                         resDisplay.classList.replace('text-white', 'text-red-500');
-                        resDisplay.classList.add('drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]');
                     }
-                    
+
                     registerGameResult(bet, winAmt, 'Limbo');
-                    
-                    resDisplay.classList.add('limbo-pop');
-                    setTimeout(() => resDisplay.classList.remove('limbo-pop'), 300);
 
                     btn.disabled = false;
                     btn.classList.remove('opacity-50');
                     state.gameIsRunning = false;
+                } else {
+                    resDisplay.innerText = `${currentDisplay.toFixed(2)}x`;
                 }
-            };
-            
-            requestAnimationFrame(animateLimbo);
+            }, 30);
         };
 
         // --- MINES GAME ---
         let minesState = {
             active: false,
             bet: 0,
-            mineCount: 3,
+            minesCount: 3,
+            revealedCount: 0,
             grid: [],
-            revealed: [],
-            gemsFound: 0,
-            currentMult: 1.0,
-            isResolving: false
+            isRevealing: false
         };
 
         const initMinesGrid = () => {
@@ -3949,37 +3985,44 @@
             }
         };
 
-        const calculateMinesMult = (mines, gems) => {
-            let mult = 1.0;
-            const houseEdge = 0.05;
-            for(let i=0; i<gems; i++) {
-                mult *= (25 - i) / (25 - mines - i);
-            }
-            return mult * (1 - houseEdge);
+        const calculateMinesMultiplier = (mines, hits) => {
+            const factorial = (n) => n <= 1 ? 1 : n * factorial(n - 1);
+            const comb = (n, k) => factorial(n) / (factorial(k) * factorial(n - k));
+            
+            if (hits === 0) return 1.0;
+            const totalSpaces = 25;
+            const safeSpaces = totalSpaces - mines;
+            
+            if (hits > safeSpaces) return 0;
+            
+            const winChance = comb(safeSpaces, hits) / comb(totalSpaces, hits);
+            const houseEdge = 0.05; 
+            const mult = (1 / winChance) * (1 - houseEdge);
+            return Math.max(1.0, mult);
         };
 
         const startMines = () => {
-            if(minesState.active || state.gameIsRunning || minesState.isResolving) return;
+            if(minesState.active || state.gameIsRunning || minesState.isRevealing) return;
+            if(state.gameStatus['mines'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('minesBet');
             if(!bet) return;
             
-            let mines = parseInt(document.getElementById('minesCount').value);
-            if(isNaN(mines) || mines < 1 || mines > 24) return showToast("Mines must be 1-24", "error");
+            const mCount = parseInt(document.getElementById('minesCount').value);
+            if(isNaN(mCount) || mCount < 1 || mCount > 24) return showToast("Mines must be between 1 and 24", "error");
 
             state.gameIsRunning = true;
             processBet(bet);
 
             minesState.active = true;
             minesState.bet = bet;
-            minesState.mineCount = mines;
-            minesState.gemsFound = 0;
-            minesState.currentMult = 1.0;
-            minesState.isResolving = false;
-            minesState.revealed = new Array(25).fill(false);
+            minesState.minesCount = mCount;
+            minesState.revealedCount = 0;
+            minesState.isRevealing = false;
             
             minesState.grid = new Array(25).fill('gem');
             let placed = 0;
-            while(placed < mines) {
+            while(placed < mCount) {
                 let r = Math.floor(Math.random() * 25);
                 if(minesState.grid[r] !== 'mine') {
                     minesState.grid[r] = 'mine';
@@ -3996,475 +4039,425 @@
             document.getElementById('minesBet').disabled = true;
             document.getElementById('minesCount').disabled = true;
             document.getElementById('btnMinesStart').classList.add('hidden');
-            const cashBtn = document.getElementById('btnMinesCashout');
-            cashBtn.classList.remove('hidden');
-            cashBtn.disabled = true;
-            cashBtn.classList.add('opacity-50');
-            cashBtn.innerText = `Cashout ₹0.00`;
-
+            document.getElementById('btnMinesCashout').classList.remove('hidden');
+            document.getElementById('btnMinesCashout').disabled = true;
+            document.getElementById('btnMinesCashout').classList.add('opacity-50');
+            document.getElementById('btnMinesCashout').innerText = `Cashout ₹0.00`;
+            
             document.getElementById('minesMultiBox').classList.remove('hidden');
-            document.getElementById('minesNextMult').innerText = `${calculateMinesMult(mines, 1).toFixed(2)}x`;
+            const nextMult = calculateMinesMultiplier(minesState.minesCount, 1);
+            document.getElementById('minesNextMult').innerText = `${nextMult.toFixed(2)}x`;
         };
 
         const clickMine = (index) => {
-            if(!minesState.active || minesState.revealed[index] || minesState.isResolving) return;
-
-            minesState.isResolving = true;
+            if(!minesState.active || minesState.isRevealing) return;
             const cell = document.getElementById(`mine-cell-${index}`);
-            minesState.revealed[index] = true;
-            cell.classList.add('revealed');
+            if(cell.classList.contains('revealed')) return;
 
-            let content = minesState.grid[index];
-            let isMine = content === 'mine';
-
-            const dbr = getDBRMultiplier();
-            const nextGems = minesState.gemsFound + 1;
-            const nextMult = calculateMinesMult(minesState.mineCount, nextGems);
-            const potentialWin = minesState.bet * nextMult;
-
-            const forceWinActive = isForcedWinRequired(potentialWin);
+            minesState.isRevealing = true;
             
-            let forceStrictLoss = !isMine && isStrictLossRequired(potentialWin);
-            let forceDbrLoss = (dbr < 1.0 && !isMine && Math.random() > dbr);
-            let forceDbrWin = (dbr > 1.0 && isMine && Math.random() < (dbr - 1.0));
+            let content = minesState.grid[index];
+            let isMine = (content === 'mine');
+            
+            const nextMult = calculateMinesMultiplier(minesState.minesCount, minesState.revealedCount + 1);
+            const potentialWin = minesState.bet * nextMult;
+            
+            const dbr = getDBRMultiplier();
+            const forceWinActive = isForcedWinRequired(potentialWin);
 
-            if (forceWinActive) {
-                if(isMine) {
-                    let safeIdx = minesState.grid.findIndex((v, i) => v === 'gem' && !minesState.revealed[i] && i !== index);
-                    if(safeIdx !== -1) {
-                        minesState.grid[index] = 'gem';
-                        minesState.grid[safeIdx] = 'mine';
-                        content = 'gem';
-                        isMine = false;
-                    }
-                }
-            } else if (forceStrictLoss || forceDbrLoss) {
-                let unrevealedMine = minesState.grid.findIndex((v, i) => v === 'mine' && !minesState.revealed[i] && i !== index);
-                if(unrevealedMine !== -1) {
-                    minesState.grid[index] = 'mine';
-                    minesState.grid[unrevealedMine] = 'gem';
-                    content = 'mine';
-                    isMine = true;
-                }
-            } else if (forceDbrWin) {
-                let safeIdx = minesState.grid.findIndex((v, i) => v === 'gem' && !minesState.revealed[i] && i !== index);
-                if(safeIdx !== -1) {
+            if (forceWinActive && isMine) {
+                let safeIndex = minesState.grid.findIndex((v, i) => v === 'gem' && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
+                if (safeIndex !== -1) {
                     minesState.grid[index] = 'gem';
-                    minesState.grid[safeIdx] = 'mine';
+                    minesState.grid[safeIndex] = 'mine';
                     content = 'gem';
                     isMine = false;
                 }
+            } else if (!isMine && isStrictLossRequired(potentialWin)) {
+                 let mineIndex = minesState.grid.findIndex((v, i) => v === 'mine' && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
+                 if (mineIndex !== -1) {
+                     minesState.grid[index] = 'mine';
+                     minesState.grid[mineIndex] = 'gem';
+                     content = 'mine';
+                     isMine = true;
+                 }
+            } else if (!isMine && dbr < 1.0 && Math.random() > dbr) {
+                 let mineIndex = minesState.grid.findIndex((v, i) => v === 'mine' && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
+                 if (mineIndex !== -1) {
+                     minesState.grid[index] = 'mine';
+                     minesState.grid[mineIndex] = 'gem';
+                     content = 'mine';
+                     isMine = true;
+                 }
+            } else if (isMine && dbr > 1.0 && Math.random() < (dbr - 1.0)) {
+                 let safeIndex = minesState.grid.findIndex((v, i) => v === 'gem' && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
+                 if (safeIndex !== -1) {
+                     minesState.grid[index] = 'gem';
+                     minesState.grid[safeIndex] = 'mine';
+                     content = 'gem';
+                     isMine = false;
+                 }
             }
 
+            cell.classList.add('revealed');
+            
             if(isMine) {
                 cell.classList.add('mine');
                 cell.innerHTML = '💣';
-                setTimeout(() => endMinesGame(false), 500);
+                setTimeout(() => endMines(false), 300);
             } else {
                 cell.classList.add('gem');
                 cell.innerHTML = '💎';
-                minesState.gemsFound++;
-                minesState.currentMult = nextMult;
+                minesState.revealedCount++;
+                
+                const curMult = calculateMinesMultiplier(minesState.minesCount, minesState.revealedCount);
+                const nextM = calculateMinesMultiplier(minesState.minesCount, minesState.revealedCount + 1);
+                
+                document.getElementById('minesNextMult').innerText = `${nextM.toFixed(2)}x`;
                 
                 const cashBtn = document.getElementById('btnMinesCashout');
                 cashBtn.disabled = false;
                 cashBtn.classList.remove('opacity-50');
-                cashBtn.innerText = `Cashout ${formatMoney(minesState.bet * minesState.currentMult)}`;
+                cashBtn.innerText = `Cashout ${formatMoney(minesState.bet * curMult)}`;
                 
-                if(minesState.gemsFound === (25 - minesState.mineCount)) {
-                    setTimeout(() => cashoutMines(), 500);
-                } else {
-                    document.getElementById('minesNextMult').innerText = `${calculateMinesMult(minesState.mineCount, minesState.gemsFound + 1).toFixed(2)}x`;
-                    minesState.isResolving = false;
+                minesState.isRevealing = false;
+                
+                if(minesState.revealedCount === (25 - minesState.minesCount)) {
+                    cashoutMines();
                 }
             }
         };
 
         const cashoutMines = () => {
-            if(!minesState.active || minesState.gemsFound === 0) return;
-            endMinesGame(true);
+            if(!minesState.active || minesState.revealedCount === 0 || minesState.isRevealing) return;
+            endMines(true);
         };
 
-        const endMinesGame = (isWin) => {
+        const endMines = (isWin) => {
             minesState.active = false;
-            minesState.isResolving = false;
+            minesState.isRevealing = false;
             
             for(let i=0; i<25; i++) {
                 const cell = document.getElementById(`mine-cell-${i}`);
-                if(!minesState.revealed[i]) {
+                if(!cell.classList.contains('revealed')) {
                     cell.classList.add('revealed', 'transparent');
-                    cell.innerHTML = minesState.grid[i] === 'mine' ? '💣' : '💎';
-                    if(minesState.grid[i] === 'mine') cell.classList.add('text-red-500/50');
+                    if(minesState.grid[i] === 'mine') {
+                        cell.innerHTML = '💣';
+                    } else {
+                        cell.innerHTML = '💎';
+                    }
                 }
             }
 
             let winAmt = 0;
             if(isWin) {
-                winAmt = minesState.bet * minesState.currentMult;
+                const curMult = calculateMinesMultiplier(minesState.minesCount, minesState.revealedCount);
+                winAmt = minesState.bet * curMult;
                 processWin(winAmt);
                 showToast(`Mines: Cashed out ${formatMoney(winAmt)}!`, "win");
             } else {
                 showToast(`Hit a mine! You lost.`, "error");
             }
-            
+
             registerGameResult(minesState.bet, winAmt, 'Mines');
 
             document.getElementById('btnMinesStart').classList.remove('hidden');
             document.getElementById('btnMinesCashout').classList.add('hidden');
-            document.getElementById('minesMultiBox').classList.add('hidden');
             document.getElementById('minesBet').disabled = false;
             document.getElementById('minesCount').disabled = false;
+            document.getElementById('minesMultiBox').classList.add('hidden');
             
             state.gameIsRunning = false;
         };
 
         // --- PLINKO GAME ---
+        let plinkoState = { active: false };
         const PLINKO_ROWS = 10;
-        const PLINKO_MULTIPLIERS = {
-            low:   [5.6, 2.1, 1.1, 1.0, 0.5, 0.5, 0.5, 1.0, 1.1, 2.1, 5.6],
-            medium: [18, 3.2, 1.5, 0.6, 0.3, 0.3, 0.3, 0.6, 1.5, 3.2, 18],
-            high:   [110, 14, 2.0, 0.2, 0.2, 0.2, 0.2, 0.2, 2.0, 14, 110]
-        };
-
+        
         const initPlinkoBoard = () => {
             const pegsContainer = document.getElementById('plinkoPegs');
-            if(!pegsContainer) return;
             pegsContainer.innerHTML = '';
             
-            const w = pegsContainer.clientWidth;
-            const h = pegsContainer.clientHeight;
-            
-            if(w === 0 || h === 0) return; // Prevent generating if hidden
-            
-            const spacingX = (w * 0.8) / PLINKO_ROWS;
-            
-            for(let row=0; row<=PLINKO_ROWS; row++) {
-                const y = 20 + (row / PLINKO_ROWS) * (h - 40); 
-                const pegsInRow = row + 1;
-                const rowWidth = row * spacingX; 
-                const startX = (w - rowWidth) / 2;
-                
-                for(let col=0; col<pegsInRow; col++) {
-                    const x = startX + col * spacingX;
+            for(let row=0; row < PLINKO_ROWS; row++) {
+                const numPegs = row + 3;
+                for(let col=0; col < numPegs; col++) {
                     const peg = document.createElement('div');
                     peg.className = 'plinko-peg';
-                    peg.style.left = `${x}px`;
-                    peg.style.top = `${y}px`;
+                    
+                    const topPercent = (row / (PLINKO_ROWS - 1)) * 90 + 5; 
+                    const leftPercent = 50 + ((col - (numPegs - 1)/2) * 8); 
+                    
+                    peg.style.top = `${topPercent}%`;
+                    peg.style.left = `${leftPercent}%`;
                     pegsContainer.appendChild(peg);
                 }
             }
             updatePlinkoMultipliers();
         };
 
+        const PLINKO_MULTS = {
+            low: [5.0, 2.0, 1.2, 0.9, 0.6, 0.4, 0.6, 0.9, 1.2, 2.0, 5.0],
+            medium: [10.0, 3.0, 1.5, 0.8, 0.4, 0.2, 0.4, 0.8, 1.5, 3.0, 10.0],
+            high: [29.0, 5.0, 1.0, 0.5, 0.2, 0.0, 0.2, 0.5, 1.0, 5.0, 29.0]
+        };
+
         const updatePlinkoMultipliers = () => {
             const risk = document.getElementById('plinkoRisk').value || 'medium';
-            const mults = PLINKO_MULTIPLIERS[risk];
+            const mults = PLINKO_MULTS[risk];
             const container = document.getElementById('plinkoMultipliers');
             container.innerHTML = '';
             
-            mults.forEach(m => {
+            mults.forEach((m, i) => {
                 const box = document.createElement('div');
                 let colorClass = 'p-color-low';
-                if(m < 1) colorClass = 'bg-gray-700';
+                if(m < 1) colorClass = 'bg-gray-700 text-gray-400';
                 else if(m >= 2 && m < 10) colorClass = 'p-color-med';
                 else if(m >= 10) colorClass = 'p-color-high';
                 
                 box.className = `plinko-mult-box ${colorClass}`;
+                box.id = `plinko-mult-${i}`;
                 box.innerText = `${m}x`;
                 container.appendChild(box);
             });
         };
 
         const playPlinko = () => {
-            if(state.gameIsRunning) return;
+            if(state.gameIsRunning || plinkoState.active) return;
+            if(state.gameStatus['plinko'] === false) return showToast("This game is under maintenance.", "error");
+
             const bet = validateBet('plinkoBet');
             if(!bet) return;
             
+            const risk = document.getElementById('plinkoRisk').value || 'medium';
+            const mults = PLINKO_MULTS[risk];
+
             state.gameIsRunning = true;
             processBet(bet);
             
+            plinkoState.active = true;
             const btn = document.getElementById('btnPlinkoDrop');
             btn.disabled = true;
             btn.classList.add('opacity-50');
-            
-            const resText = document.getElementById('plinkoResultText');
-            if(resText) resText.innerText = '';
-            
-            const risk = document.getElementById('plinkoRisk').value;
-            const mults = PLINKO_MULTIPLIERS[risk];
-            
-            const numBuckets = mults.length;
-            
-            let possiblePaths = [];
-            for(let i=0; i<100; i++) {
-                let p = [];
-                let currLogical = 0; 
-                for(let r=0; r<PLINKO_ROWS; r++) {
-                    let dir = Math.random() < 0.5 ? -1 : 1;
-                    currLogical += (dir === 1 ? 0.5 : -0.5);
-                    p.push(dir);
-                }
-                let endIdx = currLogical + Math.floor(numBuckets/2);
-                possiblePaths.push({path: p, endIdx: endIdx});
-            }
-
-            let targetPathObj = possiblePaths[Math.floor(Math.random() * possiblePaths.length)];
-            
-            let multiplier = mults[targetPathObj.endIdx];
-            let potentialWin = bet * multiplier;
-            const dbr = getDBRMultiplier();
-            const forceWinActive = isForcedWinRequired(potentialWin);
-
-            if(forceWinActive) {
-                const winPaths = possiblePaths.filter(p => mults[p.endIdx] > 1);
-                if(winPaths.length > 0) targetPathObj = winPaths[Math.floor(Math.random() * winPaths.length)];
-            } else if (isStrictLossRequired(potentialWin)) {
-                const lossPaths = possiblePaths.filter(p => mults[p.endIdx] < 1);
-                if(lossPaths.length > 0) targetPathObj = lossPaths[Math.floor(Math.random() * lossPaths.length)];
-            } else if (dbr < 1.0 && multiplier > 1 && Math.random() > dbr) {
-                const lossPaths = possiblePaths.filter(p => mults[p.endIdx] < 1);
-                if(lossPaths.length > 0) targetPathObj = lossPaths[Math.floor(Math.random() * lossPaths.length)];
-            } else if (dbr > 1.0 && multiplier <= 1 && Math.random() < (dbr - 1.0)) {
-                const winPaths = possiblePaths.filter(p => mults[p.endIdx] > 1);
-                if(winPaths.length > 0) targetPathObj = winPaths[Math.floor(Math.random() * winPaths.length)];
-            }
-
-            const path = targetPathObj.path;
-            const endIdx = targetPathObj.endIdx;
+            document.getElementById('plinkoResultText').innerText = '';
 
             const ball = document.getElementById('plinkoBall');
-            const pegsContainer = document.getElementById('plinkoPegs');
-            const w = pegsContainer.clientWidth;
-            const h = pegsContainer.clientHeight;
-            const spacingX = (w * 0.8) / PLINKO_ROWS;
-            
-            ball.classList.add('active');
-            ball.style.top = '20px';
+            ball.style.transition = 'none';
+            ball.style.top = '0%';
             ball.style.left = '50%';
+            ball.classList.add('active');
+
+            let currentPath = 0; 
             
-            let step = 0;
-            let currentLogicalPos = 0;
+            const dbr = getDBRMultiplier();
+            let forceBucket = -1;
+            
+            let possibleBuckets = [];
+            mults.forEach((m, i) => {
+                 const potWin = bet * m;
+                 if (isForcedWinRequired(potWin)) {
+                     if (m >= 1.0 && (bet * m) <= state.users[state.currentUser].forcedWinTarget) possibleBuckets.push(i);
+                 } else if (isStrictLossRequired(potWin)) {
+                     if (m < 1.0) possibleBuckets.push(i);
+                 } else if (dbr < 1.0 && Math.random() > dbr) {
+                     if (m < 1.0) possibleBuckets.push(i);
+                 } else if (dbr > 1.0 && Math.random() < (dbr - 1.0)) {
+                     if (m > 1.0) possibleBuckets.push(i);
+                 }
+            });
+
+            if (possibleBuckets.length > 0) {
+                forceBucket = possibleBuckets[Math.floor(Math.random() * possibleBuckets.length)];
+            }
+
+            let pathSteps = [];
+            if (forceBucket !== -1) {
+                let currentPos = 0;
+                let targetPos = forceBucket - (mults.length - 1)/2;
+                for(let r=0; r<PLINKO_ROWS; r++) {
+                    let maxRemainingSteps = PLINKO_ROWS - 1 - r;
+                    if (currentPos < targetPos) {
+                        pathSteps.push(1); currentPos += 0.5;
+                    } else if (currentPos > targetPos) {
+                        pathSteps.push(-1); currentPos -= 0.5;
+                    } else {
+                        let dir = Math.random() < 0.5 ? 1 : -1;
+                        pathSteps.push(dir); currentPos += (dir * 0.5);
+                    }
+                }
+                currentPath = currentPos;
+            } else {
+                for(let r=0; r<PLINKO_ROWS; r++) {
+                    const dir = Math.random() < 0.5 ? -1 : 1;
+                    pathSteps.push(dir);
+                    currentPath += (dir * 0.5);
+                }
+            }
+
+            let currentRow = 0;
+            let currentLeft = 50;
             
             const dropInterval = setInterval(() => {
-                if(step >= PLINKO_ROWS) {
+                if(currentRow >= PLINKO_ROWS) {
                     clearInterval(dropInterval);
                     
-                    const boxes = document.getElementById('plinkoMultipliers').children;
-                    const finalBox = boxes[endIdx];
-                    if(finalBox) {
-                        finalBox.classList.add('active');
-                        setTimeout(() => finalBox.classList.remove('active'), 500);
+                    const bucketIndex = Math.floor(currentPath + (mults.length - 1) / 2);
+                    const safeIndex = Math.max(0, Math.min(mults.length - 1, bucketIndex));
+                    const mult = mults[safeIndex];
+                    
+                    const box = document.getElementById(`plinko-mult-${safeIndex}`);
+                    if(box) {
+                        box.classList.add('active');
+                        setTimeout(() => box.classList.remove('active'), 1000);
                     }
                     
-                    const winAmt = bet * mults[endIdx];
+                    ball.classList.remove('active');
+                    
+                    const winAmt = bet * mult;
+                    const resText = document.getElementById('plinkoResultText');
+                    
                     if(winAmt > 0) {
                         processWin(winAmt);
-                    }
-                    
-                    if (mults[endIdx] > 1) {
-                        if(resText) {
-                            resText.innerText = `Hit ${mults[endIdx]}x! Won ${formatMoney(winAmt)}`;
-                            resText.className = "mt-6 text-center text-xl sm:text-2xl font-bold h-8 text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] flex items-center justify-center";
-                        }
+                        resText.innerText = `Won ${formatMoney(winAmt)}`;
+                        resText.className = "mt-6 text-center text-xl sm:text-2xl font-bold h-8 flex items-center justify-center text-green-400";
                         showToast(`Plinko: Won ${formatMoney(winAmt)}!`, "win");
                     } else {
-                        if(resText) {
-                            resText.innerText = `Hit ${mults[endIdx]}x. Returned ${formatMoney(winAmt)}`;
-                            resText.className = "mt-6 text-center text-xl sm:text-2xl font-bold h-8 text-red-400 drop-shadow-[0_0_10px_rgba(248,113,113,0.5)] flex items-center justify-center";
-                        }
+                        resText.innerText = `You lost.`;
+                        resText.className = "mt-6 text-center text-xl sm:text-2xl font-bold h-8 flex items-center justify-center text-red-500";
                     }
-                    
+
                     registerGameResult(bet, winAmt, 'Plinko');
-                    
-                    setTimeout(() => {
-                        ball.classList.remove('active');
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-50');
-                        state.gameIsRunning = false;
-                    }, 500);
-                    
+
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    state.gameIsRunning = false;
+                    plinkoState.active = false;
                     return;
                 }
                 
-                const dir = path[step];
-                currentLogicalPos += (dir === 1 ? 0.5 : -0.5);
+                const dir = pathSteps[currentRow];
+                currentLeft += (dir * 4); 
+                const topPercent = (currentRow / (PLINKO_ROWS - 1)) * 90 + 5;
                 
-                const y = 20 + ((step + 1) / PLINKO_ROWS) * (h - 40);
-                const currX = (w / 2) + (currentLogicalPos * spacingX);
-
-                ball.style.top = `${y}px`;
-                ball.style.left = `${currX}px`;
+                ball.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 1, 1), left 0.3s linear';
+                ball.style.top = `${topPercent}%`;
+                ball.style.left = `${currentLeft}%`;
                 
-                step++;
+                currentRow++;
             }, 300);
         };
 
-        // --- INITIALIZATION ---
-        window.addEventListener('DOMContentLoaded', () => {
+        window.onload = () => {
             const savedUser = localStorage.getItem('megabet_currentUser');
             if (savedUser) {
+                state.currentUser = savedUser;
                 db.ref('users/' + savedUser).once('value').then(snap => {
                     if (snap.exists()) {
                         state.users[savedUser] = snap.val();
-                        state.currentUser = savedUser;
-                        loginUser(savedUser, snap.val().password);
+                        state.balance = snap.val().balance || 0;
+                        state.withdrawableBalance = snap.val().withdrawableBalance || 0;
+                        if(snap.val().stats) state.stats = snap.val().stats;
+                        setupLiveListener();
+                        checkDailyMail();
+                        updateUI();
+                        navigate('dashboard');
                     } else {
-                        navigate('auth');
+                        logout();
                     }
+                }).catch(() => {
+                    navigate('auth');
                 });
             } else {
                 navigate('auth');
             }
-            
+
             initMysteryGrid();
             initMinesGrid();
+
+            const mailBtn = document.getElementById('floatingMailBtn');
+            const balBtn = document.getElementById('floatingBalanceBtn');
             
-            window.addEventListener('resize', () => {
-                if(document.getElementById('plinkoBoard').offsetWidth > 0 && document.getElementById('game-plinko').classList.contains('hidden') === false) {
-                    initPlinkoBoard();
+            [mailBtn, balBtn].forEach(btn => {
+                if(!btn) return;
+                let isDragging = false;
+                let currentX;
+                let currentY;
+                let initialX;
+                let initialY;
+                let xOffset = 0;
+                let yOffset = 0;
+                let isClick = true;
+                let startClientX, startClientY;
+
+                btn.addEventListener("touchstart", dragStart, { passive: false });
+                btn.addEventListener("touchend", dragEnd, { passive: false });
+                btn.addEventListener("touchmove", drag, { passive: false });
+
+                btn.addEventListener("mousedown", dragStart);
+                btn.addEventListener("mouseup", dragEnd);
+                btn.addEventListener("mousemove", drag);
+
+                function dragStart(e) {
+                    if (e.type === "touchstart") {
+                        initialX = e.touches[0].clientX - xOffset;
+                        initialY = e.touches[0].clientY - yOffset;
+                        startClientX = e.touches[0].clientX;
+                        startClientY = e.touches[0].clientY;
+                    } else {
+                        initialX = e.clientX - xOffset;
+                        initialY = e.clientY - yOffset;
+                        startClientX = e.clientX;
+                        startClientY = e.clientY;
+                    }
+
+                    if (e.target === btn || btn.contains(e.target)) {
+                        isDragging = true;
+                        isClick = true;
+                    }
+                }
+
+                function dragEnd(e) {
+                    if (!isDragging) return;
+                    initialX = currentX;
+                    initialY = currentY;
+                    isDragging = false;
+                    
+                    if (isClick && btn.id === 'floatingMailBtn') {
+                         openModal('mailModal');
+                    }
+                }
+
+                function drag(e) {
+                    if (isDragging) {
+                        e.preventDefault();
+                        
+                        let clientX, clientY;
+                        if (e.type === "touchmove") {
+                            clientX = e.touches[0].clientX;
+                            clientY = e.touches[0].clientY;
+                        } else {
+                            clientX = e.clientX;
+                            clientY = e.clientY;
+                        }
+
+                        if (Math.abs(clientX - startClientX) > 5 || Math.abs(clientY - startClientY) > 5) {
+                            isClick = false;
+                        }
+
+                        currentX = clientX - initialX;
+                        currentY = clientY - initialY;
+
+                        xOffset = currentX;
+                        yOffset = currentY;
+
+                        setTranslate(currentX, currentY, btn);
+                    }
+                }
+
+                function setTranslate(xPos, yPos, el) {
+                    el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
                 }
             });
-            
-            setTimeout(initPlinkoBoard, 1000);
-
-            // Floating Balance Draggable Logic
-            const floatBal = document.getElementById('floatingBalanceBtn');
-            let isDraggingBal = false;
-            let currentXBal;
-            let currentYBal;
-            let initialXBal;
-            let initialYBal;
-            let xOffsetBal = 0;
-            let yOffsetBal = 0;
-
-            floatBal.addEventListener("touchstart", dragStartBal, {passive: false});
-            document.addEventListener("touchend", dragEndBal, false);
-            document.addEventListener("touchmove", dragBal, {passive: false});
-
-            floatBal.addEventListener("mousedown", dragStartBal, false);
-            document.addEventListener("mouseup", dragEndBal, false);
-            document.addEventListener("mousemove", dragBal, false);
-
-            function dragStartBal(e) {
-                if (e.type === "touchstart") {
-                    initialXBal = e.touches[0].clientX - xOffsetBal;
-                    initialYBal = e.touches[0].clientY - yOffsetBal;
-                } else {
-                    initialXBal = e.clientX - xOffsetBal;
-                    initialYBal = e.clientY - yOffsetBal;
-                }
-                if (e.target === floatBal || floatBal.contains(e.target)) {
-                    isDraggingBal = true;
-                }
-            }
-
-            function dragEndBal(e) {
-                initialXBal = currentXBal;
-                initialYBal = currentYBal;
-                isDraggingBal = false;
-            }
-
-            function dragBal(e) {
-                if (isDraggingBal) {
-                    e.preventDefault();
-                    if (e.type === "touchmove") {
-                        currentXBal = e.touches[0].clientX - initialXBal;
-                        currentYBal = e.touches[0].clientY - initialYBal;
-                    } else {
-                        currentXBal = e.clientX - initialXBal;
-                        currentYBal = e.clientY - initialYBal;
-                    }
-
-                    xOffsetBal = currentXBal;
-                    yOffsetBal = currentYBal;
-
-                    setTranslate(currentXBal, currentYBal, floatBal);
-                }
-            }
-
-            // Floating Mail Draggable Logic
-            const mailBtn = document.getElementById('floatingMailBtn');
-            mailBtn.style.pointerEvents = 'auto'; // Re-enable pointer events for dragging
-            
-            let isDragging = false;
-            let currentX;
-            let currentY;
-            let initialX;
-            let initialY;
-            let xOffset = 0;
-            let yOffset = 0;
-            let isClick = true;
-            let startClientX, startClientY;
-
-            mailBtn.addEventListener("touchstart", dragStart, {passive: false});
-            document.addEventListener("touchend", dragEnd, false);
-            document.addEventListener("touchmove", drag, {passive: false});
-
-            mailBtn.addEventListener("mousedown", dragStart, false);
-            document.addEventListener("mouseup", dragEnd, false);
-            document.addEventListener("mousemove", drag, false);
-
-            function dragStart(e) {
-                if (e.type === "touchstart") {
-                    startClientX = e.touches[0].clientX;
-                    startClientY = e.touches[0].clientY;
-                    initialX = startClientX - xOffset;
-                    initialY = startClientY - yOffset;
-                } else {
-                    startClientX = e.clientX;
-                    startClientY = e.clientY;
-                    initialX = startClientX - xOffset;
-                    initialY = startClientY - yOffset;
-                }
-
-                if (e.target === mailBtn || mailBtn.contains(e.target)) {
-                    isDragging = true;
-                    isClick = true;
-                }
-            }
-
-            function dragEnd(e) {
-                if (!isDragging) return;
-                initialX = currentX;
-                initialY = currentY;
-                isDragging = false;
-                
-                if (isClick) {
-                     openModal('mailModal');
-                }
-            }
-
-            function drag(e) {
-                if (isDragging) {
-                    e.preventDefault();
-                    
-                    let clientX, clientY;
-                    if (e.type === "touchmove") {
-                        clientX = e.touches[0].clientX;
-                        clientY = e.touches[0].clientY;
-                    } else {
-                        clientX = e.clientX;
-                        clientY = e.clientY;
-                    }
-
-                    if (Math.abs(clientX - startClientX) > 5 || Math.abs(clientY - startClientY) > 5) {
-                        isClick = false;
-                    }
-
-                    currentX = clientX - initialX;
-                    currentY = clientY - initialY;
-
-                    xOffset = currentX;
-                    yOffset = currentY;
-
-                    setTranslate(currentX, currentY, mailBtn);
-                }
-            }
-
-            function setTranslate(xPos, yPos, el) {
-                el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
-            }
-        });
+        };
     </script>
 </body>
 </html>
