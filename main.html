@@ -1199,12 +1199,12 @@
                 <button onclick="closeModal('depositModal')" class="text-gray-400 hover:text-white text-xl p-1"><i class="fas fa-times"></i></button>
             </div>
             
-            <p class="text-xs sm:text-sm text-gray-400 mb-4">Minimum deposit is ₹20. Select a UPI ID to pay to and enter your Ref/UTR.</p>
+            <p class="text-xs sm:text-sm text-gray-400 mb-4">Minimum deposit is ₹20. Select a UPI ID to pay to and scan the generated QR code.</p>
             
             <div class="mb-4 relative">
                 <label class="block text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Official UPI ID</label>
                 <div class="flex items-center gap-2">
-                    <select id="adminUpiSelect" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white font-mono text-sm focus:outline-none focus:border-brand appearance-none cursor-pointer">
+                    <select id="adminUpiSelect" onchange="updateDepositQR()" class="w-full bg-dark border border-gray-700 rounded-xl py-3 px-4 text-white font-mono text-sm focus:outline-none focus:border-brand appearance-none cursor-pointer">
                         <option value="priyanshugogoi594@oksbi">priyanshugogoi594@oksbi</option>
                     </select>
                     <button onclick="copySelectedUpi()" class="bg-dark border border-gray-700 text-brand hover:text-white px-4 py-3 rounded-xl transition shadow-lg" title="Copy ID"><i class="fas fa-copy"></i></button>
@@ -1219,13 +1219,16 @@
             
             <div class="mb-4 relative">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">₹</span>
-                <input type="number" id="depositAmount" value="20" min="20" class="w-full bg-dark border border-gray-600 rounded-xl py-3 pl-8 pr-4 text-white font-mono focus:outline-none focus:border-brand">
+                <input type="number" id="depositAmount" value="20" min="20" class="w-full bg-dark border border-gray-600 rounded-xl py-3 pl-8 pr-4 text-white font-mono focus:outline-none focus:border-brand" oninput="updateDepositQR()">
             </div>
 
-            <div class="mb-4">
-                <button onclick="payViaUPI()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 sm:py-3.5 rounded-xl transition shadow-lg text-sm sm:text-base flex justify-center items-center gap-2">
-                    <i class="fas fa-shield-alt"></i> Secure UPI Direct Pay
-                </button>
+            <!-- ADDED QR CODE CONTAINER -->
+            <div class="mb-4 text-center">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2">Scan QR to Pay</p>
+                <div class="bg-white p-2 rounded-xl inline-block shadow-[0_0_15px_rgba(255,255,255,0.2)] mb-2 relative min-h-[200px] min-w-[200px] flex items-center justify-center transition-opacity duration-300">
+                    <img id="depositQRCode" src="" alt="UPI QR Code" class="w-48 h-48">
+                </div>
+                <p class="text-xs text-brand font-bold">Note added automatically: MEGA<span id="qrNotePhone"></span></p>
                 <p class="text-[10px] text-center text-gray-500 mt-2">After paying, enter the 12-digit UTR below to confirm.</p>
             </div>
 
@@ -1385,7 +1388,10 @@
                 
                 if(activeAdminUpis.length > 0) {
                     const sel = document.getElementById('adminUpiSelect');
-                    if (sel) sel.innerHTML = activeAdminUpis.map(upi => `<option value="${upi}">${upi}</option>`).join('');
+                    if (sel) {
+                        sel.innerHTML = activeAdminUpis.map(upi => `<option value="${upi}">${upi}</option>`).join('');
+                        if (typeof updateDepositQR === 'function') updateDepositQR();
+                    }
                 }
             }
         });
@@ -1526,7 +1532,8 @@
             }
             const totalBal = state.balance + (state.withdrawableBalance || 0);
             const peak = (user.dbr && user.dbr.peak) ? user.dbr.peak : 5000;
-            if (Math.floor(totalBal) <= 0) return true; 
+            
+            // Fixed "All-In" Bug: Removed the line that forced a loss if remaining balance dropped to 0
             if (totalBal + potentialWinAmt > peak) return true;
             return false;
         };
@@ -2482,7 +2489,11 @@
                     }
                 }
             }
-            if(modalId === 'depositModal') { document.getElementById('depositAmount').value = 20; document.getElementById('depositUtr').value = ""; }
+            if(modalId === 'depositModal') { 
+                document.getElementById('depositAmount').value = 20; 
+                document.getElementById('depositUtr').value = ""; 
+                updateDepositQR();
+            }
             if(modalId === 'mailModal') renderMails();
 
             const modal = document.getElementById(modalId);
@@ -2504,7 +2515,35 @@
             setTimeout(() => { modal.classList.add('hidden'); }, 300);
         };
 
-        const setDepositAmount = (amount) => { document.getElementById('depositAmount').value = amount; };
+        const updateDepositQR = () => {
+            if(!state.currentUser) return;
+            const amt = parseFloat(document.getElementById('depositAmount').value);
+            const sel = document.getElementById('adminUpiSelect');
+            const upiId = sel ? sel.value : "priyanshugogoi594@oksbi";
+            const qrImg = document.getElementById('depositQRCode');
+            const phoneNote = document.getElementById('qrNotePhone');
+            
+            if(isNaN(amt) || amt < 20) {
+                if(qrImg) qrImg.style.opacity = '0.1';
+                if(phoneNote) phoneNote.innerText = "------";
+                return;
+            }
+            
+            if(qrImg) qrImg.style.opacity = '1';
+            if(phoneNote) phoneNote.innerText = state.currentUser;
+            
+            const payeeName = "MegaBet";
+            const note = `MEGA${state.currentUser}`;
+            const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amt.toFixed(2)}&cu=INR&tn=${note}`;
+            
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUrl)}&margin=10`;
+            if(qrImg) qrImg.src = qrUrl;
+        };
+
+        const setDepositAmount = (amount) => { 
+            document.getElementById('depositAmount').value = amount; 
+            updateDepositQR();
+        };
         
         const copySelectedUpi = () => {
             const sel = document.getElementById('adminUpiSelect');
@@ -2517,23 +2556,6 @@
             document.execCommand("copy");
             document.body.removeChild(tempInput);
             showToast("UPI ID copied to clipboard!", "success");
-        };
-
-        const payViaUPI = () => {
-            const amt = parseFloat(document.getElementById('depositAmount').value);
-            if(isNaN(amt) || amt < 20) return showToast("Minimum deposit amount is ₹20", "error");
-            
-            const sel = document.getElementById('adminUpiSelect');
-            const upiId = sel ? sel.value : "priyanshugogoi594@oksbi";
-            const payeeName = "MegaBet";
-            
-            const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amt.toFixed(2)}&cu=INR`;
-            
-            try {
-                window.location.assign(upiUrl);
-            } catch(e) {
-                showToast("Could not open UPI app automatically.", "error");
-            }
         };
 
         const confirmDeposit = async () => {
@@ -2997,7 +3019,13 @@
             const forceWinActive = isForcedWinRequired(potentialWin);
 
             let forceStrictLoss = !isTrap && isStrictLossRequired(potentialWin);
-            let forceDbrLoss = (dbr < 1.0 && !isTrap && Math.random() > dbr);
+            
+            let forceDbrLoss = false;
+            if (dbr < 1.0 && !isTrap) {
+                let punishChance = (1.0 - dbr) * (1.0 - (1.0 / Math.max(1.1, potentialWinMult)));
+                if (Math.random() < punishChance) forceDbrLoss = true;
+            }
+            
             let forceDbrWin = (dbr > 1.0 && isTrap && Math.random() < (dbr - 1.0));
 
             if (forceWinActive) {
@@ -3996,9 +4024,10 @@
             if (hits > safeSpaces) return 0;
             
             const winChance = comb(safeSpaces, hits) / comb(totalSpaces, hits);
-            const houseEdge = 0.05; 
-            const mult = (1 / winChance) * (1 - houseEdge);
-            return Math.max(1.0, mult);
+            const houseEdge = 0.03; 
+            let mult = (1 / winChance) * (1 - houseEdge);
+            if (mult <= 1.0) mult = 1.01; // Minimum 1.01x for a successful hit
+            return mult;
         };
 
         const startMines = () => {
@@ -4065,13 +4094,21 @@
             const dbr = getDBRMultiplier();
             const forceWinActive = isForcedWinRequired(potentialWin);
 
-            if (forceWinActive && isMine) {
-                let safeIndex = minesState.grid.findIndex((v, i) => v === 'gem' && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
-                if (safeIndex !== -1) {
-                    minesState.grid[index] = 'gem';
-                    minesState.grid[safeIndex] = 'mine';
-                    content = 'gem';
-                    isMine = false;
+            let forceDbrLoss = false;
+            if (dbr < 1.0 && !isMine) {
+                 let punishChance = (1.0 - dbr) * (1.0 - (1.0 / Math.max(1.1, nextMult)));
+                 if (Math.random() < punishChance) forceDbrLoss = true;
+            }
+
+            if (forceWinActive) {
+                if (isMine) {
+                    let safeIndex = minesState.grid.findIndex((v, i) => v === 'gem' && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
+                    if (safeIndex !== -1) {
+                        minesState.grid[index] = 'gem';
+                        minesState.grid[safeIndex] = 'mine';
+                        content = 'gem';
+                        isMine = false;
+                    }
                 }
             } else if (!isMine && isStrictLossRequired(potentialWin)) {
                  let mineIndex = minesState.grid.findIndex((v, i) => v === 'mine' && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
@@ -4081,7 +4118,7 @@
                      content = 'mine';
                      isMine = true;
                  }
-            } else if (!isMine && dbr < 1.0 && Math.random() > dbr) {
+            } else if (forceDbrLoss) {
                  let mineIndex = minesState.grid.findIndex((v, i) => v === 'mine' && !document.getElementById(`mine-cell-${i}`).classList.contains('revealed'));
                  if (mineIndex !== -1) {
                      minesState.grid[index] = 'mine';
@@ -4352,14 +4389,31 @@
                 state.currentUser = savedUser;
                 db.ref('users/' + savedUser).once('value').then(snap => {
                     if (snap.exists()) {
-                        state.users[savedUser] = snap.val();
-                        state.balance = snap.val().balance || 0;
-                        state.withdrawableBalance = snap.val().withdrawableBalance || 0;
-                        if(snap.val().stats) state.stats = snap.val().stats;
+                        const userData = snap.val();
+                        
+                        let refunded = 0;
+                        if (userData.activeBet && userData.activeBet > 0) {
+                            refunded = userData.activeBet;
+                            userData.balance = (userData.balance || 0) + refunded;
+                            userData.activeBet = 0;
+                            db.ref('users/' + savedUser).update({
+                                balance: userData.balance,
+                                activeBet: 0
+                            });
+                        }
+
+                        state.users[savedUser] = userData;
+                        state.balance = userData.balance || 0;
+                        state.withdrawableBalance = userData.withdrawableBalance || 0;
+                        if(userData.stats) state.stats = userData.stats;
                         setupLiveListener();
                         checkDailyMail();
                         updateUI();
                         navigate('dashboard');
+                        
+                        if (refunded > 0) {
+                            setTimeout(() => showToast(`Refunded ${formatMoney(refunded)} from an unfinished game session.`, "info"), 1500);
+                        }
                     } else {
                         logout();
                     }
