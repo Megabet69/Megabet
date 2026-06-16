@@ -1410,6 +1410,14 @@
             liveListener = db.ref('users/' + state.currentUser).on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
+
+                    // --- SINGLE DEVICE CHECK ---
+                    const localToken = localStorage.getItem('megabet_sessionToken');
+                    if (data.sessionToken && localToken && data.sessionToken !== localToken) {
+                        forceLogout("Logged out! Account accessed from another device.");
+                        return; // Stop processing to prevent overwriting the DB
+                    }
+                    
                     state.users[state.currentUser] = data;
                     state.balance = data.balance || 0;
                     state.withdrawableBalance = data.withdrawableBalance || 0;
@@ -2085,6 +2093,12 @@
         const loginUser = (mobile, password) => {
             const user = state.users[mobile];
             
+            // --- GENERATE SESSION TOKEN FOR SINGLE DEVICE LOGIN ---
+            const sessionToken = Date.now().toString(36) + Math.random().toString(36).substr(2);
+            localStorage.setItem('megabet_sessionToken', sessionToken);
+            user.sessionToken = sessionToken;
+            db.ref('users/' + mobile + '/sessionToken').set(sessionToken);
+            
             let refunded = 0;
             if (user.activeBet && user.activeBet > 0) {
                 refunded = user.activeBet;
@@ -2131,8 +2145,26 @@
             state.currentUser = null;
             state.users = {};
             localStorage.removeItem('megabet_currentUser');
+            localStorage.removeItem('megabet_sessionToken'); // Clean up token on normal logout
             navigate('auth');
             showToast("Logged out successfully", "info");
+        };
+
+        // --- FORCE LOGOUT FOR MULTIPLE DEVICES ---
+        const forceLogout = (msg) => {
+            state.gameIsRunning = false; 
+            if (state.currentUser && liveListener) {
+                db.ref('users/' + state.currentUser).off('value', liveListener);
+                db.ref('users/' + state.currentUser + '/chat').off('value');
+                liveListener = null;
+            }
+
+            state.currentUser = null;
+            state.users = {};
+            localStorage.removeItem('megabet_currentUser');
+            localStorage.removeItem('megabet_sessionToken');
+            navigate('auth');
+            showToast(msg || "Logged out", "error");
         };
 
         const navigate = (viewId) => {
@@ -4385,12 +4417,20 @@
 
         window.onload = () => {
             const savedUser = localStorage.getItem('megabet_currentUser');
+            const savedToken = localStorage.getItem('megabet_sessionToken');
+
             if (savedUser) {
                 state.currentUser = savedUser;
                 db.ref('users/' + savedUser).once('value').then(snap => {
                     if (snap.exists()) {
                         const userData = snap.val();
                         
+                        // --- SINGLE DEVICE LOGIN ENFORCEMENT ON REFRESH ---
+                        if (userData.sessionToken && savedToken && userData.sessionToken !== savedToken) {
+                            forceLogout("Logged out! Account accessed from another device.");
+                            return;
+                        }
+
                         let refunded = 0;
                         if (userData.activeBet && userData.activeBet > 0) {
                             refunded = userData.activeBet;
