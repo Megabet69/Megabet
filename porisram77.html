@@ -57,6 +57,211 @@
       .chat-send-text { display: none !important; }
     }
 
+
+    /* ---------- MOBILE PROFILE LAYOUT ---------- */
+    .profile-page { min-width: 0; width: 100%; }
+    .profile-cover { position: relative; }
+    .profile-info-wrap { min-width: 0; }
+    .profile-action-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .profile-action-row .btn { white-space: nowrap; }
+    .profile-stat-grid { min-width: 0; }
+    .profile-stat-card { min-width: 0; overflow: hidden; }
+    .profile-stat-value { overflow-wrap: anywhere; }
+    .profile-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .profile-table { min-width: 650px; }
+
+    @media (max-width: 640px) {
+      .profile-page {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+
+      .profile-cover {
+        border-radius: 18px !important;
+        margin-bottom: 12px !important;
+      }
+
+      .profile-cover > .bg-gradient-to-r {
+        height: 92px !important;
+      }
+
+      .profile-cover-body {
+        padding: 0 14px 18px !important;
+      }
+
+      .profile-top {
+        margin-top: -38px !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+      }
+
+      .profile-avatar-large {
+        width: 70px !important;
+        height: 70px !important;
+        min-width: 70px !important;
+        font-size: 36px !important;
+        border-width: 3px !important;
+        border-radius: 18px !important;
+      }
+
+      .profile-info-wrap {
+        padding-top: 42px !important;
+        width: calc(100% - 80px);
+      }
+
+      .profile-name {
+        font-size: 19px !important;
+        line-height: 1.25 !important;
+        overflow-wrap: anywhere;
+      }
+
+      .profile-place {
+        font-size: 12px !important;
+        line-height: 1.4 !important;
+        align-items: flex-start !important;
+      }
+
+      .profile-place i {
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .profile-action-row {
+        width: 100%;
+        margin-top: 12px;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px !important;
+      }
+
+      .profile-action-row .btn {
+        width: 100% !important;
+        min-height: 42px;
+        padding: 9px 8px !important;
+        font-size: 12px !important;
+        justify-content: center;
+      }
+
+      .profile-action-row .btn i {
+        width: 16px !important;
+        height: 16px !important;
+      }
+
+      .profile-overall {
+        padding: 16px !important;
+        border-radius: 16px !important;
+      }
+
+      .profile-overall-head {
+        align-items: flex-start !important;
+        gap: 10px !important;
+      }
+
+      .profile-score-value {
+        font-size: 23px !important;
+      }
+
+      .profile-accuracy-value {
+        font-size: 27px !important;
+      }
+
+      .profile-stat-grid {
+        gap: 8px !important;
+      }
+
+      .profile-stat-card {
+        padding: 12px !important;
+        border-radius: 15px !important;
+      }
+
+      .profile-stat-card .stat-icon {
+        width: 34px !important;
+        height: 34px !important;
+        margin-bottom: 9px !important;
+      }
+
+      .profile-stat-card .stat-label {
+        font-size: 9px !important;
+        line-height: 1.3 !important;
+      }
+
+      .profile-stat-value {
+        font-size: 18px !important;
+        line-height: 1.25 !important;
+      }
+
+      .profile-section-card {
+        padding: 15px !important;
+        border-radius: 16px !important;
+      }
+
+      .profile-section-title {
+        font-size: 16px !important;
+      }
+
+      .profile-section-subtitle {
+        font-size: 11px !important;
+      }
+
+      .profile-performance-card {
+        padding: 14px !important;
+        border-radius: 16px !important;
+      }
+
+      .profile-table-wrap {
+        margin: 0 -2px;
+        width: calc(100% + 4px);
+      }
+
+      .profile-table {
+        min-width: 620px;
+        font-size: 12px !important;
+      }
+
+      .profile-table th,
+      .profile-table td {
+        padding: 10px 8px !important;
+      }
+
+      .profile-bottom-cards {
+        gap: 8px !important;
+      }
+
+      .profile-bottom-cards > div {
+        padding: 14px !important;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .profile-action-row {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-top {
+        gap: 8px !important;
+      }
+
+      .profile-avatar-large {
+        width: 62px !important;
+        height: 62px !important;
+        min-width: 62px !important;
+        font-size: 31px !important;
+      }
+
+      .profile-info-wrap {
+        width: calc(100% - 70px);
+        padding-top: 38px !important;
+      }
+
+      .profile-name {
+        font-size: 17px !important;
+      }
+
+      .profile-overall-head {
+        flex-direction: column !important;
+      }
+    }
+
 </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
@@ -1281,13 +1486,13 @@ function scheduleFirebaseRetry() {
           </div>
           <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h3 class="text-lg font-bold text-gray-900 mb-1">Time Analysis</h3><p class="text-sm text-gray-500 mb-4">Your slowest questions. These are useful for speed practice.</p>
-            ${slow.length ? `<div class="space-y-3">${slow.map(q=>{const t=prog.timeByQuestion?.[q.id]||0; const slow=t>=PERFORMANCE.SLOW_QUESTION_SECONDS; return `<div class="p-3 rounded-lg ${slow?'bg-amber-50 border border-amber-100':'bg-gray-50 border border-gray-100'}"><div class="flex justify-between gap-3"><b class="text-sm text-gray-800">Q${cat.questions.indexOf(q)+1}. ${escapeHtml(q.text)}</b><span class="text-xs font-bold ${slow?'text-amber-700':'text-gray-600'}">${formatSeconds(t)}</span></div><div class="text-xs text-gray-500 mt-1">${slow ? 'Slow question — practise faster solving.' : 'Within the normal time range.'}</div></div>`}).join('')}</div>` : '<p class="text-sm text-gray-500">No question timing data available.</p>'}
+            ${slow.length ? `<div class="space-y-3">${slow.map(q=>{const t=prog.timeByQuestion?.[q.id]||0; const slow=t>=PERFORMANCE.SLOW_QUESTION_SECONDS; return `<div class="p-3 rounded-lg ${slow?'bg-amber-50 border border-amber-100':'bg-gray-50 border border-gray-100'}"><div class="flex justify-between gap-3"><b class="text-sm text-gray-800">Q${cat.questions.indexOf(q)+1}. ${escapeHtml(q.text)}</b><span class="text-xs font-bold ${slow?'text-amber-700':'text-gray-600'}">${formatSeconds(t)}</span></div><div class="text-xs text-gray-500 mt-1">${slow ? 'Slow question — practise faster solving.' : 'Within the normal time range.'}</div></div>`}).join('')}</div>` : '<p class="text-sm text-gray-500 profile-section-subtitle">No question timing data available.</p>'}
           </div>
         </div>
 
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
-          <div class="p-6 border-b border-gray-200"><h3 class="text-lg font-bold text-gray-900">Question-wise Performance</h3><p class="text-sm text-gray-500">Time spent, answer status and correctness for every question.</p></div>
-          <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-50"><tr><th class="text-left p-3">Q</th><th class="text-left p-3 min-w-[280px]">Question</th><th class="text-left p-3">Time</th><th class="text-left p-3">Your Answer</th><th class="text-left p-3">Correct</th><th class="text-left p-3">Status</th></tr></thead><tbody>
+          <div class="p-6 border-b border-gray-200"><h3 class="text-lg font-bold text-gray-900">Question-wise Performance</h3><p class="text-sm text-gray-500 profile-section-subtitle">Time spent, answer status and correctness for every question.</p></div>
+          <div class="profile-table-wrap"><table class="w-full text-sm profile-table"><thead class="bg-gray-50"><tr><th class="text-left p-3">Q</th><th class="text-left p-3 min-w-[280px]">Question</th><th class="text-left p-3">Time</th><th class="text-left p-3">Your Answer</th><th class="text-left p-3">Correct</th><th class="text-left p-3">Status</th></tr></thead><tbody>
           ${cat.questions.map((q,i)=>{
             const ans=prog.answers?.[q.id]; const t=prog.timeByQuestion?.[q.id]||0; const attempted=!!ans; const correct=attempted && ans===q.correct;
             const status=correct?'Correct':attempted?'Wrong':'Skipped';
@@ -1340,12 +1545,12 @@ function scheduleFirebaseRetry() {
         orange:'text-orange-600 bg-orange-50'
       };
       return `
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 profile-stat-card">
           <div class="w-10 h-10 rounded-xl ${tones[tone] || tones.blue} flex items-center justify-center mb-4">
             <i data-lucide="${icon}" class="w-5 h-5"></i>
           </div>
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">${label}</p>
-          <p class="text-2xl font-extrabold text-gray-900 mt-1">${value}</p>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide stat-label">${label}</p>
+          <p class="text-2xl font-extrabold text-gray-900 mt-1 profile-stat-value">${value}</p>
         </div>`;
     }
 
@@ -1878,23 +2083,23 @@ function scheduleFirebaseRetry() {
         const weakest = [...attemptedCats].sort((a,b) => a.accuracy - b.accuracy).slice(0,3);
 
         content = `
-          <div class="max-w-6xl mx-auto fade-in">
+          <div class="max-w-6xl mx-auto fade-in profile-page">
 
-            <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden mb-6 profile-cover">
               <div class="bg-gradient-to-r from-blue-600 to-indigo-600 h-32"></div>
-              <div class="px-6 sm:px-8 pb-8">
-                <div class="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12">
-                  <div class="w-24 h-24 rounded-2xl bg-white shadow-lg flex items-center justify-center text-5xl border-4 border-white">
+              <div class="px-6 sm:px-8 pb-8 profile-cover-body">
+                <div class="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 profile-top">
+                  <div class="w-24 h-24 rounded-2xl bg-white shadow-lg flex items-center justify-center text-5xl border-4 border-white profile-avatar-large">
                     ${getProfileAvatar()}
                   </div>
-                  <div class="flex-1">
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">${escapeHTML(state.profile?.name || 'Student')}</h1>
-                    <p class="text-gray-500 flex items-center gap-2 mt-1">
+                  <div class="flex-1 profile-info-wrap">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 profile-name">${escapeHTML(state.profile?.name || 'Student')}</h1>
+                    <p class="text-gray-500 flex items-center gap-2 mt-1 profile-place">
                       <i data-lucide="map-pin" class="w-4 h-4"></i>
                       ${escapeHTML(state.profile?.place || 'Place not set')}
                     </p>
                   </div>
-                  <div class="flex gap-2">
+                  <div class="flex gap-2 profile-action-row">
                     <button onclick="openProfileEdit()" class="btn btn-primary">
                       <i data-lucide="pencil" class="w-4 h-4"></i> Edit Profile
                     </button>
@@ -1910,12 +2115,12 @@ function scheduleFirebaseRetry() {
               </div>
             </div>
 
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6 profile-overall">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 profile-overall-head">
                 <div>
                   <p class="text-sm text-gray-500 font-medium">Overall Performance</p>
                   <div class="flex items-center gap-3 mt-2">
-                    <span class="text-2xl font-extrabold text-gray-900">${stats.level}</span>
+                    <span class="text-2xl font-extrabold text-gray-900 profile-score-value">${stats.level}</span>
                     <span class="px-3 py-1 rounded-full text-xs font-bold ${stats.levelClass}">
                       ${stats.score.toFixed(1)}% Score
                     </span>
@@ -1923,7 +2128,7 @@ function scheduleFirebaseRetry() {
                 </div>
                 <div class="text-left sm:text-right">
                   <p class="text-xs uppercase tracking-wider text-gray-400">Accuracy</p>
-                  <p class="text-3xl font-extrabold text-blue-600">${stats.accuracy.toFixed(1)}%</p>
+                  <p class="text-3xl font-extrabold text-blue-600 profile-accuracy-value">${stats.accuracy.toFixed(1)}%</p>
                 </div>
               </div>
               <div class="mt-5 h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -1931,26 +2136,26 @@ function scheduleFirebaseRetry() {
               </div>
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 profile-stat-grid">
               ${profileStatCard('file-check-2','Tests Completed',stats.totalTests,'blue')}
               ${profileStatCard('target','Questions Attempted',stats.attempted,'indigo')}
               ${profileStatCard('check-circle-2','Correct',stats.correct,'green')}
               ${profileStatCard('x-circle','Wrong',stats.wrong,'red')}
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 profile-stat-grid">
               ${profileStatCard('skip-forward','Skipped',stats.skipped,'amber')}
               ${profileStatCard('clock-3','Total Time',formatSeconds(stats.totalTime),'purple')}
               ${profileStatCard('timer','Avg / Question',formatSeconds(stats.avgTime),'cyan')}
               ${profileStatCard('award','Best Score',getBestScore().toFixed(1) + '%','orange')}
             </div>
 
-            <div class="grid lg:grid-cols-2 gap-6 mb-6">
+            <div class="grid lg:grid-cols-2 gap-6 mb-6 profile-performance-grid">
 
-              <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 profile-section-card">
                 <div class="flex items-center justify-between mb-5">
                   <div>
-                    <h2 class="text-lg font-bold text-gray-900">Strong Areas</h2>
+                    <h2 class="text-lg font-bold text-gray-900 profile-section-title">Strong Areas</h2>
                     <p class="text-sm text-gray-500">Your best performing categories</p>
                   </div>
                   <i data-lucide="trending-up" class="text-green-500"></i>
@@ -1968,10 +2173,10 @@ function scheduleFirebaseRetry() {
                 `).join('') : emptyProfileState('bar-chart-3','Complete a test to see strong areas.')}
               </div>
 
-              <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 profile-section-card">
                 <div class="flex items-center justify-between mb-5">
                   <div>
-                    <h2 class="text-lg font-bold text-gray-900">Weak Areas</h2>
+                    <h2 class="text-lg font-bold text-gray-900 profile-section-title">Weak Areas</h2>
                     <p class="text-sm text-gray-500">Categories that need more practice</p>
                   </div>
                   <i data-lucide="trending-down" class="text-red-500"></i>
@@ -1991,7 +2196,7 @@ function scheduleFirebaseRetry() {
 
             </div>
 
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6 profile-performance-card">
               <div class="mb-5">
                 <h2 class="text-lg font-bold text-gray-900">Category Performance</h2>
                 <p class="text-sm text-gray-500">Detailed performance by subject</p>
@@ -2028,7 +2233,7 @@ function scheduleFirebaseRetry() {
               </div>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-4 mb-8">
+            <div class="grid md:grid-cols-3 gap-4 mb-8 profile-bottom-cards">
               <div class="bg-green-50 border border-green-100 rounded-2xl p-5">
                 <div class="text-green-600 mb-3"><i data-lucide="check-circle-2"></i></div>
                 <p class="text-sm text-green-700 font-medium">Correct Answers</p>
