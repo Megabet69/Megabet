@@ -869,7 +869,13 @@
       chatListListener: null,
       unreadChats: {},
       chatUnreadListener: null,
-      leaderboardListener: null
+      leaderboardListener: null,
+      chatGame: null,
+      chatGameListener: null,
+      chatGameSelection: null,
+      challengeModalOpen: false,
+      battleInviteListener: null,
+      pendingBattleInvites: {}
     };
 
     const rootEl = document.getElementById('app-root');
@@ -2060,6 +2066,10 @@ function scheduleFirebaseRetry() {
 
         await markChatRead(otherId);
         startChatListener(otherId);
+        const gamesSnap = await firebaseDB.ref("quizGames").once("value");
+        const games = gamesSnap.val() || {};
+        const matches = Object.entries(games).filter(([id,g]) => g && ((g.challengerId === getClientId() && g.opponentId === otherId) || (g.opponentId === getClientId() && g.challengerId === otherId)) && g.status === "active");
+        if (matches.length) startChatGameListener(matches[matches.length - 1][0]);
       } catch (error) {
         console.error("Could not open chat:", error);
         showToast("Could not open this chat.", "error");
@@ -2091,7 +2101,348 @@ function scheduleFirebaseRetry() {
       });
     }
 
+    function gameRoot(gameId) {
+      return firebaseDB.ref("quizGames/" + gameId);
+    }
+
+    function stopChatGameListener() {
+      if (state.chatGameListener && state.chatGame?.id) {
+        gameRoot(state.chatGame.id).off("value", state.chatGameListener);
+      }
+      state.chatGameListener = null;
+    }
+
+    function cleanupChatGame() {
+      stopChatGameListener();
+      state.chatGame = null;
+      state.chatGameSelection = null;
+    }
+
+    function startChatGameListener(gameId) {
+      stopChatGameListener();
+      if (!gameId) return;
+      const ref = gameRoot(gameId);
+      state.chatGameListener = snapshot => {
+        const game = snapshot.val();
+        if (!game) {
+          cleanupChatGame();
+          if (state.currentScreen === "chat") render();
+          return;
+        }
+        state.chatGame = { id: gameId, ...game };
+        if (state.chatGameSelection?.roundKey !== game.roundKey) state.chatGameSelection = null;
+        if (state.currentScreen === "chat") {
+          const box = document.getElementById("chat-game-area");
+          if (box) {
+            box.innerHTML = renderChatGame();
+            lucide.createIcons();
+          } else render();
+        }
+      };
+      ref.on("value", state.chatGameListener);
+    }
+
+    function showChallengeModal() {
+      if (!state.chatUser?.id) return;
+      state.challengeModalOpen = true;
+      const modal = document.createElement("div");
+      modal.id = "quiz-challenge-modal";
+      modal.className = "fixed inset-0 z-[300] bg-black/40 flex items-center justify-center p-4";
+      modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xl font-extrabold text-gray-900">Quiz Challenge</h3>
+            <button type="button" onclick="closeChallengeModal()" class="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center"><i data-lucide="x" class="w-5 h-5"></i></button>
+          </div>
+          <p class="text-sm text-gray-500 mb-5">Choose any category. Both players get the same question. The first correct answer wins the round.</p>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+          <select id="challenge-category" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-blue-500">
+            ${Object.values(quizData).map(cat => `<option value="${escapeHTML(cat.id)}">${escapeHTML(cat.title)}</option>`).join("")}
+          </select>
+          <label class="block text-sm font-semibold text-gray-700 mt-4 mb-2">Rounds</label>
+          <select id="challenge-rounds" class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="5">5 rounds</option><option value="10">10 rounds</option>
+          </select>
+          <button type="button" onclick="createQuizChallenge()" class="btn btn-primary w-full mt-5 py-3">Send Challenge <i data-lucide="swords" class="w-5 h-5"></i></button>
+        </div>`;
+      document.body.appendChild(modal);
+      lucide.createIcons();
+    }
+
+    function closeChallengeModal() {
+      state.challengeModalOpen = false;
+      document.getElementById("quiz-challenge-modal")?.remove();
+    }
+
+    async function createQuizChallenge() {
+      const opponentId = state.chatUser?.id;
+      const categoryId = document.getElementById("challenge-category")?.value;
+      const rounds = Number(document.getElementById("challenge-rounds")?.value || 5);
+      const cat = quizData[categoryId];
+      if (!opponentId || !cat || !cat.questions.length) return;
+
+      const gameRef = firebaseDB.ref("quizGames").push();
+      const questionIndex = Math.floor(Math.random() * cat.questions.length);
+      const game = {
+        challengerId: getClientId(),
+        opponentId,
+        categoryId,
+        categoryTitle: cat.title,
+        totalRounds: rounds,
+        round: 1,
+        questionIndex,
+        questionId: cat.questions[questionIndex].id,
+        status: "pending",
+        challengerName: state.profile?.name || "Student",
+        opponentName: state.chatUser?.name || "Student",
+        scores: { [getClientId()]: 0, [opponentId]: 0 },
+        roundWinner: null,
+        roundKey: "1_" + cat.questions[questionIndex].id,
+        answers: {},
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      };
+
+      try {
+        await gameRef.set(game);
+        await firebaseDB.ref("users/" + opponentId + "/battleInvites/" + gameRef.key).set({
+          gameId: gameRef.key, from: getClientId(), fromName: state.profile?.name || "Student",
+          categoryId, categoryTitle: cat.title, totalRounds: rounds, status: "pending",
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        await chatRootWith(opponentId).child("messages").push().set({
+          senderId: getClientId(), receiverId: opponentId,
+          text: `${state.profile?.name || "Student"} challenged you to a Quiz Battle.`,
+          messageType: "battle-challenge", createdAt: firebase.database.ServerValue.TIMESTAMP, read: false
+        });
+        closeChallengeModal();
+        state.chatGame = { id: gameRef.key, ...game };
+        startChatGameListener(gameRef.key);
+        render();
+      } catch (error) {
+        console.error("Quiz challenge creation failed:", error);
+        showToast("Could not start the quiz challenge.", "error");
+      }
+    }
+
+    function startBattleInviteListener() {
+      const myId = getClientId();
+      if (state.battleInviteListener) firebaseDB.ref("users/" + myId + "/battleInvites").off("value", state.battleInviteListener);
+      state.battleInviteListener = snapshot => {
+        const data = snapshot.val() || {};
+        state.pendingBattleInvites = Object.fromEntries(Object.entries(data).filter(([id, invite]) => invite && invite.status === "pending"));
+        updateBattleInviteUI();
+      };
+      firebaseDB.ref("users/" + myId + "/battleInvites").on("value", state.battleInviteListener);
+    }
+
+    function updateBattleInviteUI() {
+      let box = document.getElementById("battle-invite-box");
+      const invites = Object.entries(state.pendingBattleInvites || {});
+      if (!invites.length) { if (box) box.remove(); return; }
+      if (!box) { box = document.createElement("div"); box.id = "battle-invite-box"; box.className = "fixed top-4 right-4 z-[350] w-[min(380px,calc(100vw-2rem))]"; document.body.appendChild(box); }
+      box.innerHTML = invites.map(([id, inv]) => `
+        <div class="bg-white border border-indigo-200 rounded-2xl shadow-xl p-4 mb-3">
+          <div class="flex items-start gap-3"><div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center"><i data-lucide="swords" class="w-5 h-5"></i></div>
+          <div class="min-w-0 flex-1"><p class="font-extrabold text-gray-900">New Quiz Battle Challenge</p><p class="text-sm text-gray-600 mt-1"><b>${escapeHTML(inv.fromName || "Student")}</b> challenged you • ${escapeHTML(inv.categoryTitle || "Quiz")} • ${inv.totalRounds || 5} rounds</p></div></div>
+          <div class="grid grid-cols-2 gap-2 mt-3"><button class="btn btn-outline" onclick="declineBattleChallenge('${id}')">Decline</button><button class="btn btn-primary" onclick="acceptBattleChallenge('${id}')">Accept</button></div>
+        </div>`).join('');
+      lucide.createIcons();
+    }
+
+    async function acceptBattleChallenge(gameId) {
+      const ref = gameRoot(gameId);
+      const snap = await ref.once("value"); const game = snap.val();
+      if (!game || game.status !== "pending" || game.opponentId !== getClientId()) return;
+      await ref.update({ status: "active", acceptedAt: firebase.database.ServerValue.TIMESTAMP, updatedAt: firebase.database.ServerValue.TIMESTAMP });
+      await firebaseDB.ref("users/" + getClientId() + "/battleInvites/" + gameId).update({ status: "accepted" });
+      const otherId = game.challengerId;
+      await chatRootWith(otherId).child("messages").push().set({ senderId: getClientId(), receiverId: otherId, text: `${state.profile?.name || "Student"} accepted your Quiz Battle challenge.`, messageType: "battle-accepted", createdAt: firebase.database.ServerValue.TIMESTAMP, read: false });
+      delete state.pendingBattleInvites[gameId]; updateBattleInviteUI();
+      await openChatWith(encodeURIComponent(otherId));
+      startChatGameListener(gameId);
+    }
+
+    async function declineBattleChallenge(gameId) {
+      const ref = gameRoot(gameId); const snap = await ref.once("value"); const game = snap.val();
+      if (!game || game.opponentId !== getClientId()) return;
+      await ref.update({ status: "declined", declinedAt: firebase.database.ServerValue.TIMESTAMP, updatedAt: firebase.database.ServerValue.TIMESTAMP });
+      await firebaseDB.ref("users/" + getClientId() + "/battleInvites/" + gameId).update({ status: "declined" });
+      if (game.challengerId) await chatRootWith(game.challengerId).child("messages").push().set({ senderId: getClientId(), receiverId: game.challengerId, text: `${state.profile?.name || "Student"} declined your Quiz Battle challenge.`, messageType: "battle-declined", createdAt: firebase.database.ServerValue.TIMESTAMP, read: false });
+      delete state.pendingBattleInvites[gameId]; updateBattleInviteUI();
+    }
+
+    async function answerQuizGame(optionId) {
+      const game = state.chatGame;
+      if (!game || game.status !== "active" || game.roundWinner || game.roundResult) return;
+      const me = getClientId();
+      const cat = quizData[game.categoryId];
+      const q = cat?.questions?.[game.questionIndex];
+      if (!q) return;
+
+      const existing = game.answers?.[game.roundKey]?.[me];
+      if (existing?.submitted) return;
+
+      const answerRef = gameRoot(game.id).child("answers").child(game.roundKey).child(me);
+      const isCorrect = optionId === q.correct;
+      const answer = {
+        optionId,
+        correct: isCorrect,
+        submitted: true,
+        submittedAt: firebase.database.ServerValue.TIMESTAMP
+      };
+
+      try {
+        await answerRef.set(answer);
+
+        // Lock the first correct responder. The round itself does NOT end here;
+        // both players must submit before the result is revealed.
+        if (isCorrect) {
+          await gameRoot(game.id).child("firstCorrect").child(game.roundKey).transaction(current => current || me);
+        }
+
+        // Re-read so either player can safely finalize the round after both submit.
+        const snap = await gameRoot(game.id).once("value");
+        const latest = snap.val();
+        const roundAnswers = latest?.answers?.[latest.roundKey] || {};
+        const players = [latest.challengerId, latest.opponentId];
+        const bothSubmitted = players.every(id => roundAnswers[id]?.submitted);
+        if (!bothSubmitted || latest.roundWinner || latest.roundResult) return;
+
+        // Only one client finalizes this round.
+        const finalizedRef = gameRoot(game.id).child("finalized").child(latest.roundKey);
+        const lock = await finalizedRef.transaction(current => current || me);
+        if (!lock.committed || lock.snapshot.val() !== me) return;
+
+        const firstCorrect = latest.firstCorrect?.[latest.roundKey] || null;
+        const a1 = roundAnswers[players[0]];
+        const a2 = roundAnswers[players[1]];
+        let winner = firstCorrect || null;
+        if (!winner && a1?.correct) winner = players[0];
+        if (!winner && a2?.correct) winner = players[1];
+        if (a1?.correct && a2?.correct && firstCorrect) winner = firstCorrect;
+
+        const scoreUpdates = {};
+        const oldScores = latest.scores || {};
+        players.forEach(id => scoreUpdates[`scores/${id}`] = Number(oldScores[id] || 0));
+        if (winner) scoreUpdates[`scores/${winner}`] = Number(oldScores[winner] || 0) + 1;
+
+        const roundNumber = Number(latest.round || 1);
+        const totalRounds = Number(latest.totalRounds || 5);
+        const winnerName = winner === me ? (state.profile?.name || "Player 1") : (state.chatUser?.name || "Player 2");
+        const resultText = winner
+          ? `Round ${roundNumber} winner: ${winnerName} — first correct submission.`
+          : `Round ${roundNumber} ended — both players answered incorrectly.`;
+
+        const otherPlayerId = latest.opponentId === me ? latest.challengerId : latest.opponentId;
+        const resultMsgRef = chatRootWith(otherPlayerId).child("messages").push();
+        await resultMsgRef.set({
+          senderId: winner || me,
+          receiverId: otherPlayerId,
+          text: `Quiz Battle • ${resultText}`,
+          messageType: "quiz-result",
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        if (roundNumber >= totalRounds) {
+          const finalScores = {};
+          players.forEach(id => finalScores[id] = Number(scoreUpdates[`scores/${id}`] || 0));
+          const finalWinner = finalScores[players[0]] === finalScores[players[1]] ? "draw" : (finalScores[players[0]] > finalScores[players[1]] ? players[0] : players[1]);
+          await gameRoot(game.id).update({
+            ...scoreUpdates,
+            roundWinner: winner,
+            roundResult: { round: roundNumber, winner: winner || "draw", text: resultText, questionId: latest.questionId },
+            status: "finished",
+            winnerId: finalWinner,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+          });
+        } else {
+          const nextIndex = Math.floor(Math.random() * cat.questions.length);
+          const nextQuestion = cat.questions[nextIndex];
+          await gameRoot(game.id).update({
+            ...scoreUpdates,
+            roundWinner: winner,
+            roundResult: { round: roundNumber, winner: winner || "draw", text: resultText, questionId: latest.questionId },
+            round: roundNumber + 1,
+            questionIndex: nextIndex,
+            questionId: nextQuestion.id,
+            roundKey: (roundNumber + 1) + "_" + nextQuestion.id,
+            roundWinner: null,
+            roundResult: null,
+            answers: {},
+            firstCorrect: {},
+            finalized: {},
+            updatedAt: firebase.database.ServerValue.TIMESTAMP
+          });
+
+        }
+      } catch (error) {
+        console.error("Quiz game answer failed:", error);
+        showToast("Your answer could not be submitted.", "error");
+      }
+    }
+
+    function renderChatGame() {
+      const g = state.chatGame;
+      if (!g) return "";
+      const cat = quizData[g.categoryId];
+      const q = cat?.questions?.[g.questionIndex];
+      if (!q) return "";
+      const me = getClientId();
+      const otherId = me === g.challengerId ? g.opponentId : g.challengerId;
+      const myScore = Number(g.scores?.[me] || 0);
+      const otherScore = Number(g.scores?.[otherId] || 0);
+      const myAnswer = g.answers?.[g.roundKey]?.[me]?.optionId || (state.chatGameSelection?.roundKey === g.roundKey ? state.chatGameSelection.optionId : null);
+      const mySubmitted = !!g.answers?.[g.roundKey]?.[me]?.submitted;
+      const otherSubmitted = !!g.answers?.[g.roundKey]?.[otherId]?.submitted;
+      const bothSubmitted = mySubmitted && otherSubmitted;
+      const finished = g.status === "finished";
+      const result = g.roundResult;
+      let banner = mySubmitted ? "Answer submitted — waiting for opponent..." : "Select an answer, then tap Submit";
+      if (bothSubmitted && result) banner = result.text;
+      if (finished) banner = g.winnerId === "draw" ? "Match draw!" : (g.winnerId === me ? "You won the match!" : "Opponent won the match!");
+
+      return `<div class="bg-white border border-indigo-200 rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <div><p class="text-xs font-bold text-indigo-600 uppercase tracking-wide">Live Quiz Battle</p><p class="font-extrabold text-gray-900">${escapeHTML(g.categoryTitle || cat.title)}</p></div>
+          <div class="text-right"><p class="text-xs text-gray-500">Round ${Math.min(Number(g.round || 1), Number(g.totalRounds || 5))}/${g.totalRounds || 5}</p><p class="font-black text-gray-900">${myScore} — ${otherScore}</p></div>
+        </div>
+        <div class="rounded-xl bg-indigo-50 border border-indigo-100 p-3 mb-3">
+          <p class="text-xs font-semibold text-indigo-700">${escapeHTML(banner)}</p>
+          <p class="font-bold text-gray-900 mt-1">${escapeHTML(q.text)}</p>
+        </div>
+        <div class="grid gap-2">${q.options.map(o => `<button type="button" onclick="selectChatGameAnswer('${escapeHTML(o.id)}')" ${mySubmitted || finished ? 'disabled' : ''} class="text-left p-3 rounded-xl border ${myAnswer===o.id?'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-100':'border-gray-200 bg-white hover:border-indigo-300'} disabled:opacity-60">${escapeHTML(o.text)}</button>`).join("")}</div>
+        <button type="button" onclick="submitChatGameAnswer()" ${(!myAnswer || mySubmitted || finished) ? 'disabled' : ''} class="btn btn-primary w-full mt-3 disabled:opacity-50">Submit Answer</button>
+        <div class="flex justify-between text-xs font-semibold text-gray-500 mt-3"><span>${mySubmitted ? '✓ You submitted' : '○ You not submitted'}</span><span>${otherSubmitted ? '✓ Opponent submitted' : '○ Waiting for opponent'}</span></div>
+        ${finished ? `<button type="button" onclick="leaveQuizGame()" class="btn btn-outline w-full mt-3">Close Game</button>` : ''}
+      </div>`;
+    }
+
+    function selectChatGameAnswer(optionId) {
+      if (!state.chatGame || state.chatGame.status !== "active") return;
+      const me = getClientId();
+      if (state.chatGame.answers?.[state.chatGame.roundKey]?.[me]?.submitted) return;
+      state.chatGameSelection = { roundKey: state.chatGame.roundKey, optionId };
+      const box = document.getElementById("chat-game-area");
+      if (box) { box.innerHTML = renderChatGame(); lucide.createIcons(); }
+    }
+
+    async function submitChatGameAnswer() {
+      const g = state.chatGame;
+      const me = getClientId();
+      const optionId = state.chatGameSelection?.roundKey === g?.roundKey ? state.chatGameSelection.optionId : null;
+      if (!g || !optionId || g.answers?.[g.roundKey]?.[me]?.submitted) return;
+      await answerQuizGame(optionId);
+      state.chatGameSelection = null;
+    }
+
+    function leaveQuizGame() {
+      cleanupChatGame();
+      if (state.currentScreen === "chat") render();
+    }
+
     function cleanupChatListeners() {
+      cleanupChatGame();
       if (state.chatListener && state.chatUser?.id) {
         chatRootWith(state.chatUser.id).child("messages").off("value", state.chatListener);
       }
@@ -2147,7 +2498,7 @@ function scheduleFirebaseRetry() {
       if (state.currentScreen === 'loading') {
         content = `<div class="flex flex-col items-center justify-center mt-32"><div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div><p class="mt-4 text-gray-600 font-medium">Loading...</p></div>`;
       } else if (state.currentScreen === 'welcome') {
-        content = `<div class="fade-in max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border border-gray-100 mt-10"><div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-inner"><i data-lucide="book-open" class="w-8 h-8"></i></div><h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome!</h2><p class="text-gray-600 mb-8">Please enter your details to begin your preparation. Your profile and progress will be saved securely to Firebase.</p><div class="space-y-4"><div><label class="block text-sm font-semibold text-gray-700 mb-1">Full Name</label><div class="relative"><i data-lucide="user" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i><input type="text" id="input-name" oninput="validateProfileForm()" onchange="validateProfileForm()" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter your name" /></div></div><div><label class="block text-sm font-semibold text-gray-700 mb-1">District / Place</label><div class="relative"><i data-lucide="map-pin" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i><input type="text" id="input-place" oninput="validateProfileForm()" onchange="validateProfileForm()" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter your place" /></div></div><button id="btn-save-profile" onclick="handleProfileSave()" disabled class="btn btn-primary w-full mt-4 py-3 text-lg">Start Preparation <i data-lucide="chevron-right" class="w-5 h-5"></i></button></div></div>`;
+        content = `<div class="fade-in max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border border-gray-100 mt-10"><div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-inner"><i data-lucide="book-open" class="w-8 h-8"></i></div><h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome!</h2><p class="text-gray-600 mb-8">Create your profile once to begin. Your name and place are saved securely to Firebase and remembered on this device.</p><div class="space-y-4"><div><label class="block text-sm font-semibold text-gray-700 mb-1">Full Name</label><div class="relative"><i data-lucide="user" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i><input type="text" id="input-name" oninput="validateProfileForm()" onchange="validateProfileForm()" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter your name" /></div></div><div><label class="block text-sm font-semibold text-gray-700 mb-1">District / Place</label><div class="relative"><i data-lucide="map-pin" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i><input type="text" id="input-place" oninput="validateProfileForm()" onchange="validateProfileForm()" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter your place" /></div></div><button id="btn-save-profile" onclick="handleProfileSave()" disabled class="btn btn-primary w-full mt-4 py-3 text-lg">Start Preparation <i data-lucide="chevron-right" class="w-5 h-5"></i></button></div></div>`;
       } else if (state.currentScreen === 'firebase-error') {
         content = `
           <div class="max-w-md mx-auto mt-16 bg-white rounded-2xl shadow-sm border border-red-200 p-8 text-center fade-in">
@@ -2432,7 +2783,12 @@ function scheduleFirebaseRetry() {
                 <p class="font-bold text-gray-900 truncate">${escapeHTML(u.name || "Student")}</p>
                 <p class="text-xs text-gray-500 truncate">${escapeHTML(u.place || "")}</p>
               </div>
+              <button onclick="showChallengeModal()" class="btn btn-primary !px-3 !py-2 text-sm shrink-0" title="Start quiz battle">
+                <i data-lucide="swords" class="w-4 h-4"></i><span class="hidden sm:inline">Quiz Battle</span>
+              </button>
             </div>
+
+            <div id="chat-game-area" class="p-3 pb-0">${renderChatGame()}</div>
 
             <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
               ${renderChatMessages()}
@@ -2495,6 +2851,7 @@ function scheduleFirebaseRetry() {
       try {
         await loadFirebaseData();
         startUnreadMessageMonitor();
+        startBattleInviteListener();
 
         // Never force the user back to the welcome form after a restore.
         if (!state.profile) {
