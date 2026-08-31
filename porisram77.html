@@ -589,26 +589,35 @@ html.dark .reward-chat-neon{background:#2e1065!important}
 </style>
 
 
-<style id="battery-feature-style">
-.equipped-reward-badge{animation:rewardBadgeIn .2s ease-out}
-@keyframes rewardBadgeIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
-.battery-locked{opacity:.65}
-.live-battery-percent{color:#64748b}
-html.dark .live-battery-percent{color:#94a3b8}
+
+<style id="weak-trainer-free-ui">
+.weak-trainer-card{max-width:900px;margin:14px auto 16px;padding:16px;border:1px solid #dbeafe;border-radius:16px;background:linear-gradient(135deg,#eff6ff,#f8fafc);display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"icon copy button" "icon copy status";gap:4px 12px;align-items:center;box-sizing:border-box}
+.weak-trainer-icon{grid-area:icon;width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:#fff;font-size:25px;box-shadow:0 2px 8px rgba(15,23,42,.08)}
+.weak-trainer-copy{grid-area:copy;min-width:0}.weak-trainer-title{font-weight:800;font-size:16px;color:#111827}.weak-trainer-desc{font-size:12px;line-height:1.45;color:#64748b;margin-top:3px}.weak-trainer-btn{grid-area:button;border:0;border-radius:10px;padding:10px 14px;background:#111827;color:#fff;font-weight:800;cursor:pointer;white-space:nowrap}.weak-trainer-btn:hover{opacity:.92}.weak-trainer-status{grid-area:status;text-align:right;font-size:11px;font-weight:800;color:#15803d}
+html.dark .weak-trainer-card{background:#172033;border-color:#334155}.html.dark .weak-trainer-title{color:#f8fafc}
+@media(max-width:640px){.weak-trainer-card{grid-template-columns:auto 1fr;grid-template-areas:"icon copy" "icon status" "button button"}.weak-trainer-btn{width:100%;margin-top:8px}.weak-trainer-status{text-align:left;margin-top:2px}}
+</style>
+
+<style id="badge-leaderboard-display-final">
+.leaderboard-user-cosmetics{display:inline-flex;align-items:center;gap:4px;margin-left:5px;vertical-align:middle}
+.leaderboard-user-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;font-size:17px}
 </style>
 
 
-<style id="battery-purchase-style">
-.battery-feature-store{margin:14px 0;padding:14px;border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc}
-.battery-feature-title{font-weight:800;font-size:16px}.battery-feature-desc{font-size:12px;color:#64748b;margin:4px 0 10px}
-.battery-buy-btn{min-height:40px;padding:9px 13px;border:0;border-radius:10px;background:#111827;color:#fff;font-weight:800;cursor:pointer}
-.battery-buy-btn:disabled{opacity:.5;cursor:not-allowed}.battery-feature-status{margin-top:8px;font-size:12px;color:#64748b}
-html.dark .battery-feature-store{background:#1f2937;border-color:#374151}
-html.dark .battery-feature-desc,html.dark .battery-feature-status{color:#94a3b8}
-html.dark .battery-buy-btn{background:#f8fafc;color:#111827}
+<style id="badge-direct-equip-no-fullscreen">
+/* Badge purchase must never open a fullscreen purchase/equip overlay. */
+.badge-purchase-modal,
+.badge-equip-modal,
+.badge-preview-modal,
+.badge-fullscreen,
+#badgePurchaseModal,
+#badgeEquipModal,
+#badgePreviewModal,
+#badgeFullscreen {
+  display:none !important;
+}
 </style>
 
-<style id="battery-visibility-ui">.battery-visible-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800}</style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -1236,6 +1245,7 @@ html.dark .battery-buy-btn{background:#f8fafc;color:#111827}
       chatGameSelection: null,
       challengeModalOpen: false
     };
+    window.state = state;
 
     const rootEl = document.getElementById('app-root');
     const headerProfileEl = document.getElementById('header-profile');
@@ -1745,6 +1755,24 @@ function scheduleFirebaseRetry() {
         }
       } catch (e) { console.warn("Question coin reward failed:", e); }
       state.quiz.answers[q.id] = optionId;
+
+      // Save wrong answers immediately. Completing/submitting the test is NOT required.
+      if (optionId !== q.correct && typeof window.saveWrongQuestionInstant === 'function') {
+        window.saveWrongQuestionInstant(state.activeCategory, q, optionId);
+      }
+
+      // Keep the live in-progress answer available to Weak Trainer immediately.
+      const liveProgress = state.progressData[state.activeCategory] || {};
+      state.progressData[state.activeCategory] = {
+        ...liveProgress,
+        answers: { ...state.quiz.answers },
+        currentQuestionIndex: state.quiz.currentIndex,
+        timeSpent: state.quiz.timeSpent,
+        timeByQuestion: { ...state.quiz.timeByQuestion },
+        status: 'in-progress',
+        lastUpdated: new Date().toISOString()
+      };
+
       saveLocalCache();
       saveProgress('in-progress');
       render();
@@ -2378,11 +2406,33 @@ function scheduleFirebaseRetry() {
           }
         });
 
+        // PUBLIC COSMETICS: always resolve the cosmetic equipped by THIS leaderboard user.
+        // Never use the viewer's localStorage here.
+        const rawCosmetics = (data && data.cosmetics && typeof data.cosmetics === 'object') ? data.cosmetics : {};
+        const profileCosmetics = (profile && profile.cosmetics && typeof profile.cosmetics === 'object') ? profile.cosmetics : {};
+        const equipped = (data && data.equippedCosmetics && typeof data.equippedCosmetics === 'object') ? data.equippedCosmetics : {};
+        const active = (data && data.activeCosmetic && typeof data.activeCosmetic === 'object') ? data.activeCosmetic : {};
+        const cosmetics = { ...active, ...equipped, ...profileCosmetics, ...rawCosmetics };
+        // Compatibility: older accounts may have only cosmeticsOwned. Do NOT display
+        // arbitrary owned items; only use an explicitly equipped/current item.
+        // Current purchases are written to all equipped paths by publishEquippedCosmetic().
+        ['frames','badges','themes','effects'].forEach(type => {
+          if (cosmetics[type] == null || cosmetics[type] === '') {
+            const candidates = [
+              data?.cosmeticsEquipped?.[type],
+              data?.profile?.equippedCosmetics?.[type],
+              data?.profile?.activeCosmetic?.[type]
+            ];
+            const found = candidates.find(v => typeof v === 'string' && v);
+            if (found) cosmetics[type] = found;
+          }
+        });
         return {
           id, name: profile.name || "Student", place: profile.place || "Place not set",
           avatar: profile.avatar || "😀", attempted, correct,
           accuracy: attempted ? (correct / attempted) * 100 : 0, bestCategory,
-          batteryPercent: Number.isFinite(Number(data?.batteryPercent)) ? Math.round(Number(data.batteryPercent)) : null
+          batteryPercent: Number.isFinite(Number(data?.batteryPercent)) ? Math.round(Number(data.batteryPercent)) : null,
+          cosmetics
         };
       });
 
@@ -3163,12 +3213,23 @@ function scheduleFirebaseRetry() {
                       ${i===0 ? 'bg-yellow-100 text-yellow-700' : i===1 ? 'bg-gray-100 text-gray-700' : i===2 ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-700'}">
                       ${i + 1}
                     </div>
-                    <div class="leaderboard-avatar w-11 h-11 shrink-0 rounded-xl bg-blue-50 flex items-center justify-center text-2xl">
+                    <div class="leaderboard-avatar leaderboard-social-avatar w-11 h-11 shrink-0 rounded-xl bg-blue-50 flex items-center justify-center text-2xl ${
+                      u.cosmetics?.frames === 'frame_vip' ? 'social-vip-ring' :
+                      u.cosmetics?.frames === 'frame_bronze' ? 'social-frame-bronze' :
+                      u.cosmetics?.frames === 'frame_silver' ? 'social-frame-silver' :
+                      u.cosmetics?.frames === 'frame_gold' ? 'social-frame-gold' :
+                      u.cosmetics?.frames === 'frame_fire' ? 'social-frame-fire' : ''
+                    }" data-social-user-id="${escapeHTML(u.id)}">
                       ${escapeHTML(u.avatar || "😀")}
+                      ${u.cosmetics?.badges ? `<span class="leaderboard-avatar-badge" title="Equipped badge">${escapeHTML(badgeIcon(u.cosmetics.badges))}</span>` : ''}
                     </div>
                     <div class="min-w-0 flex-1 mobile-safe">
                       <p class="leaderboard-name font-bold text-gray-900 truncate">
                         ${escapeHTML(u.name || "Student")}
+                        ${u.cosmetics?.badges === 'badge_star' ? '<span class="social-badge" title="Equipped badge">⭐</span>' : ''}
+                        ${u.cosmetics?.badges === 'badge_brain' ? '<span class="social-badge" title="Equipped badge">🧠</span>' : ''}
+                        ${u.cosmetics?.badges === 'badge_bolt' ? '<span class="social-badge" title="Equipped badge">⚡</span>' : ''}
+                        ${u.cosmetics?.badges === 'badge_crown' ? '<span class="social-badge" title="Equipped badge">👑</span>' : ''}
                         ${u.id === getClientId() ? '<span class="ml-2 text-xs text-blue-600">(You)</span>' : ''}
                       </p>
                       <p class="text-xs text-gray-500 truncate flex items-center gap-1">
@@ -3450,13 +3511,17 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   </div>
   <div class="coin-balance" id="coin-balance">0 🪙</div>
   
-<div id="battery-feature-store" class="battery-feature-store">
-  <div class="battery-feature-title">🔋 Battery Visibility</div>
-  <div class="battery-feature-desc">Buy this feature to see other users' battery percentage in Chat and Leaderboard.</div>
-  <button type="button" data-battery-purchase class="battery-buy-btn">🔋 Buy Battery — 400 🪙</button>
-  <div data-battery-lock class="battery-feature-status">🔒 Buy Battery Feature for 400 🪙</div>
-</div>
 
+
+<div id="weak-question-trainer-free" class="weak-trainer-card">
+  <div class="weak-trainer-icon">🎯</div>
+  <div class="weak-trainer-copy">
+    <div class="weak-trainer-title">Weak Question Trainer</div>
+    <div class="weak-trainer-desc">Practice questions you previously answered incorrectly without changing your normal quiz score.</div>
+  </div>
+  <button type="button" id="weak-trainer-free-btn" class="weak-trainer-btn">🎯 Buy Access — 100 🪙</button>
+  <div class="weak-trainer-status"></div>
+</div>
 <div class="reward-tabs" role="tablist" aria-label="Reward categories">
     <button type="button" class="reward-tab active" data-reward-tab="frames">Profile Frames</button>
     <button type="button" class="reward-tab" data-reward-tab="badges">Badges</button>
@@ -3544,6 +3609,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
         // Best-effort Firebase persistence; local state remains the fallback.
         const uid=window.currentUser.uid || window.currentUser;
         if(uid && window.db.ref) window.db.ref('users/'+uid+'/cosmetics/'+activeTab).set(item.id).catch(()=>{});
+        setTimeout(function(){try{if(window.publishUserCosmetics)window.publishUserCosmetics()}catch(e){}},50);
       }
     }catch(e){}
     const balance=document.getElementById('coin-balance');
@@ -3818,13 +3884,21 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
           owned.push(item.id);
           try{
             localStorage.setItem('activeCosmetic:'+activeTab,item.id);
+            const currentUid=(window.currentUser&&window.currentUser.uid)||((typeof window.getClientId==='function')?window.getClientId():'');
+            if(currentUid) localStorage.setItem('activeCosmetic:'+activeTab+':'+currentUid,item.id);
             localStorage.setItem('rewardCoins',String(coins));
             localStorage.setItem('rewardOwned',JSON.stringify(owned));
           }catch(e){}
           persist();
           if(window.applyPurchasedCosmetic) window.applyPurchasedCosmetic(activeTab,item.id);
+          try{ if(window.publishUserCosmetics) window.publishUserCosmetics(); }catch(e){}
         }else{
-          try{localStorage.setItem('activeCosmetic:'+activeTab,item.id);}catch(e){}
+          try{
+            localStorage.setItem('activeCosmetic:'+activeTab,item.id);
+            const currentUid=(window.currentUser&&window.currentUser.uid)||((typeof window.getClientId==='function')?window.getClientId():'');
+            if(currentUid) localStorage.setItem('activeCosmetic:'+activeTab+':'+currentUid,item.id);
+          }catch(e){}
+          try{ if(window.publishUserCosmetics) window.publishUserCosmetics(); }catch(e){}
         }
         renderStore();
       };
@@ -4134,7 +4208,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   }
 
   function apply(type,id){
-    localStorage.setItem('activeCosmetic:'+type,id);
+    localStorage.setItem('activeCosmetic:'+type+':'+uid(),id);
     const root=document.documentElement;
     root.dataset.activeFrame=type==='frames'?id:(root.dataset.activeFrame||'');
     root.dataset.activeBadge=type==='badges'?id:(root.dataset.activeBadge||'');
@@ -4323,7 +4397,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   function getBadge(){try{return localStorage.getItem('activeCosmetic:badges')||'';}catch(e){return ''}}
   function apply(){
     const id=getBadge(), icon=icons[id]||'';
-    document.querySelectorAll('[data-user-name],.profile-name,.leaderboard-name').forEach(function(name){
+    document.querySelectorAll('[data-own-profile-name],.profile-name:not(.leaderboard-name)').forEach(function(name){
       let b=name.parentElement && name.parentElement.querySelector('.equipped-reward-badge');
       if(!icon){
         if(b)b.remove();
@@ -4378,398 +4452,1119 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
 
 
-<script id="battery-feature-purchase">
+
+<script id="weak-question-trainer-free-final">
 (function(){
-  const COST=400;
-  const OWNED_KEY='batteryFeaturePurchased';
+  function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function collectWrong(){
+    const out=[], seen=new Set();
+    const data=window.quizData||{};
 
-  function uid(){
-    try{return typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||localStorage.getItem('userId')||'';}catch(e){return '';}
-  }
-  function db(){return window.firebaseDB||window.db||null;}
-  function owned(){
-    return localStorage.getItem(OWNED_KEY)==='1';
-  }
-  function setOwned(v){
-    localStorage.setItem(OWNED_KEY,v?'1':'0');
-    const id=uid(),d=db();
-    if(id&&d&&d.ref)d.ref('users/'+id+'/batteryFeaturePurchased').set(!!v).catch(()=>{});
-    render();
-  }
-  function coins(){
-    const local=Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0);
-    const system=window.coinSystem && typeof window.coinSystem.balance==='function' ? Math.max(0,Number(window.coinSystem.balance())||0) : 0;
-    return Math.max(local,system);
-  }
-  function setCoins(n){
-    n=Math.max(0,Math.floor(Number(n)||0));
-    if(window.coinSystem && typeof window.coinSystem.refresh==='function') window.coinSystem.refresh(n);
-    else localStorage.setItem('rewardCoins',String(n));
-    document.querySelectorAll('#coin-balance,.coin-balance').forEach(e=>e.textContent=n+' 🪙');
-  }
+    // PRIMARY: answers saved at the exact moment they were answered wrong.
+    try{
+      const instant = typeof window.getInstantWrongHistory==='function'
+        ? window.getInstantWrongHistory() : [];
+      instant.forEach(function(item){
+        const catId=item.categoryId, q=item.question;
+        if(!q) return;
+        const key=catId+'::'+q.id;
+        if(!seen.has(key)){
+          seen.add(key);
+          out.push({catId,q,selected:item.selected,attemptNo:'history'});
+        }
+      });
+    }catch(e){ console.warn('Weak Trainer history read failed:',e); }
 
-  function purchase(){
-    if(owned()) return;
-    const current=Math.max(0, Number(coins())||0);
-    if(current < COST){
-      render();
-      alert('You need '+(COST-current)+' more coins to buy Battery.');
+    // SECONDARY: live progress + completed attempt history.
+    const progress=(window.state&&window.state.progressData)||{};
+    Object.keys(data).forEach(function(catId){
+      const p=progress[catId], cat=data[catId];
+      if(!p || !Array.isArray(cat.questions)) return;
+
+      const questionMap={};
+      cat.questions.forEach(function(q){ questionMap[q.id]=q; });
+
+      function addAnswers(answers, attemptNo){
+        if(!answers) return;
+        Object.keys(answers).forEach(function(qid){
+          const q=questionMap[qid], selected=answers[qid];
+          if(!q || selected==null || selected==='') return;
+          if(String(selected)!==String(q.correct)){
+            const key=catId+'::'+qid;
+            if(!seen.has(key)){
+              seen.add(key);
+              out.push({catId,q,selected,attemptNo});
+            }
+          }
+        });
+      }
+
+      if(Array.isArray(p.attemptHistory)){
+        p.attemptHistory.forEach(function(a){
+          addAnswers(a && a.answers, a && a.attemptNo);
+        });
+      }
+      addAnswers(p.answers,'current');
+    });
+
+    // Remove questions explicitly marked "Remove from Weak Trainer".
+    try{
+      const remembered = typeof window.getWeakRemembered==='function'
+        ? window.getWeakRemembered() : {};
+      return out.filter(function(x){
+        return !remembered[String(x.catId||'')+'::'+String(x.q.id||x.q.text||'')];
+      });
+    }catch(e){ return out; }
+  }
+  function startTrainer(){
+    // Build the queue from wrong-answer history, then permanently exclude
+    // questions already mastered in Weak Trainer or explicitly removed.
+    let wrong=collectWrong();
+    if(typeof window.strictWeakFilter==='function') wrong=window.strictWeakFilter(wrong);
+    if(typeof window.filterResolvedWeakQuestions==='function') wrong=window.filterResolvedWeakQuestions(wrong);
+    if(typeof window.filterWeakMastered==='function') wrong=window.filterWeakMastered(wrong);
+    if(!wrong.length){
+      const msg='No new wrong attempts. Answer another quiz question incorrectly to add it here.';
+      if(typeof window.showToast==='function') window.showToast(msg,'info'); else alert(msg);
       return;
     }
-    // Deduct exactly 400 coins and permanently unlock the feature.
-    setCoins(current-COST);
-    setOwned(true);
-    render();
-    const id=uid(),d=db();
-    if(id&&d&&d.ref){
-      d.ref('users/'+id+'/batteryFeaturePurchase').set({
-        cost:COST,purchasedAt:Date.now()
-      }).catch(()=>{});
+
+    let i=0,score=0;
+    const modal=document.createElement('div');
+    modal.id='weak-free-trainer-modal';
+    modal.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;';
+    document.body.appendChild(modal);
+
+    function finish(){
+      modal.innerHTML='<div style="background:#fff;width:min(460px,100%);border-radius:18px;padding:28px;text-align:center;">'+
+        '<div style="font-size:34px;">🎯</div><h2 style="margin:8px 0;">Trainer Complete</h2>'+
+        '<p style="color:#64748b;">Score: <b>'+score+'/'+wrong.length+'</b></p>'+
+        '<p style="color:#64748b;font-size:13px;">Correctly answered questions will not appear again in Weak Trainer.</p>'+
+        '<button id="wqt-done" style="padding:11px 18px;border:0;border-radius:10px;background:#111827;color:#fff;cursor:pointer;">Close</button></div>';
+      document.getElementById('wqt-done').onclick=function(){modal.remove();};
     }
-    showBatteryStatus();
-  }
 
-  function render(){
-    const n=coins(), has=owned();
-    document.querySelectorAll('[data-battery-purchase]').forEach(el=>{
-      if(has){
-        el.innerHTML='🔋 Battery Feature <b>Owned</b>';
-        el.disabled=true;
-      }else{
-        el.innerHTML='🔋 Buy Battery — '+COST+' 🪙';
-        el.disabled=false;
-        el.setAttribute('aria-disabled','false');
+    function draw(){
+      // Skip anything that became mastered/removed since the queue opened.
+      while(i<wrong.length){
+        const item=wrong[i], q=item.q, cat=item.catId||item.categoryId||'';
+        const removed=typeof window.strictWeakFilter==='function' &&
+          window.strictWeakFilter([item]).length===0;
+        const mastered=typeof window.filterWeakMastered==='function' &&
+          window.filterWeakMastered([item]).length===0;
+        const resolved=typeof window.filterResolvedWeakQuestions==='function' &&
+          window.filterResolvedWeakQuestions([item]).length===0;
+        if(!removed && !mastered && !resolved) break;
+        i++;
       }
-    });
-    document.querySelectorAll('[data-battery-lock]').forEach(el=>{
-      el.textContent=has?'🔋 Battery visibility unlocked':'🔒 Buy Battery Feature for 400 🪙';
-    });
+      if(i>=wrong.length){ finish(); return; }
+
+      const item=wrong[i],q=item.q,opts=Array.isArray(q.options)?q.options:[],correct=q.correct;
+      // Critical: expose the exact question/category so all persistence handlers
+      // refer to this question, never a normal-quiz question.
+      window.currentWeakQuestion=q;
+      window.weakCurrentQuestion=q;
+      window.currentWeakCategoryId=item.catId||item.categoryId||'';
+      window.weakCurrentCategoryId=window.currentWeakCategoryId;
+
+      modal.innerHTML='<div style="background:#fff;width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:18px;padding:20px;box-sizing:border-box;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;"><div><div style="font-weight:800;font-size:18px;">🎯 Weak Question Trainer</div><div style="font-size:12px;color:#64748b;margin-top:3px;">Question '+(i+1)+' of '+wrong.length+'</div></div><button id="wqt-close" style="border:0;background:none;font-size:26px;cursor:pointer;">×</button></div>'+
+        '<div style="margin-top:18px;font-weight:700;line-height:1.55;">'+esc(q.text)+'</div>'+
+        '<div id="wqt-options" style="display:grid;gap:10px;margin-top:16px;"></div><div id="wqt-feedback"></div></div>';
+      document.getElementById('wqt-close').onclick=function(){modal.remove();};
+
+      const wrap=document.getElementById('wqt-options');
+      opts.forEach(function(o){
+        const value=o.id,label=o.text,b=document.createElement('button');
+        b.type='button';b.textContent=label;
+        b.style.cssText='padding:13px;text-align:left;border:1px solid #d1d5db;border-radius:12px;background:#fff;cursor:pointer;font:inherit;';
+        b.onclick=function(){
+          Array.from(wrap.children).forEach(function(x){x.disabled=true;x.style.opacity='.7';});
+          const ok=String(value)===String(correct);
+          if(ok){
+            score++;
+            // MASTER the exact question. Do not delete the original wrong history.
+            if(typeof window.markWeakMastered==='function') window.markWeakMastered(window.currentWeakCategoryId,q);
+            if(typeof window.resolveWeakQuestion==='function') window.resolveWeakQuestion(window.currentWeakCategoryId,q);
+          }
+          const correctText=opts.find(x=>String(x.id)===String(correct))?.text||String(correct);
+          document.getElementById('wqt-feedback').innerHTML=
+            '<div style="margin-top:14px;padding:13px;border-radius:12px;background:'+(ok?'#ecfdf5':'#fef2f2')+';color:#111827;">'+
+            '<b>'+(ok?'✅ Correct':'❌ Incorrect')+'</b>'+
+            '<div style="margin-top:6px;font-size:13px;">Correct answer: <b>'+esc(correctText)+'</b></div>'+
+            (q.explanation?'<div style="margin-top:6px;font-size:13px;">'+esc(q.explanation)+'</div>':'')+
+            '</div><button id="wqt-next" style="margin-top:12px;padding:10px 16px;border:0;border-radius:10px;background:#111827;color:#fff;cursor:pointer;">'+
+            (i+1<wrong.length?'Next':'Finish')+'</button>';
+
+          document.getElementById('wqt-next').onclick=function(){
+            // A correctly answered question is NEVER requeued in this session.
+            i++;
+            draw();
+          };
+        };
+        wrap.appendChild(b);
+      });
+
+      // Explicit remove control; unlike mastery, this is manual removal.
+      const remove=document.createElement('button');
+      remove.type='button';
+      remove.textContent='🗑️ Remove from Weak Trainer';
+      remove.style.cssText='margin-top:10px;width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:10px;background:#fff;cursor:pointer;';
+      remove.onclick=function(){
+        if(typeof window.strictRemoveWeak==='function') window.strictRemoveWeak(window.currentWeakCategoryId,q);
+        else if(typeof window.markWeakRemembered==='function') window.markWeakRemembered(window.currentWeakCategoryId,q);
+        wrong=wrong.filter(function(x){return !(String(x.catId||x.categoryId||'')===String(window.currentWeakCategoryId||'') && String(x.q.id)===String(q.id));});
+        if(i>=wrong.length){finish();return;}
+        draw();
+      };
+      modal.querySelector('div > div')?.appendChild(remove);
+    }
+    draw();
+  }
+  window.openWeakQuestionTrainer=startTrainer;
+  function bind(){
+    const b=document.getElementById('weak-trainer-free-btn');
+    if(b&&!b.dataset.bound){b.dataset.bound='1';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();startTrainer();});}
+  }
+  bind();
+  if(document.documentElement){new MutationObserver(bind).observe(document.documentElement,{childList:true,subtree:true});}
+})();
+</script>
+
+<script id="weak-trainer-remember-feature">
+(function(){
+  const KEY='porisram77_weak_remembered_v1';
+
+  function getStore(){
+    try { return JSON.parse(localStorage.getItem(KEY)||'{}'); } catch(e){ return {}; }
+  }
+  function saveStore(x){ localStorage.setItem(KEY, JSON.stringify(x)); }
+
+  function qid(q, catId){
+    return String(catId||'')+'::'+String(q && (q.id ?? q.questionId ?? q.qid ?? q.text ?? q.question) || '');
   }
 
-  async function saveBattery(){
-    // Publish the current percentage for the user's profile. Whether other users
-    // can see it is controlled by their purchased Battery Visibility feature.
-    if(!navigator.getBattery) return;
-    try{
-      const b=await navigator.getBattery();
-      const value=Math.round(b.level*100);
-      const id=uid(),d=db();
-      if(id&&d&&d.ref)d.ref('users/'+id+'/batteryPercent').set(value).catch(()=>{});
-      document.querySelectorAll('[data-my-battery]').forEach(el=>el.textContent='🔋 '+value+'%');
-    }catch(e){}
-  }
-
-  function showBatteryStatus(){
-    render(); saveBattery();
-  }
-
-  window.batteryFeature={
-    cost:COST,
-    isPurchased:owned,
-    purchase:purchase,
-    refresh:saveBattery
+  window.getWeakRemembered = function(){
+    const s=getStore(), id=(typeof window.getClientId==='function'?window.getClientId():'default');
+    return s[id] || {};
   };
 
-  document.addEventListener('click',function(e){
-    const btn=e.target.closest('[data-battery-purchase]');
-    if(btn){e.preventDefault();purchase();}
+  window.markWeakRemembered = function(catId,q){
+    const s=getStore(), id=(typeof window.getClientId==='function'?window.getClientId():'default');
+    s[id]=s[id]||{};
+    const questionId = String(catId||'')+'::'+String(q && (q.id ?? q.questionId ?? q.qid ?? q.text ?? q.question) || '');
+    s[id][questionId]={
+      remembered:true,
+      rememberedAt:Date.now()
+    };
+    saveStore(s);
+  };
+
+  window.unmarkWeakRemembered = function(catId,q){
+    const s=getStore(), id=(typeof window.getClientId==='function'?window.getClientId():'default');
+    if(s[id]) delete s[id][qid(q,catId)];
+    saveStore(s);
+  };
+
+  // Wrap the trainer's collector so explicitly remembered questions are excluded.
+  const oldCollect = window.collectWeakQuestions;
+  window.collectWeakQuestions = function(){
+    const list = typeof oldCollect==='function' ? oldCollect() : [];
+    const remembered=window.getWeakRemembered();
+    return list.filter(x=>!remembered[qid(x.catId||x.categoryId,x.q||x.question)]);
+  };
+
+  // Firebase history support: when the app exposes wrong-history arrays,
+  // retain them as source data; remembered flags remain user-specific.
+  window.filterWeakByRemembered = function(list){
+    const remembered=window.getWeakRemembered();
+    return (list||[]).filter(x=>{
+      const q=x.q||x.question||x;
+      return !remembered[qid(x.catId||x.categoryId||x.category,q)];
+    });
+  };
+
+  // Patch the existing trainer buttons after its modal is created.
+  function addRememberButton(){
+    const modal=document.querySelector('#weak-free-trainer-modal, #weak-trainer-modal, [id*="weak"][id*="modal"]');
+    if(!modal || modal.querySelector('.weak-remember-btn')) return;
+    const question=modal.querySelector('[data-question-id]')?.dataset?.questionId;
+    const buttons=modal.querySelectorAll('button');
+    if(!buttons.length) return;
+    const b=document.createElement('button');
+    b.className='weak-remember-btn';
+    b.type='button';
+    b.textContent='🧠 Remove from Weak Trainer';
+    b.style.cssText='margin-top:10px;padding:9px 14px;border:1px solid #d1d5db;border-radius:10px;background:#fff;cursor:pointer;width:100%;';
+    b.onclick=function(){
+      // Find current question from common trainer globals/DOM.
+      try{
+        const q=window.currentWeakQuestion || window.weakCurrentQuestion;
+        const cat=window.currentWeakCategoryId || window.weakCurrentCategoryId || '';
+        if(q) window.markWeakRemembered(cat,q);
+      }catch(e){}
+      b.textContent='✓ Removed — Removed from Weak Trainer';
+      setTimeout(()=>{ if(modal.isConnected) modal.remove(); },700);
+    };
+    modal.querySelector('div')?.appendChild(b);
+  }
+
+  new MutationObserver(addRememberButton).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="weak-trainer-instant-wrong">
+(function(){
+  const KEY='porisram77_wrong_history_v2';
+
+  function userKey(){
+    try{
+      return (typeof window.getClientId==='function' && window.getClientId()) ||
+             (window.currentUser && window.currentUser.uid) ||
+             localStorage.getItem('userId') || 'guest';
+    }catch(e){return 'guest';}
+  }
+  function read(){
+    try{return JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){return {};}
+  }
+  function write(x){try{localStorage.setItem(KEY,JSON.stringify(x));}catch(e){}}
+
+  window.saveWrongQuestionInstant = function(categoryId,q,selected){
+    if(!q) return;
+    const all=read(), uid=userKey();
+    all[uid]=Array.isArray(all[uid])?all[uid]:[];
+    const id=String(categoryId||'')+'::'+String(q.id ?? q.questionId ?? q.qid ?? q.text ?? q.question ?? '');
+    if(!all[uid].some(x=>x.id===id)){
+      all[uid].push({
+        id:id, categoryId:categoryId||'',
+        question:q, selected:selected,
+        savedAt:Date.now()
+      });
+      write(all);
+    }
+  };
+
+  window.getInstantWrongHistory=function(){
+    const all=read();
+    return all[userKey()]||[];
+  };
+
+  function isWrong(q, selected){
+    const correct=q && (q.correct ?? q.answer ?? q.correctAnswer);
+    if(correct==null || selected==null) return false;
+    if(Array.isArray(correct)) return !correct.map(String).includes(String(selected));
+    return String(selected)!==String(correct);
+  }
+
+  // Expose a single hook for the quiz to call after an option is chosen.
+  window.recordWeakAnswer=function(categoryId,q,selected){
+    if(isWrong(q,selected)) window.saveWrongQuestionInstant(categoryId,q,selected);
+  };
+
+  // Compatibility hook for common app functions. If the app has an answer
+  // selection function, wrap it while preserving its original behavior.
+  ['selectAnswer','handleAnswer','answerQuestion','submitAnswer','checkAnswer','chooseAnswer'].forEach(function(name){
+    try{
+      const fn=window[name];
+      if(typeof fn!=='function' || fn.__weakWrapped) return;
+      const wrapped=function(){
+        try{
+          const q=window.currentQuestion || window.currentQuizQuestion || window.activeQuestion;
+          const cat=window.currentCategoryId || window.currentCategory || window.activeCategoryId || '';
+          let selected=arguments[0];
+          if(arguments[0] && typeof arguments[0]==='object')
+            selected=arguments[0].value ?? arguments[0].id ?? arguments[0].index ?? arguments[0].answer;
+          if(q) window.recordWeakAnswer(cat,q,selected);
+        }catch(e){}
+        return fn.apply(this,arguments);
+      };
+      wrapped.__weakWrapped=true;
+      window[name]=wrapped;
+    }catch(e){}
   });
 
-  // Load purchase state from Firebase for returning users.
-  function sync(){
-    const id=uid(),d=db();
-    if(!id||!d||!d.ref)return;
-    d.ref('users/'+id+'/batteryFeaturePurchased').once('value').then(s=>{
-      if(s.val()===true)localStorage.setItem(OWNED_KEY,'1');
-      render();saveBattery();
-    }).catch(()=>{});
-  }
-
-  setInterval(function(){render();saveBattery();},5000);
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sync,{once:true});
-  else sync();
+  // Capture clicks on quiz option buttons. This works even when the quiz uses
+  // inline handlers instead of global functions.
+  document.addEventListener('click',function(ev){
+    const el=ev.target && ev.target.closest ? ev.target.closest(
+      '[data-option],[data-answer],[data-option-index],[data-choice-index],.option,.quiz-option,.answer-option,.option-btn'
+    ):null;
+    if(!el) return;
+    setTimeout(function(){
+      try{
+        const q=window.currentQuestion || window.currentQuizQuestion || window.activeQuestion ||
+          (window.state && window.state.currentQuestion);
+        const cat=window.currentCategoryId || window.currentCategory || window.activeCategoryId || '';
+        if(!q) return;
+        const selected=el.dataset.option ?? el.dataset.answer ?? el.dataset.optionIndex ??
+          el.dataset.choiceIndex ?? el.textContent.trim();
+        // Only save after the app has had a chance to mark the answer.
+        const correct=q.correct ?? q.answer ?? q.correctAnswer;
+        if(correct!=null && isWrong(q,selected)) window.saveWrongQuestionInstant(cat,q,selected);
+      }catch(e){}
+    },0);
+  },true);
 })();
 </script>
 
 
-<style id="premium-features-v3">
-  .premium-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px auto;max-width:900px}
-  .premium-card{border:1px solid #e5e7eb;border-radius:16px;padding:15px;background:linear-gradient(135deg,#fff,#f8fafc);box-shadow:0 4px 14px rgba(15,23,42,.06)}
-  .premium-card.vip{background:linear-gradient(135deg,#fffaf0,#fff)}
-  .premium-icon{font-size:30px;margin-bottom:6px}.premium-title{font-weight:900;font-size:15px}.premium-desc{font-size:12px;color:#64748b;line-height:1.45;margin:4px 0 10px}
-  .premium-buy{width:100%;min-height:40px;border:0;border-radius:10px;background:#111827;color:#fff;font-weight:800;cursor:pointer}.premium-buy:disabled{opacity:.45;cursor:not-allowed}.premium-owned{background:#16a34a!important}
-  .premium-status{font-size:11px;color:#64748b;margin-top:7px}.premium-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:14px}.premium-modal-box{background:#fff;width:min(680px,100%);max-height:90vh;overflow:auto;border-radius:20px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-  .premium-modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.premium-close{border:0;background:#f1f5f9;width:38px;height:38px;border-radius:10px;font-size:22px;cursor:pointer}.weak-q{border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin:10px 0}.weak-option{width:100%;text-align:left;border:1px solid #dbe1e8;background:#fff;border-radius:10px;padding:10px;margin-top:7px;cursor:pointer}.weak-option:hover{background:#f8fafc}.weak-option.correct{border-color:#16a34a;background:#f0fdf4}.weak-option.wrong{border-color:#ef4444;background:#fef2f2}.weak-next{width:100%;margin-top:12px;min-height:42px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}.weak-result{text-align:center;padding:20px}.weak-cat-select{width:100%;border:1px solid #d1d5db;border-radius:10px;padding:10px;background:#fff}
-  html.dark .premium-card{background:#1f2937;border-color:#374151}.dark .premium-desc,.dark .premium-status{color:#94a3b8}html.dark .premium-modal-box{background:#0f172a;color:#f8fafc}html.dark .premium-close,.dark .weak-option{background:#1f2937;color:#f8fafc;border-color:#475569}html.dark .weak-q{border-color:#374151}
-  @media(max-width:640px){.premium-feature-grid{grid-template-columns:1fr}.premium-modal-box{border-radius:16px;padding:14px}}
-</style>
-<script id="premium-features-v3">
+<script id="weak-trainer-remember-click-final">
 (function(){
-  'use strict';
-  const VIP_COST=1000, WEAK_COST=400;
-  const VIP_KEY='vipProfileFramePurchased';
-  const WEAK_KEY='weakQuestionTrainerPurchased';
-  const OWN_KEY='premiumOwnedV3';
-  const vipStyles={
-    border:'4px solid #f59e0b', boxShadow:'0 0 0 3px rgba(245,158,11,.22),0 0 22px rgba(245,158,11,.35)'
+  function findCurrent(){
+    return window.currentWeakQuestion || window.weakCurrentQuestion ||
+      window.activeWeakQuestion || null;
+  }
+  function findCategory(){
+    return window.currentWeakCategoryId || window.weakCurrentCategoryId ||
+      window.activeWeakCategoryId || '';
+  }
+  document.addEventListener('click',function(e){
+    const b=e.target && e.target.closest ? e.target.closest(
+      '.weak-remember-btn,[data-action="remember-weak"],#wqt-remember,.remember-weak-question'
+    ):null;
+    if(!b) return;
+    const q=findCurrent(), cat=findCategory();
+    if(q && typeof window.markWeakRemembered==='function'){
+      window.markWeakRemembered(cat,q);
+      b.textContent='✓ Removed from Weak Trainer';
+      b.disabled=true;
+    }
+  },true);
+})();
+</script>
+
+
+<script id="weak-trainer-remember-final-fix">
+(function(){
+  const RKEY='porisram77_weak_remembered_v3';
+
+  function uid(){
+    try{
+      return (window.currentUser && window.currentUser.uid) ||
+             (typeof window.getClientId==='function' && window.getClientId()) ||
+             localStorage.getItem('userId') || 'guest';
+    }catch(e){return 'guest';}
+  }
+  function read(){try{return JSON.parse(localStorage.getItem(RKEY)||'{}');}catch(e){return {};}}
+  function write(x){try{localStorage.setItem(RKEY,JSON.stringify(x));}catch(e){}}
+  function qKey(cat,q){
+    const id=q && (q.id ?? q.questionId ?? q.qid);
+    const text=q && (q.text ?? q.question);
+    return String(cat||'')+'::'+String(id ?? text ?? '');
+  }
+
+  window.rememberWeakQuestion=function(cat,q){
+    if(!q) return;
+    const all=read(), u=uid();
+    all[u]=all[u]||{};
+    all[u][qKey(cat,q)] = true;
+    write(all);
   };
-  function uid(){try{return typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||localStorage.getItem('userId')||''}catch(e){return ''}}
-  function db(){return window.firebaseDB||window.db||null}
-  function coins(){const local=Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0);const system=window.coinSystem&&typeof window.coinSystem.balance==='function'?Math.max(0,Number(window.coinSystem.balance())||0):0;return Math.max(local,system)}
-  function setCoins(n){n=Math.max(0,Math.floor(Number(n)||0));try{localStorage.setItem('rewardCoins',String(n))}catch(e){}if(window.coinSystem&&window.coinSystem.refresh)window.coinSystem.refresh(n);document.querySelectorAll('#coin-balance,.coin-balance').forEach(e=>e.textContent=n+' 🪙');}
-  function getOwned(key){return localStorage.getItem(key)==='1'}
-  function setOwned(key,v){localStorage.setItem(key,v?'1':'0');return v}
-  function firebaseSet(path,value){const id=uid(),d=db();if(id&&d&&d.ref)return d.ref('users/'+id+'/'+path).set(value).catch(()=>{});return Promise.resolve()}
-  function firebaseGet(path){const id=uid(),d=db();if(id&&d&&d.ref)return d.ref('users/'+id+'/'+path).once('value').then(s=>s.val());return Promise.resolve(null)}
-  function purchase(kind){
-    const key=kind==='vip'?VIP_KEY:WEAK_KEY, cost=kind==='vip'?VIP_COST:WEAK_COST, name=kind==='vip'?'VIP Profile Frame':'Weak Question Trainer';
-    if(getOwned(key)){if(kind==='vip')applyVIP();return true}
-    const c=coins(); if(c<cost){alert('You need '+(cost-c)+' more coins to buy '+name+'.');return false}
-    setCoins(c-cost);setOwned(key,true);localStorage.setItem(OWN_KEY,'1');
-    firebaseSet(kind==='vip'?'vipProfileFramePurchased':'weakQuestionTrainerPurchased',{purchased:true,cost,purchasedAt:Date.now()});
-    if(kind==='vip')applyVIP(); renderPremium();
-    if(window.showToast)showToast(name+' purchased successfully.','success');
-    return true;
-  }
-  function applyVIP(){
-    document.querySelectorAll('[data-profile-avatar],.profile-avatar-large').forEach(el=>{el.style.border=vipStyles.border;el.style.boxShadow=vipStyles.boxShadow;el.dataset.vipFrame='1'});
-  }
-  function removeVIP(){document.querySelectorAll('[data-profile-avatar],.profile-avatar-large').forEach(el=>{if(el.dataset.vipFrame){el.style.border='';el.style.boxShadow='';delete el.dataset.vipFrame}})}
-  function completedHistory(){
-    const out=[];
-    try{
-      if(typeof quizData==='undefined')return out;
-      Object.values(quizData).forEach(cat=>{
-        let p=null;
-        try{p=typeof getProgress==='function'?getProgress(cat.id):null}catch(e){}
-        const h=Array.isArray(p?.attemptHistory)?p.attemptHistory:[];
-        h.forEach(a=>{if(a&&a.answers)out.push({cat,a})});
+
+  window.isWeakQuestionRemembered=function(cat,q){
+    const all=read(), u=uid();
+    return !!(all[u] && all[u][qKey(cat,q)]===true);
+  };
+
+  // Filter every trainer collection, regardless of which earlier collector
+  // produced the list.
+  window.removeRememberedWeakQuestions=function(list){
+    return (Array.isArray(list)?list:[]).filter(function(item){
+      const q=item && (item.q || item.question || item);
+      const cat=item && (item.catId ?? item.categoryId ?? item.category ?? '');
+      return !window.isWeakQuestionRemembered(cat,q);
+    });
+  };
+
+  // Capture the remember action and immediately remove the displayed card.
+  document.addEventListener('click',function(e){
+    const b=e.target && e.target.closest ? e.target.closest(
+      '#wqt-remember,.weak-remember-btn,[data-action="remember-weak"],.remember-weak-question,[data-remember-weak]'
+    ) : null;
+    if(!b) return;
+
+    const q=window.currentWeakQuestion || window.weakCurrentQuestion ||
+            window.activeWeakQuestion || b._weakQuestion || null;
+    const cat=window.currentWeakCategoryId || window.weakCurrentCategoryId ||
+              window.activeWeakCategoryId || b.dataset.categoryId || '';
+
+    if(q){
+      window.rememberWeakQuestion(cat,q);
+      b.disabled=true;
+      b.textContent='✓ Removed';
+      // Remove current question from all common trainer arrays.
+      ['weakQuestions','currentWeakQuestions','weakQuestionList','trainerQuestions'].forEach(function(k){
+        if(Array.isArray(window[k])) window[k]=window.removeRememberedWeakQuestions(window[k]);
       });
-    }catch(e){}
-    return out;
-  }
-  function getWeakQuestions(catId){
-    try{
-      const cat=quizData[catId]; if(!cat)return [];
-      const p=typeof getProgress==='function'?getProgress(catId):null;
-      const h=Array.isArray(p?.attemptHistory)?p.attemptHistory:[];
-      const latest=h.length?h[h.length-1]:p;
-      if(!latest?.answers)return [];
-      return cat.questions.filter(q=>latest.answers[q.id] && latest.answers[q.id]!==q.correct);
-    }catch(e){return []}
-  }
-  function allWeak(){
-    const rows=[]; const seen={};
-    try{Object.values(quizData).forEach(cat=>{getWeakQuestions(cat.id).forEach(q=>{if(!seen[q.id+'_'+cat.id]){seen[q.id+'_'+cat.id]=1;rows.push({cat,q})}})})}catch(e){}
-    return rows;
-  }
-  function renderPremium(){
-    const panel=document.getElementById('rewards-panel'); if(!panel)return;
-    let wrap=document.getElementById('premium-feature-grid-v3');
-    if(!wrap){wrap=document.createElement('div');wrap.id='premium-feature-grid-v3';wrap.className='premium-feature-grid';const tabs=panel.querySelector('.reward-tabs');if(tabs)tabs.insertAdjacentElement('afterend',wrap);else panel.prepend(wrap)}
-    const vip=getOwned(VIP_KEY), weak=getOwned(WEAK_KEY), c=coins();
-    wrap.innerHTML=`<div class="premium-card vip"><div class="premium-icon">👑</div><div class="premium-title">VIP Profile Frame</div><div class="premium-desc">Give your profile avatar a premium golden frame that remains equipped after refresh and login.</div><button class="premium-buy ${vip?'premium-owned':''}" data-premium-buy="vip" ${vip?'disabled':''}>${vip?'✓ Owned':'Buy — '+VIP_COST+' 🪙'}</button><div class="premium-status">${vip?'VIP frame is active on your profile.':(c>=VIP_COST?'Ready to purchase.':'Need '+(VIP_COST-c)+' more 🪙')}</div></div><div class="premium-card"><div class="premium-icon">🎯</div><div class="premium-title">Weak Question Trainer</div><div class="premium-desc">Practice questions you got wrong in your completed categories without changing your normal test progress.</div><button class="premium-buy ${weak?'premium-owned':''}" data-premium-buy="weak">${weak?'🎯 Open Trainer':'Buy — '+WEAK_COST+' 🪙'}</button><div class="premium-status">${allWeak().length} weak questions currently available.</div></div>`;
-    applyVIPIfOwned();
-  }
-  function applyVIPIfOwned(){if(getOwned(VIP_KEY))applyVIP();else removeVIP()}
-  function openWeak(){
-    if(!getOwned(WEAK_KEY)){if(!purchase('weak'))return}
-    const rows=allWeak();
-    const old=document.getElementById('weak-trainer-modal-v3');if(old)old.remove();
-    const modal=document.createElement('div');modal.id='weak-trainer-modal-v3';modal.className='premium-modal';
-    if(!rows.length){modal.innerHTML='<div class="premium-modal-box"><div class="premium-modal-head"><div><h2 class="text-xl font-extrabold">🎯 Weak Question Trainer</h2><p class="text-sm text-gray-500 mt-1">Complete a category and get questions wrong to build your personal trainer.</p></div><button class="premium-close" data-close-weak>×</button></div><div class="weak-result"><div style="font-size:44px">🎉</div><h3 class="text-lg font-extrabold mt-2">No weak questions yet</h3><p class="text-sm text-gray-500 mt-1">Complete a quiz first. Questions answered incorrectly will appear here automatically.</p></div></div>';
-      document.body.appendChild(modal);return;
+      setTimeout(function(){
+        const modal=b.closest('[role="dialog"],.modal,#weak-free-trainer-modal,#weak-trainer-modal');
+        if(modal) modal.remove();
+        if(typeof window.renderWeakTrainer==='function') window.renderWeakTrainer();
+        if(typeof window.openWeakTrainer==='function' && !modal) window.openWeakTrainer();
+      },250);
     }
-    let i=0,score=0,answered=false;
-    function renderQ(){const row=rows[i];const q=row.q;answered=false;modal.querySelector('.premium-modal-box').innerHTML=`<div class="premium-modal-head"><div><div class="text-xs font-bold text-blue-600">WEAK QUESTION TRAINER</div><h2 class="text-xl font-extrabold mt-1">${escapeHtml(row.cat.title)}</h2><p class="text-sm text-gray-500 mt-1">Question ${i+1} of ${rows.length} · Score ${score}</p></div><button class="premium-close" data-close-weak>×</button></div><div class="weak-q"><div class="font-bold leading-relaxed">${escapeHtml(q.text)}</div>${q.options.map(o=>`<button class="weak-option" data-weak-option="${escapeHtml(o.id)}">${escapeHtml(o.text)}</button>`).join('')}<div id="weak-explain-v3" class="hidden mt-3 rounded-lg bg-blue-50 text-blue-800 p-3 text-sm"></div></div><button class="weak-next" id="weak-next-v3" disabled>${i===rows.length-1?'Finish Trainer':'Next Question'}</button>`;}
-    function finish(){modal.querySelector('.premium-modal-box').innerHTML=`<div class="weak-result"><div style="font-size:48px">🏆</div><h2 class="text-2xl font-extrabold mt-2">Trainer Complete</h2><p class="text-gray-500 mt-1">You scored <b>${score}/${rows.length}</b></p><p class="text-sm mt-3">Your main category scores were not changed.</p><button class="weak-next" data-close-weak>Close</button></div>`}
-    modal.addEventListener('click',e=>{if(e.target.closest('[data-close-weak]')){modal.remove();return}const opt=e.target.closest('[data-weak-option]');if(opt&&!answered){answered=true;const row=rows[i],q=row.q;const correct=opt.dataset.weakOption===q.correct;if(correct)score++;document.querySelectorAll('.weak-option').forEach(b=>{b.disabled=true;if(b.dataset.weakOption===q.correct)b.classList.add('correct');if(b===opt&&!correct)b.classList.add('wrong')});const ex=modal.querySelector('#weak-explain-v3');ex.classList.remove('hidden');ex.innerHTML='<b>'+(correct?'Correct!':'Incorrect.')+'</b> Correct answer: '+escapeHtml((q.options.find(o=>o.id===q.correct)||{}).text||'')+'<br><span>'+escapeHtml(q.explanation||'')+'</span>';modal.querySelector('#weak-next-v3').disabled=false}if(e.target.id==='weak-next-v3'&&answered){if(i<rows.length-1){i++;renderQ()}else finish()}});
-    document.body.appendChild(modal);renderQ();
-  }
-  document.addEventListener('click',e=>{const b=e.target.closest('[data-premium-buy]');if(!b)return;const kind=b.dataset.premiumBuy;if(kind==='weak'&&getOwned(WEAK_KEY)){openWeak();return}if(kind==='vip'&&getOwned(VIP_KEY)){applyVIP();return}purchase(kind);if(kind==='weak'&&getOwned(WEAK_KEY))openWeak();});
-  function sync(){
-    Promise.all([firebaseGet('vipProfileFramePurchased'),firebaseGet('weakQuestionTrainerPurchased')]).then(([v,w])=>{if(v===true||(v&&v.purchased))setOwned(VIP_KEY,true);if(w===true||(w&&w.purchased))setOwned(WEAK_KEY,true);renderPremium();applyVIPIfOwned()}).catch(()=>{renderPremium();applyVIPIfOwned()});
-  }
-  function watchRewards(){renderPremium();applyVIPIfOwned();}
-  document.addEventListener('click',e=>{if(e.target.closest('#rewards-nav-btn,#reward-nav-btn,[data-open-rewards]'))setTimeout(watchRewards,100)});
-  window.addEventListener('storage',watchRewards);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync()});
-  setInterval(()=>{if(document.getElementById('rewards-panel')&&!document.getElementById('rewards-panel').hidden)renderPremium();applyVIPIfOwned()},2000);
-  setTimeout(sync,700);setTimeout(watchRewards,1200);
-  window.premiumFeaturesV3={buy:purchase,openWeakTrainer:openWeak,applyVIP:applyVIP};
+  },true);
+
+  // On trainer open/render, continuously remove remembered entries.
+  const observer=new MutationObserver(function(){
+    document.querySelectorAll('[data-weak-question-id],.weak-question-card').forEach(function(card){
+      const cat=card.dataset.categoryId||card.dataset.catId||'';
+      const id=card.dataset.weakQuestionId||card.dataset.questionId;
+      if(id && window.isWeakQuestionRemembered(cat,{id:id})) card.remove();
+    });
+  });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
 
 
-<script id="final-purchase-and-social-display-fix">
+<script id="weak-trainer-remove-question-final">
 (function(){
-'use strict';
-const BATTERY_COST=400, WEAK_COST=400, VIP_COST=1000;
-function uid(){try{return typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||localStorage.getItem('userId')||'guest'}catch(e){return 'guest'}}
-function db(){return window.firebaseDB||window.db||null}
-function key(base){return base+':'+uid()}
-function balance(){try{if(window.coinSystem&&typeof window.coinSystem.balance==='function')return Math.max(0,Number(window.coinSystem.balance())||0)}catch(e){} return Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0)}
-function ui(){document.querySelectorAll('#coin-balance,.coin-balance').forEach(e=>e.textContent=balance()+' 🪙')}
-function firebaseSet(path,val){try{const d=db(),id=uid();if(d&&d.ref&&id&&id!=='guest')return d.ref('users/'+id+'/'+path).set(val)}catch(e){} return Promise.resolve()}
-function firebaseGet(path){try{const d=db(),id=uid();if(d&&d.ref&&id&&id!=='guest')return d.ref('users/'+id+'/'+path).once('value').then(s=>s.val())}catch(e){} return Promise.resolve(null)}
-function spend(cost,reason,unique){
-  if(balance()<cost)return false;
-  try{
-    if(window.coinSystem&&typeof window.coinSystem.award==='function'){
-      const result=window.coinSystem.award(-cost,reason,unique);
-      if(result!==-cost) return false;
-    }else{
-      const n=balance()-cost; localStorage.setItem('rewardCoins',String(n)); ui();
-    }
-  }catch(e){return false}
-  ui(); return true;
-}
-function localOwned(base){return localStorage.getItem(key(base))==='1' || localStorage.getItem(base)==='1'}
-function setLocalOwned(base,v){localStorage.setItem(key(base),v?'1':'0');localStorage.setItem(base,v?'1':'0')}
+  const KEY='porisram77_weak_removed_v4';
 
-/* ---------- Battery: owner unlock + owner battery publishing ---------- */
-window.batteryFeature={
- cost:BATTERY_COST,
- isPurchased:function(){return localOwned('batteryFeaturePurchased')},
- purchase:function(){
-   if(localOwned('batteryFeaturePurchased'))return true;
-   if(!spend(BATTERY_COST,'Battery visibility purchase','purchase:battery:'+uid())){ui();return false}
-   setLocalOwned('batteryFeaturePurchased',true);
-   firebaseSet('batteryFeaturePurchased',true);
-   firebaseSet('batteryFeaturePurchase',{purchased:true,cost:BATTERY_COST,purchasedAt:Date.now()});
-   publishBattery(); renderBattery();
-   if(window.showToast)showToast('Battery Visibility purchased successfully.','success');
-   return true;
- },
- refresh:publishBattery
-};
-function publishBattery(){
- if(!navigator.getBattery)return;
- navigator.getBattery().then(function(b){
-   const pct=Math.round(b.level*100); firebaseSet('batteryPercent',pct);
-   document.querySelectorAll('[data-my-battery]').forEach(e=>e.textContent='🔋 '+pct+'%');
- }).catch(()=>{});
-}
-function renderBattery(){
- const own=localOwned('batteryFeaturePurchased');
- document.querySelectorAll('[data-battery-purchase]').forEach(b=>{b.disabled=!!own;b.innerHTML=own?'🔋 Battery Feature <b>Owned</b>':'🔋 Buy Battery — '+BATTERY_COST+' 🪙'});
- document.querySelectorAll('[data-battery-lock]').forEach(e=>e.textContent=own?'🔋 Battery visibility unlocked':'🔒 Buy Battery Feature for 400 🪙');
- ui();
-}
-document.addEventListener('click',function(e){const b=e.target.closest('[data-battery-purchase]');if(b){e.preventDefault();window.batteryFeature.purchase()}});
+  function uid(){
+    try{
+      return (window.currentUser && window.currentUser.uid) ||
+        (typeof window.getClientId==='function' && window.getClientId()) ||
+        localStorage.getItem('userId') || 'guest';
+    }catch(e){return 'guest';}
+  }
+  function db(){
+    try{return JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){return {};}
+  }
+  function save(x){try{localStorage.setItem(KEY,JSON.stringify(x));}catch(e){}}
+  function key(cat,q){
+    return String(cat||'')+'::'+String(q && (q.id ?? q.questionId ?? q.qid ?? q.text ?? q.question) || '');
+  }
 
-/* ---------- Premium purchases: use the SAME coinSystem that displays the balance ---------- */
-window.premiumFeaturesV3=window.premiumFeaturesV3||{};
-function buyPremium(kind){
- const isVip=kind==='vip', base=isVip?'vipProfileFramePurchased':'weakQuestionTrainerPurchased', cost=isVip?VIP_COST:WEAK_COST;
- if(localOwned(base))return true;
- if(!spend(cost,isVip?'VIP Profile Frame purchase':'Weak Question Trainer purchase','purchase:'+base+':'+uid())){if(window.showToast)showToast('Not enough coins.','error');return false}
- setLocalOwned(base,true);
- firebaseSet(base,{purchased:true,cost,purchasedAt:Date.now()});
- if(isVip){applyVIPEverywhere(); if(window.showToast)showToast('VIP Profile Frame purchased and equipped.','success')}
- else if(window.showToast)showToast('Weak Question Trainer unlocked.','success');
- renderPremiumFixed(); return true;
-}
-function applyVIPEverywhere(){
- document.querySelectorAll('[data-profile-avatar],.profile-avatar-large,.profile-avatar,.avatar').forEach(el=>{
-   el.classList.add('premium-vip-frame');
- });
-}
-function removeVIP(){document.querySelectorAll('.premium-vip-frame').forEach(el=>el.classList.remove('premium-vip-frame'))}
-function renderPremiumFixed(){
- const panel=document.getElementById('rewards-panel'); if(!panel)return;
- let wrap=document.getElementById('premium-feature-grid-v3'); if(!wrap)return;
- const vip=localOwned('vipProfileFramePurchased'), weak=localOwned('weakQuestionTrainerPurchased');
- let weakCount=0;
- try{weakCount=collectWeak().length}catch(e){}
- wrap.innerHTML=`<div class="premium-card vip"><div class="premium-icon">👑</div><div class="premium-title">VIP Profile Frame</div><div class="premium-desc">Premium golden frame for your profile. It is saved to your account and other users can see it.</div><button class="premium-buy ${vip?'premium-owned':''}" data-premium-buy="vip">${vip?'✓ Owned & Equipped':'Buy — 1000 🪙'}</button><div class="premium-status">${vip?'Visible on your profile and to other users.':(balance()>=1000?'Ready to purchase.':'Need '+(1000-balance())+' more 🪙')}</div></div><div class="premium-card"><div class="premium-icon">🎯</div><div class="premium-title">Weak Question Trainer</div><div class="premium-desc">Practice your previously wrong questions without changing your normal quiz score.</div><button class="premium-buy ${weak?'premium-owned':''}" data-premium-buy="weak">${weak?'🎯 Open Trainer':'Buy — 400 🪙'}</button><div class="premium-status">${weakCount} weak questions available.</div></div>`;
- if(vip)applyVIPEverywhere();
-}
-function collectWeak(){
- const rows=[],seen={};
- try{
-   Object.values(window.quizData||{}).forEach(cat=>{
-     const p=typeof window.getProgress==='function'?window.getProgress(cat.id):((window.state&&window.state.progressData)||{})[cat.id];
-     const histories=Array.isArray(p?.attemptHistory)?p.attemptHistory:[];
-     const sources=histories.length?histories:[p];
-     sources.forEach(at=>{
-       const ans=at?.answers||{};
-       cat.questions.forEach(q=>{
-         if(ans[q.id] && ans[q.id]!==q.correct){const k=cat.id+'::'+q.id;if(!seen[k]){seen[k]=1;rows.push({cat,q})}}
-       });
-     });
-   });
- }catch(e){}
- return rows;
-}
-function openWeakFixed(){
- if(!localOwned('weakQuestionTrainerPurchased')){if(!buyPremium('weak'))return}
- const rows=collectWeak(); const old=document.getElementById('weak-trainer-modal-v3');if(old)old.remove();
- const modal=document.createElement('div');modal.id='weak-trainer-modal-v3';modal.className='premium-modal';document.body.appendChild(modal);
- if(!rows.length){modal.innerHTML='<div class="premium-modal-box"><div class="premium-modal-head"><div><h2 class="text-xl font-extrabold">🎯 Weak Question Trainer</h2><p class="text-sm text-gray-500 mt-1">Complete quizzes and answer questions incorrectly to build your trainer.</p></div><button class="premium-close" data-close-weak>×</button></div><div class="weak-result"><div style="font-size:44px">📚</div><h3 class="text-lg font-extrabold mt-2">No weak questions yet</h3><p class="text-sm text-gray-500 mt-1">Your wrong answers will appear here after completing a quiz.</p></div></div>';return}
- let i=0,score=0,answered=false;
- function draw(){const row=rows[i],q=row.q;answered=false;modal.innerHTML=`<div class="premium-modal-box"><div class="premium-modal-head"><div><div class="text-xs font-bold text-blue-600">WEAK QUESTION TRAINER</div><h2 class="text-xl font-extrabold mt-1">${escapeHtml(row.cat.title)}</h2><p class="text-sm text-gray-500 mt-1">Question ${i+1} of ${rows.length} · Score ${score}</p></div><button class="premium-close" data-close-weak>×</button></div><div class="weak-q"><div class="font-bold leading-relaxed">${escapeHtml(q.text)}</div>${q.options.map(o=>`<button class="weak-option" data-wopt="${escapeHtml(o.id)}">${escapeHtml(o.text)}</button>`).join('')}<div id="wexp" class="hidden mt-3 rounded-lg bg-blue-50 text-blue-800 p-3 text-sm"></div></div><button class="weak-next" id="wnext" disabled>${i===rows.length-1?'Finish Trainer':'Next Question'}</button></div>`}
- modal.addEventListener('click',function(e){if(e.target.closest('[data-close-weak]')){modal.remove();return}const o=e.target.closest('[data-wopt]');if(o&&!answered){answered=true;const q=rows[i].q,ok=o.dataset.wopt===q.correct;if(ok)score++;modal.querySelectorAll('.weak-option').forEach(b=>{b.disabled=true;if(b.dataset.wopt===q.correct)b.classList.add('correct');if(b===o&&!ok)b.classList.add('wrong')});const exp=modal.querySelector('#wexp');exp.classList.remove('hidden');exp.innerHTML='<b>'+(ok?'Correct!':'Incorrect.')+'</b> Correct answer: '+escapeHtml((q.options.find(x=>x.id===q.correct)||{}).text||'')+'<br>'+escapeHtml(q.explanation||'');modal.querySelector('#wnext').disabled=false}if(e.target.id==='wnext'&&answered){if(i<rows.length-1){i++;draw()}else{modal.querySelector('.premium-modal-box').innerHTML='<div class="weak-result"><div style="font-size:48px">🏆</div><h2 class="text-2xl font-extrabold mt-2">Trainer Complete</h2><p class="text-gray-500 mt-1">You scored <b>'+score+'/'+rows.length+'</b></p><p class="text-sm mt-3">Your original category results were not changed.</p><button class="weak-next" data-close-weak>Close</button>'}}});
- draw();
-}
-document.addEventListener('click',function(e){const b=e.target.closest('[data-premium-buy]');if(!b)return;const kind=b.dataset.premiumBuy;if(kind==='vip'){if(!localOwned('vipProfileFramePurchased'))buyPremium('vip');else applyVIPEverywhere()}else if(kind==='weak'){if(localOwned('weakQuestionTrainerPurchased'))openWeakFixed();else if(buyPremium('weak'))openWeakFixed()}});
+  window.removeFromWeakTrainer=function(cat,q){
+    if(!q) return;
+    const all=db(), u=uid();
+    all[u]=all[u]||{};
+    all[u][key(cat,q)]=true;
+    save(all);
+  };
 
-/* ---------- Account-scoped restore ---------- */
-function restore(){
- Promise.all([firebaseGet('batteryFeaturePurchased'),firebaseGet('vipProfileFramePurchased'),firebaseGet('weakQuestionTrainerPurchased')]).then(function(v){
-   if(v[0]===true||(v[0]&&v[0].purchased))setLocalOwned('batteryFeaturePurchased',true);
-   if(v[1]===true||(v[1]&&v[1].purchased))setLocalOwned('vipProfileFramePurchased',true);
-   if(v[2]===true||(v[2]&&v[2].purchased))setLocalOwned('weakQuestionTrainerPurchased',true);
-   renderBattery();renderPremiumFixed();if(localOwned('vipProfileFramePurchased'))applyVIPEverywhere();publishBattery();
- }).catch(()=>{renderBattery();renderPremiumFixed();if(localOwned('vipProfileFramePurchased'))applyVIPEverywhere()});
-}
-setTimeout(restore,900);setInterval(function(){renderBattery();if(document.getElementById('rewards-panel')&&!document.getElementById('rewards-panel').hidden)renderPremiumFixed();if(localOwned('vipProfileFramePurchased'))applyVIPEverywhere()},1500);
+  window.isRemovedFromWeakTrainer=function(cat,q){
+    const all=db(),u=uid();
+    return !!(all[u] && all[u][key(cat,q)]);
+  };
 
-/* ---------- Publish this user's active cosmetics and render OTHER USERS' cosmetics ---------- */
-function activeCosmetics(){
- const out={};['frames','badges','themes','effects'].forEach(t=>{const v=localStorage.getItem('activeCosmetic:'+t);if(v)out[t]=v});
- return out;
-}
-function publishCosmetics(){const c=activeCosmetics();firebaseSet('cosmetics',c);firebaseSet('cosmeticsOwned',JSON.parse(localStorage.getItem('rewardOwned')||'[]')).catch(()=>{});}
-window.publishUserCosmetics=publishCosmetics;
-function addSocialCss(){if(document.getElementById('social-cosmetic-fix-css'))return;const st=document.createElement('style');st.id='social-cosmetic-fix-css';st.textContent='.premium-vip-frame{border:4px solid #f59e0b!important;border-radius:50%!important;box-shadow:0 0 0 3px rgba(245,158,11,.22),0 0 22px rgba(245,158,11,.35)!important;padding:2px!important}.leaderboard-social-avatar{position:relative}.social-vip-ring{border:3px solid #f59e0b!important;box-shadow:0 0 0 2px rgba(245,158,11,.2),0 0 12px rgba(245,158,11,.3)!important}.social-badge{margin-left:4px;font-size:15px;vertical-align:middle}.social-battery{font-size:11px;font-weight:800}';document.head.appendChild(st)}
-function badgeIcon(id){return ({badge_star:'⭐',badge_brain:'🧠',badge_bolt:'⚡',badge_crown:'👑'})[id]||''}
-function enhanceLeaderboard(){
- addSocialCss();
- document.querySelectorAll('.leaderboard-row').forEach(row=>{
-   const name=row.querySelector('.leaderboard-name'); if(!name||row.dataset.socialEnhanced==='1')return;
-   const uidVal=row.querySelector('[data-social-user-id]')?.dataset.socialUserId; if(!uidVal)return;
- });
-}
-/* Merge account cosmetics into live leaderboard users so everyone can see equipped rewards. */
-function syncLeaderboardCosmetics(){
- try{
-  const d=db(); if(!d||!d.ref)return;
-  d.ref('users').once('value').then(function(snap){
-   const all=snap.val()||{};
-   if(window.state&&Array.isArray(window.state.leaderboard)){
-    window.state.leaderboard=window.state.leaderboard.map(function(u){
-      const raw=all[u.id]||{};
-      const c=raw.cosmetics||{};
-      return Object.assign({},u,{cosmetics:c,batteryPercent:Number.isFinite(Number(raw.batteryPercent))?Math.round(Number(raw.batteryPercent)):u.batteryPercent});
+  // Capture the remove button regardless of the older trainer implementation.
+  document.addEventListener('click',function(e){
+    const btn=e.target && e.target.closest ? e.target.closest(
+      '.weak-remove-btn,#wqt-remove,[data-action="remove-weak"],[data-remove-weak],.remove-from-weak'
+    ):null;
+    if(!btn) return;
+
+    const q=window.currentWeakQuestion || window.weakCurrentQuestion ||
+      window.activeWeakQuestion || btn._weakQuestion || null;
+    const cat=window.currentWeakCategoryId || window.weakCurrentCategoryId ||
+      window.activeWeakCategoryId || btn.dataset.categoryId || '';
+
+    if(!q) return;
+
+    window.removeFromWeakTrainer(cat,q);
+    btn.disabled=true;
+    btn.textContent='✓ Removed from Weak Trainer';
+
+    // Remove the exact item from any in-memory trainer arrays.
+    ['weakQuestions','currentWeakQuestions','weakQuestionList','trainerQuestions'].forEach(function(name){
+      if(Array.isArray(window[name])){
+        window[name]=window[name].filter(function(item){
+          const iq=item && (item.q||item.question||item);
+          const ic=item && (item.catId ?? item.categoryId ?? item.category ?? '');
+          return !window.isRemovedFromWeakTrainer(ic,iq);
+        });
+      }
     });
-    if(window.state.currentScreen==='leaderboard'&&typeof window.render==='function')window.render();
-   }
-  }).catch(()=>{});
- }catch(e){}
-}
-/* Patch rendered leaderboard from state data after every render. */
-function decorateRows(){
- addSocialCss();
- try{
-   (window.state?.leaderboard||[]).forEach(u=>{
-     const rows=[...document.querySelectorAll('.leaderboard-row')];
-     const row=rows.find(r=>r.querySelector('.leaderboard-name')?.textContent?.includes(u.name)); if(!row)return;
-     const av=row.querySelector('.leaderboard-avatar'); if(av && u.cosmetics?.frames==='frame_vip')av.classList.add('social-vip-ring');
-     const nm=row.querySelector('.leaderboard-name'); if(nm){nm.querySelectorAll('.social-badge').forEach(x=>x.remove());const icon=badgeIcon(u.cosmetics?.badges);if(icon){const sp=document.createElement('span');sp.className='social-badge';sp.textContent=icon;sp.title='Equipped badge';nm.appendChild(sp)}}
-   });
- }catch(e){}
-}
-setTimeout(publishCosmetics,1200);setTimeout(syncLeaderboardCosmetics,1600);setInterval(()=>{publishCosmetics();syncLeaderboardCosmetics();decorateRows()},2500);
+
+    setTimeout(function(){
+      const modal=btn.closest('[role="dialog"],.modal,#weak-free-trainer-modal,#weak-trainer-modal');
+      if(modal) modal.remove();
+      if(typeof window.renderWeakTrainer==='function') window.renderWeakTrainer();
+    },150);
+  },true);
+
+  // Final safety filter for collectors that return history directly.
+  window.filterRemovedWeakTrainer=function(list){
+    return (Array.isArray(list)?list:[]).filter(function(item){
+      const q=item && (item.q||item.question||item);
+      const cat=item && (item.catId ?? item.categoryId ?? item.category ?? '');
+      return !window.isRemovedFromWeakTrainer(cat,q);
+    });
+  };
+})();
+</script>
+
+
+<script id="weak-trainer-strict-remove">
+(function(){
+  const KEY='porisram77_weak_removed_v5';
+
+  function uid(){
+    try{
+      return (window.currentUser&&window.currentUser.uid) ||
+        (typeof window.getClientId==='function'&&window.getClientId()) ||
+        localStorage.getItem('userId') || 'guest';
+    }catch(e){return 'guest';}
+  }
+  function read(){try{return JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){return {};}}
+  function write(x){try{localStorage.setItem(KEY,JSON.stringify(x));}catch(e){}}
+  function id(cat,q){
+    return String(cat||'')+'::'+String(q&&(q.id??q.questionId??q.qid??q.text??q.question)||'');
+  }
+
+  window.strictRemoveWeak=function(cat,q){
+    if(!q)return;
+    const a=read(),u=uid();
+    a[u]=a[u]||{};
+    a[u][id(cat,q)]=true;
+    write(a);
+  };
+
+  window.strictWeakRemoved=function(cat,q){
+    const a=read(),u=uid();
+    return !!(a[u]&&a[u][id(cat,q)]);
+  };
+
+  window.strictWeakFilter=function(list){
+    return (Array.isArray(list)?list:[]).filter(function(x){
+      const q=x&&(x.q||x.question||x);
+      const c=x&&(x.catId??x.categoryId??x.category??'');
+      return q && !window.strictWeakRemoved(c,q);
+    });
+  };
+
+  // Capture any existing Remove button and permanently exclude the exact item.
+  document.addEventListener('click',function(e){
+    const b=e.target?.closest?.(
+      '#wqt-remove,.weak-remove-btn,.remove-from-weak,[data-remove-weak],[data-action="remove-weak"]'
+    );
+    if(!b)return;
+    const q=window.currentWeakQuestion||window.weakCurrentQuestion||
+      window.activeWeakQuestion||b._weakQuestion||null;
+    const c=window.currentWeakCategoryId||window.weakCurrentCategoryId||
+      window.activeWeakCategoryId||b.dataset.categoryId||'';
+    if(!q)return;
+
+    window.strictRemoveWeak(c,q);
+    b.disabled=true;
+    b.textContent='✓ Removed';
+
+    // Remove from all known in-memory trainer lists immediately.
+    ['weakQuestions','currentWeakQuestions','weakQuestionList','trainerQuestions'].forEach(function(n){
+      if(Array.isArray(window[n])) window[n]=window.strictWeakFilter(window[n]);
+    });
+
+    const modal=b.closest('[role="dialog"],.modal,#weak-free-trainer-modal,#weak-trainer-modal');
+    if(modal) modal.remove();
+  },true);
+
+  // Re-filter whenever the trainer/history is rendered, preventing reappearance.
+  const observer=new MutationObserver(function(){
+    ['weakQuestions','currentWeakQuestions','weakQuestionList','trainerQuestions'].forEach(function(n){
+      if(Array.isArray(window[n])){
+        const f=window.strictWeakFilter(window[n]);
+        if(f.length!==window[n].length) window[n]=f;
+      }
+    });
+  });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="weak-trainer-training-complete-final">
+(function(){
+  const RESOLVED_KEY='porisram77_weak_resolved_v1';
+
+  function uid(){
+    try{
+      return (window.currentUser&&window.currentUser.uid) ||
+        (typeof window.getClientId==='function'&&window.getClientId()) ||
+        localStorage.getItem('userId') || 'guest';
+    }catch(e){return 'guest';}
+  }
+  function read(){
+    try{return JSON.parse(localStorage.getItem(RESOLVED_KEY)||'{}');}
+    catch(e){return {};}
+  }
+  function write(x){try{localStorage.setItem(RESOLVED_KEY,JSON.stringify(x));}catch(e){}}
+  function qid(cat,q){
+    return String(cat||'')+'::'+String(q&&(q.id??q.questionId??q.qid??q.text??q.question)||'');
+  }
+
+  // A question answered correctly inside Weak Trainer is RESOLVED.
+  // It is NOT deleted from the original quiz/wrong history; it is simply
+  // excluded from future Weak Trainer sessions.
+  window.resolveWeakQuestion=function(cat,q){
+    if(!q)return;
+    const all=read(),u=uid();
+    all[u]=all[u]||{};
+    all[u][qid(cat,q)]=true;
+    write(all);
+  };
+
+  window.isWeakQuestionResolved=function(cat,q){
+    const all=read(),u=uid();
+    return !!(all[u]&&all[u][qid(cat,q)]);
+  };
+
+  window.filterResolvedWeakQuestions=function(list){
+    return (Array.isArray(list)?list:[]).filter(function(item){
+      const q=item&&(item.q||item.question||item);
+      const cat=item&&(item.catId??item.categoryId??item.category??'');
+      return q && !window.isWeakQuestionResolved(cat,q);
+    });
+  };
+
+  // Track the current Weak Trainer question and intercept answer clicks.
+  // Correct answers resolve the question; wrong answers keep it active.
+  document.addEventListener('click',function(e){
+    const option=e.target?.closest?.(
+      '#wqt-options button,.weak-trainer-option,.weak-option,[data-weak-option],.weak-question-option'
+    );
+    if(!option)return;
+
+    setTimeout(function(){
+      try{
+        const q=window.currentWeakQuestion||window.weakCurrentQuestion||
+          window.activeWeakQuestion||null;
+        const cat=window.currentWeakCategoryId||window.weakCurrentCategoryId||
+          window.activeWeakCategoryId||'';
+        if(!q)return;
+
+        const selected=option.dataset.value ?? option.dataset.option ??
+          option.dataset.answer ?? option.value ?? option.textContent.trim();
+        const correct=q.correct ?? q.answer ?? q.correctAnswer;
+        const isCorrect=String(selected)===String(correct) ||
+          String(option.dataset.index||'')===String(correct);
+
+        if(isCorrect) window.resolveWeakQuestion(cat,q);
+      }catch(err){}
+    },20);
+  },true);
+
+  // Final empty-state message required by the workflow.
+  window.showWeakNoNewWrongMessage=function(container){
+    if(!container)return;
+    container.innerHTML=
+      '<div style="padding:24px 16px;text-align:center;">' +
+      '<div style="font-size:30px;">🎯</div>' +
+      '<h3 style="margin:8px 0;">No new wrong attempts</h3>' +
+      '<p style="margin:0;color:#6b7280;line-height:1.5;">You have completed your current Weak Question Trainer questions correctly. New questions will appear here only when you answer another quiz question incorrectly.</p>' +
+      '</div>';
+  };
+})();
+</script>
+
+
+<script id="weak-trainer-strict-correct-resolve">
+(function(){
+  const KEY='porisram77_weak_mastery_v6';
+
+  function uid(){
+    try{return (window.currentUser&&window.currentUser.uid) ||
+      (typeof window.getClientId==='function'&&window.getClientId()) ||
+      localStorage.getItem('userId') || 'guest';}catch(e){return 'guest';}
+  }
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){return {};}}
+  function save(x){try{localStorage.setItem(KEY,JSON.stringify(x));}catch(e){}}
+  function key(cat,q){
+    const stable=q&&(q.id??q.questionId??q.qid);
+    const fallback=q&&(q.text??q.question);
+    return String(cat||'')+'::'+String(stable??fallback??'');
+  }
+
+  window.markWeakMastered=function(cat,q){
+    if(!q)return;
+    const a=load(),u=uid();
+    a[u]=a[u]||{};
+    a[u][key(cat,q)]={mastered:true,at:Date.now()};
+    save(a);
+  };
+  window.isWeakMastered=function(cat,q){
+    const a=load(),u=uid();
+    return !!(a[u]&&a[u][key(cat,q)]&&a[u][key(cat,q)].mastered);
+  };
+  window.filterWeakMastered=function(list){
+    return (Array.isArray(list)?list:[]).filter(function(item){
+      const q=item&&(item.q||item.question||item);
+      const c=item&&(item.catId??item.categoryId??item.category??'');
+      return q && !window.isWeakMastered(c,q);
+    });
+  };
+
+  // Resolve from the actual current question after an option is selected.
+  document.addEventListener('click',function(e){
+    const btn=e.target?.closest?.(
+      '#wqt-options button,.weak-trainer-option,.weak-option,.weak-question-option,[data-weak-option]'
+    );
+    if(!btn)return;
+
+    setTimeout(function(){
+      const q=window.currentWeakQuestion||window.weakCurrentQuestion||
+        window.activeWeakQuestion||null;
+      const cat=window.currentWeakCategoryId||window.weakCurrentCategoryId||
+        window.activeWeakCategoryId||'';
+      if(!q)return;
+
+      const selected=btn.dataset.value??btn.dataset.option??btn.dataset.answer??
+        btn.value??btn.textContent.trim();
+      const correct=q.correct??q.answer??q.correctAnswer;
+      const correctNow=String(selected)===String(correct) ||
+        (btn.dataset.index!=null && String(btn.dataset.index)===String(correct));
+
+      if(correctNow){
+        window.markWeakMastered(cat,q);
+
+        // Remove from all in-memory copies immediately.
+        ['weakQuestions','currentWeakQuestions','weakQuestionList','trainerQuestions'].forEach(function(n){
+          if(Array.isArray(window[n])) window[n]=window.filterWeakMastered(window[n]);
+        });
+
+        // Mark trainer state too, if the app exposes one.
+        try{
+          if(window.weakTrainerState && Array.isArray(window.weakTrainerState.questions)){
+            window.weakTrainerState.questions=window.filterWeakMastered(window.weakTrainerState.questions);
+          }
+        }catch(err){}
+      }
+    },30);
+  },true);
+
+  // Whenever the trainer is rendered, remove mastered questions before they
+  // can be displayed again.
+  const observer=new MutationObserver(function(){
+    ['weakQuestions','currentWeakQuestions','weakQuestionList','trainerQuestions'].forEach(function(n){
+      if(Array.isArray(window[n])){
+        const filtered=window.filterWeakMastered(window[n]);
+        if(filtered.length!==window[n].length) window[n]=filtered;
+      }
+    });
+  });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="badge-direct-equip-leaderboard-final">
+(function(){
+  const KEY='porisram77_equipped_badge_v1';
+
+  function uid(){
+    try{return (window.currentUser&&window.currentUser.uid) ||
+      (typeof window.getClientId==='function'&&window.getClientId()) ||
+      localStorage.getItem('userId') || 'guest';}catch(e){return 'guest';}
+  }
+  function read(){try{return JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){return {};}}
+  function write(x){try{localStorage.setItem(KEY,JSON.stringify(x));}catch(e){}}
+
+  window.directEquipBadge=function(badgeId,badgeData){
+    const all=read(),u=uid();
+    all[u]={id:badgeId,data:badgeData||{},equipped:true,updatedAt:Date.now()};
+    write(all);
+
+    // Keep the app's own cosmetic object synchronized when available.
+    try{
+      window.state=window.state||{};
+      window.state.cosmetics=window.state.cosmetics||{};
+      window.state.cosmetics.badgeId=badgeId;
+      window.state.cosmetics.equippedBadge=badgeData||{id:badgeId};
+      window.state.cosmetics.badgeEquipped=true;
+      if(typeof window.saveLocalCache==='function') window.saveLocalCache();
+    }catch(e){}
+
+    // Publish to Firebase if the app exposes its existing profile updater.
+    try{
+      const payload={badgeId:badgeId,equippedBadge:badgeData||{id:badgeId},badgeEquipped:true};
+      if(typeof window.saveUserProfile==='function') window.saveUserProfile(payload);
+      else if(typeof window.updateUserProfile==='function') window.updateUserProfile(payload);
+      else if(typeof window.saveProfileToFirebase==='function') window.saveProfileToFirebase(payload);
+    }catch(e){}
+
+    // Re-render visible profile/leaderboard without a fullscreen modal.
+    try{
+      if(typeof window.renderLeaderboard==='function') window.renderLeaderboard();
+      if(typeof window.renderProfile==='function') window.renderProfile();
+    }catch(e){}
+  };
+
+  // Convert common badge purchase buttons to one-click purchase + equip.
+  document.addEventListener('click',function(e){
+    const b=e.target?.closest?.(
+      '[data-badge-id][data-price],.badge-buy-btn,[data-reward-type="badge"]'
+    );
+    if(!b)return;
+    const id=b.dataset.badgeId||b.dataset.rewardId||b.dataset.id;
+    if(!id)return;
+
+    // If the existing app already handles the purchase, do not double-charge.
+    // Instead, after its click flow settles, directly equip the purchased badge.
+    setTimeout(function(){
+      try{
+        const purchased =
+          b.dataset.purchased==='true' ||
+          b.classList.contains('owned') ||
+          /equipped|owned/i.test(b.textContent||'');
+        if(purchased || b.dataset.directEquip==='true'){
+          window.directEquipBadge(id,{
+            id:id,
+            name:b.dataset.badgeName||b.dataset.name||'',
+            icon:b.dataset.badgeIcon||b.dataset.icon||'🎖️'
+          });
+          b.textContent='✓ Equipped';
+          b.dataset.directEquip='true';
+        }
+      }catch(err){}
+    },80);
+  },true);
+
+  // Public leaderboard helper: only the owner’s badge is returned.
+  window.getPublicEquippedBadge=function(userId,profile){
+    if(profile && profile.equippedBadge) return profile.equippedBadge;
+    if(profile && profile.badgeEquipped && profile.badgeId)
+      return {id:profile.badgeId};
+    try{
+      const all=read(),x=all[userId];
+      return x&&x.equipped ? x.data : null;
+    }catch(e){return null;}
+  };
+})();
+</script>
+
+
+<script id="badge-buy-direct-equip-strict">
+(function(){
+  function getUser(){
+    return (window.currentUser && window.currentUser.uid) ||
+      (typeof window.getClientId==='function' && window.getClientId()) ||
+      localStorage.getItem('userId') || 'guest';
+  }
+
+  function getCoins(){
+    try{
+      if(window.state && Number.isFinite(Number(window.state.coins))) return Number(window.state.coins);
+      const el=document.querySelector('[data-coins],#coinBalance,.coin-balance,.coins');
+      if(el){
+        const n=parseInt(String(el.textContent).replace(/[^\d-]/g,''),10);
+        if(Number.isFinite(n)) return n;
+      }
+    }catch(e){}
+    return 0;
+  }
+
+  function setCoins(n){
+    try{
+      if(window.state) window.state.coins=n;
+      document.querySelectorAll('[data-coins],#coinBalance,.coin-balance,.coins').forEach(el=>{
+        el.textContent=Number(n).toLocaleString()+' 🪙';
+      });
+      if(typeof window.saveLocalCache==='function') window.saveLocalCache();
+    }catch(e){}
+  }
+
+  function directEquip(id, name, icon){
+    const uid=getUser();
+    const record={id:id,name:name||'',icon:icon||'🎖️',equipped:true,updatedAt:Date.now()};
+    try{
+      const key='porisram77_equipped_badge_v2';
+      const all=JSON.parse(localStorage.getItem(key)||'{}');
+      all[uid]=record;
+      localStorage.setItem(key,JSON.stringify(all));
+    }catch(e){}
+
+    // Synchronize the app's public profile cosmetic object.
+    try{
+      window.state=window.state||{};
+      window.state.cosmetics=window.state.cosmetics||{};
+      window.state.cosmetics.equippedBadge=record;
+      window.state.cosmetics.badgeId=id;
+      window.state.cosmetics.badgeEquipped=true;
+      if(typeof window.saveLocalCache==='function') window.saveLocalCache();
+    }catch(e){}
+
+    // Use an existing profile-save function if the app provides one.
+    try{
+      const payload={equippedBadge:record,badgeId:id,badgeEquipped:true};
+      if(typeof window.saveUserProfile==='function') window.saveUserProfile(payload);
+      else if(typeof window.updateUserProfile==='function') window.updateUserProfile(payload);
+      else if(typeof window.saveProfileToFirebase==='function') window.saveProfileToFirebase(payload);
+    }catch(e){}
+
+    document.querySelectorAll('[data-badge-id="'+CSS.escape(id)+'"]').forEach(el=>{
+      el.textContent='✓ Equipped';
+      el.dataset.purchased='true';
+      el.dataset.equipped='true';
+      el.classList.add('equipped','owned');
+    });
+
+    // Never leave a modal behind.
+    document.querySelectorAll(
+      '.badge-purchase-modal,.badge-equip-modal,.badge-preview-modal,.badge-fullscreen,'+
+      '#badgePurchaseModal,#badgeEquipModal,#badgePreviewModal,#badgeFullscreen'
+    ).forEach(el=>el.remove());
+
+    try{
+      if(typeof window.renderLeaderboard==='function') window.renderLeaderboard();
+      if(typeof window.renderProfile==='function') window.renderProfile();
+    }catch(e){}
+  }
+
+  document.addEventListener('click',function(e){
+    const btn=e.target && e.target.closest ? e.target.closest(
+      '[data-reward-type="badge"],[data-badge-id],.badge-buy-btn'
+    ) : null;
+    if(!btn) return;
+
+    const id=btn.dataset.badgeId||btn.dataset.rewardId||btn.dataset.id;
+    if(!id) return;
+
+    const price=parseInt(btn.dataset.price||btn.dataset.cost||'0',10)||0;
+    const already=btn.dataset.purchased==='true'||btn.dataset.equipped==='true'||
+      /equipped|owned/i.test(btn.textContent||'');
+
+    // Block legacy fullscreen/modal purchase flows for badges.
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if(already){
+      directEquip(id,btn.dataset.badgeName||btn.dataset.name,btn.dataset.badgeIcon||btn.dataset.icon);
+      return;
+    }
+
+    if(price>0){
+      const coins=getCoins();
+      if(coins<price){
+        if(typeof window.showToast==='function') window.showToast('Not enough coins.','error');
+        return;
+      }
+      setCoins(coins-price);
+    }
+
+    directEquip(id,btn.dataset.badgeName||btn.dataset.name,btn.dataset.badgeIcon||btn.dataset.icon);
+    if(typeof window.showToast==='function') window.showToast('Badge purchased and equipped.','success');
+  },true);
+})();
+</script>
+
+
+<script id="weak-trainer-100-coin-access-final">
+(function(){
+  const PRICE=100;
+  const ACCESS_KEY='porisram77_weak_trainer_access_v1';
+
+  function uid(){
+    try{return (window.currentUser&&window.currentUser.uid) ||
+      (typeof window.getClientId==='function'&&window.getClientId()) ||
+      localStorage.getItem('userId') || 'guest';}catch(e){return 'guest';}
+  }
+  function access(){
+    try{
+      const a=JSON.parse(localStorage.getItem(ACCESS_KEY)||'{}');
+      return !!a[uid()];
+    }catch(e){return false;}
+  }
+  function setAccess(){
+    try{
+      const a=JSON.parse(localStorage.getItem(ACCESS_KEY)||'{}');
+      a[uid()]={unlocked:true,unlockedAt:Date.now()};
+      localStorage.setItem(ACCESS_KEY,JSON.stringify(a));
+    }catch(e){}
+  }
+
+  window.hasWeakTrainerAccess=access;
+
+  function coins(){
+    try{
+      if(window.state){
+        const candidates=[window.state.coins,window.state.coinBalance,window.state.coinsBalance];
+        for(const v of candidates){
+          const n=Number(v);
+          if(Number.isFinite(n)) return n;
+        }
+      }
+      const el=document.querySelector('#coinBalance,[data-coins],.coin-balance,.coins');
+      if(el){
+        const n=parseInt(String(el.textContent).replace(/[^\d-]/g,''),10);
+        if(Number.isFinite(n)) return n;
+      }
+    }catch(e){}
+    return 0;
+  }
+
+  function deduct(n){
+    try{
+      if(window.state){
+        if(Number.isFinite(Number(window.state.coins))) window.state.coins=n;
+        if(Number.isFinite(Number(window.state.coinBalance))) window.state.coinBalance=n;
+        if(Number.isFinite(Number(window.state.coinsBalance))) window.state.coinsBalance=n;
+      }
+      document.querySelectorAll('#coinBalance,[data-coins],.coin-balance,.coins').forEach(el=>{
+        el.textContent=n.toLocaleString()+' 🪙';
+      });
+      if(typeof window.saveLocalCache==='function') window.saveLocalCache();
+      if(typeof window.updateCoinBalance==='function') window.updateCoinBalance(n);
+    }catch(e){}
+  }
+
+  function showPurchase(){
+    if(access()){
+      if(typeof window.startTrainer==='function') window.startTrainer();
+      else if(typeof window.openWeakQuestionTrainer==='function') window.openWeakQuestionTrainer();
+      return;
+    }
+
+    const balance=coins();
+    if(balance<PRICE){
+      const msg='You need '+(PRICE-balance)+' more 🪙 to access Weak Question Trainer.';
+      if(typeof window.showToast==='function') window.showToast(msg,'error');
+      else alert(msg);
+      return;
+    }
+
+    // Deduct exactly 100 once, then unlock permanently for this user.
+    deduct(balance-PRICE);
+    setAccess();
+
+    // Update visible card without opening a fullscreen purchase screen.
+    document.querySelectorAll('#weak-trainer-free-btn,[data-weak-trainer-buy]').forEach(b=>{
+      b.textContent='🎯 Open Weak Trainer';
+      b.dataset.unlocked='true';
+    });
+
+    if(typeof window.showToast==='function') window.showToast('Weak Question Trainer unlocked for 100 🪙.','success');
+
+    setTimeout(function(){
+      if(typeof window.startTrainer==='function') window.startTrainer();
+      else if(typeof window.openWeakQuestionTrainer==='function') window.openWeakQuestionTrainer();
+    },50);
+  }
+
+  function bind(){
+    const b=document.querySelector('#weak-trainer-free-btn,[data-weak-trainer-buy]');
+    if(!b || b.dataset.wqt100bound) return;
+    b.dataset.wqt100bound='1';
+
+    if(access()){
+      b.textContent='🎯 Open Weak Trainer';
+      b.dataset.unlocked='true';
+    }else{
+      b.textContent='🎯 Buy Access — 100 🪙';
+      b.dataset.unlocked='false';
+    }
+
+    b.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      showPurchase();
+    },true);
+  }
+
+  bind();
+  new MutationObserver(bind).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
 
