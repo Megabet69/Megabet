@@ -868,7 +868,8 @@
       chatListener: null,
       chatListListener: null,
       unreadChats: {},
-      chatUnreadListener: null
+      chatUnreadListener: null,
+      leaderboardListener: null
     };
 
     const rootEl = document.getElementById('app-root');
@@ -902,14 +903,16 @@
       if (clientId) return clientId;
 
       try {
-        clientId = sessionStorage.getItem("porisram_firebase_user_id");
+        // Keep the same user identity even if the phone sleeps, the tab is
+        // discarded, or the browser restores the page later.
+        clientId = localStorage.getItem("porisram_firebase_user_id");
 
         if (!clientId) {
           clientId = "user_" +
             Date.now().toString(36) + "_" +
             Math.random().toString(36).slice(2, 10);
 
-          sessionStorage.setItem("porisram_firebase_user_id", clientId);
+          localStorage.setItem("porisram_firebase_user_id", clientId);
         }
       } catch (e) {
         clientId = "user_" +
@@ -956,13 +959,77 @@
       }
     });
 
+    // ---------------- INSTANT LOCAL RESTORE ----------------
+    // Firebase remains the source of truth, but localStorage lets the app
+    // reopen instantly after screen-off/background/tab restoration.
+    const LOCAL_CACHE_KEY = "porisram_app_cache_v2";
+
+    function saveLocalCache() {
+      try {
+        const cache = {
+          profile: state.profile || null,
+          currentScreen: state.currentScreen,
+          activeCategory: state.activeCategory,
+          progressData: state.progressData || {},
+          quiz: {
+            currentIndex: state.quiz.currentIndex,
+            answers: state.quiz.answers || {},
+            timeSpent: state.quiz.timeSpent || 0,
+            timeByQuestion: state.quiz.timeByQuestion || {},
+            questionStartedAt: state.quiz.questionStartedAt || null
+          },
+          savedAt: Date.now()
+        };
+        localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(cache));
+      } catch (e) {
+        console.warn("Local cache save failed:", e);
+      }
+    }
+
+    function restoreLocalCache() {
+      try {
+        const raw = localStorage.getItem(LOCAL_CACHE_KEY);
+        if (!raw) return false;
+
+        const cache = JSON.parse(raw);
+        if (!cache || typeof cache !== "object") return false;
+
+        if (cache.profile) state.profile = cache.profile;
+        if (cache.progressData) state.progressData = cache.progressData;
+        if (cache.activeCategory) state.activeCategory = cache.activeCategory;
+
+        if (cache.quiz) {
+          state.quiz.currentIndex = Number.isInteger(cache.quiz.currentIndex)
+            ? cache.quiz.currentIndex : 0;
+          state.quiz.answers = { ...(cache.quiz.answers || {}) };
+          state.quiz.timeSpent = Number(cache.quiz.timeSpent || 0);
+          state.quiz.timeByQuestion = { ...(cache.quiz.timeByQuestion || {}) };
+          state.quiz.questionStartedAt = cache.quiz.questionStartedAt || null;
+        }
+
+        // Do not restore a stale quiz screen as an active timer. Restore the
+        // quiz data itself; Firebase will confirm the latest progress.
+        if (state.profile) {
+          state.currentScreen =
+            cache.currentScreen === "profile" ? "profile" : "dashboard";
+        }
+
+        return true;
+      } catch (e) {
+        console.warn("Local cache restore failed:", e);
+        return false;
+      }
+    }
+
     async function loadFirebaseData() {
       const snapshot = await userRoot().once("value");
       const data = snapshot.val() || {};
 
-      state.profile = data.profile || null;
-      state.progressData = data.progress || {};
+      // Firebase is authoritative when available.
+      state.profile = data.profile || state.profile || null;
+      state.progressData = data.progress || state.progressData || {};
 
+      saveLocalCache();
       setFirebaseStatus("online");
       return true;
     }
@@ -990,6 +1057,7 @@
         }
 
         state.profile = check.val();
+        saveLocalCache();
         setFirebaseStatus("online");
 
         console.log("PROFILE SAVED TO FIREBASE:", state.profile);
@@ -1008,6 +1076,8 @@
       if (!catId) return false;
 
       state.progressData[catId] = data;
+      // Protect progress even if the device sleeps before Firebase finishes.
+      saveLocalCache();
 
       try {
         await userRoot().child("progress").child(catId).set({
@@ -1197,6 +1267,8 @@ function scheduleFirebaseRetry() {
         createdAt: state.profile?.createdAt || new Date().toISOString()
       };
 
+      // Save locally first so the next open never asks for these fields again.
+      saveLocalCache();
       const saved = await saveProfileData();
 
       if (!saved) {
@@ -1253,6 +1325,7 @@ function scheduleFirebaseRetry() {
 
       state.currentScreen = 'quiz';
       startQuestionClock();
+      saveLocalCache();
       render();
 
       state.timerInterval = setInterval(() => {
@@ -1268,6 +1341,7 @@ function scheduleFirebaseRetry() {
       const q = getCurrentQuestion();
       if (!q) return;
       state.quiz.answers[q.id] = optionId;
+      saveLocalCache();
       saveProgress('in-progress');
       render();
     };
@@ -1278,6 +1352,7 @@ function scheduleFirebaseRetry() {
       if (state.quiz.currentIndex < total - 1) {
         state.quiz.currentIndex++;
         startQuestionClock();
+        saveLocalCache();
         saveProgress('in-progress');
         render();
       }
@@ -1288,6 +1363,7 @@ function scheduleFirebaseRetry() {
       if (state.quiz.currentIndex > 0) {
         state.quiz.currentIndex--;
         startQuestionClock();
+        saveLocalCache();
         saveProgress('in-progress');
         render();
       }
@@ -1741,6 +1817,7 @@ function scheduleFirebaseRetry() {
         avatar: state.profile?.avatar || "😀"
       };
 
+      saveLocalCache();
       const saved = await saveProfileData();
 
       if (!saved) {
@@ -1845,93 +1922,78 @@ function scheduleFirebaseRetry() {
       render();
     }
 
+    function stopLeaderboardListener() {
+      if (state.leaderboardListener) {
+        firebaseDB.ref("users").off("value", state.leaderboardListener);
+        state.leaderboardListener = null;
+      }
+    }
+
+    function processLeaderboardUsers(users) {
+      const rows = Object.entries(users || {}).map(([id, data]) => {
+        const profile = data?.profile || {};
+        const progress = data?.progress || {};
+        let attempted = 0;
+        let correct = 0;
+        let bestCategory = null;
+
+        Object.entries(progress).forEach(([catId, p]) => {
+          if (!p || typeof p !== "object") return;
+          const cat = quizData[catId];
+          const answers = p.answers || {};
+          if (!cat) return;
+
+          const catAttempted = Object.keys(answers).length;
+          const catCorrect = cat.questions.filter(q => answers[q.id] === q.correct).length;
+          attempted += catAttempted;
+          correct += catCorrect;
+
+          if (catAttempted) {
+            const catAccuracy = (catCorrect / catAttempted) * 100;
+            if (!bestCategory || catAccuracy > bestCategory.accuracy ||
+                (catAccuracy === bestCategory.accuracy && catCorrect > bestCategory.correct)) {
+              bestCategory = { title: cat.title, accuracy: catAccuracy, correct: catCorrect, attempted: catAttempted };
+            }
+          }
+        });
+
+        return {
+          id, name: profile.name || "Student", place: profile.place || "Place not set",
+          avatar: profile.avatar || "😀", attempted, correct,
+          accuracy: attempted ? (correct / attempted) * 100 : 0, bestCategory
+        };
+      });
+
+      rows.sort((a,b) => b.accuracy - a.accuracy || b.correct - a.correct || b.attempted - a.attempted || a.name.localeCompare(b.name));
+      return rows;
+    }
+
+    function startLeaderboardLive() {
+      stopLeaderboardListener();
+      const usersRef = firebaseDB.ref("users");
+      state.leaderboardListener = snapshot => {
+        state.leaderboard = processLeaderboardUsers(snapshot.val() || {});
+        setFirebaseStatus("online");
+        if (state.currentScreen === "leaderboard") render();
+      };
+      usersRef.on("value", state.leaderboardListener, error => {
+        console.error("Live leaderboard failed:", error);
+        setFirebaseStatus("offline");
+      });
+    }
+
     async function showLeaderboard() {
       cleanupChatListeners();
       state.currentScreen = 'leaderboard';
       state.leaderboard = [];
       render();
-      await loadLeaderboard();
+      startLeaderboardLive();
     }
 
+    // Kept for compatibility with the existing Refresh button / old calls.
+    // It now starts the real-time listener instead of doing a one-time fetch.
     async function loadLeaderboard() {
-      try {
-        const snapshot = await firebaseDB.ref("users").once("value");
-        const users = snapshot.val() || {};
-
-        const rows = Object.entries(users).map(([id, data]) => {
-          const profile = data.profile || {};
-          const progress = data.progress || {};
-
-          let attempted = 0;
-          let correct = 0;
-
-          Object.entries(progress).forEach(([catId, p]) => {
-            if (!p || typeof p !== "object") return;
-
-            const answers = p.answers || {};
-            const cat = quizData[catId];
-
-            if (!cat) return;
-
-            attempted += Object.keys(answers).length;
-            correct += cat.questions.filter(q => answers[q.id] === q.correct).length;
-          });
-
-          const accuracy = attempted ? (correct / attempted) * 100 : 0;
-
-          // Find the category in which this user has the highest accuracy.
-          let bestCategory = null;
-          Object.entries(progress).forEach(([catId, p]) => {
-            if (!p || typeof p !== "object") return;
-
-            const cat = quizData[catId];
-            const answers = p.answers || {};
-            if (!cat || !Object.keys(answers).length) return;
-
-            const catAttempted = Object.keys(answers).length;
-            const catCorrect = cat.questions.filter(q => answers[q.id] === q.correct).length;
-            const catAccuracy = catAttempted ? (catCorrect / catAttempted) * 100 : 0;
-
-            if (!bestCategory ||
-                catAccuracy > bestCategory.accuracy ||
-                (catAccuracy === bestCategory.accuracy && catCorrect > bestCategory.correct)) {
-              bestCategory = {
-                title: cat.title,
-                accuracy: catAccuracy,
-                correct: catCorrect,
-                attempted: catAttempted
-              };
-            }
-          });
-
-          return {
-            id,
-            name: profile.name || "Student",
-            place: profile.place || "Place not set",
-            avatar: profile.avatar || "😀",
-            attempted,
-            correct,
-            accuracy,
-            bestCategory
-          };
-        });
-
-        rows.sort((a,b) =>
-          b.accuracy - a.accuracy ||
-          b.correct - a.correct ||
-          b.attempted - a.attempted ||
-          a.name.localeCompare(b.name)
-        );
-
-        state.leaderboard = rows;
-        setFirebaseStatus("online");
-
-        if (state.currentScreen === "leaderboard") render();
-      } catch (error) {
-        console.error("Leaderboard load failed:", error);
-        setFirebaseStatus("offline");
-        showToast("Could not load leaderboard.", "error");
-      }
+      startLeaderboardLive();
     }
 
     function chatIdFor(a, b) {
@@ -2291,9 +2353,9 @@ function scheduleFirebaseRetry() {
                 <button onclick="goProfile()" class="btn btn-outline">
                   <i data-lucide="arrow-left" class="w-4 h-4"></i> Profile
                 </button>
-                <button onclick="loadLeaderboard()" class="btn btn-primary">
-                  <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
-                </button>
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 text-green-700 border border-green-200 text-xs font-bold">
+                  <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> LIVE SCORE
+                </div>
               </div>
             </div>
 
@@ -2422,7 +2484,10 @@ function scheduleFirebaseRetry() {
     }
 
     async function initApp() {
-      // Open the app immediately. Firebase must not block the interface.
+      // Restore local data FIRST. This makes reopening after screen-off
+      // essentially instant and prevents the name/place form from flashing.
+      restoreLocalCache();
+
       state.currentScreen = state.profile ? "dashboard" : "welcome";
       render();
       setFirebaseStatus("offline");
@@ -2430,7 +2495,13 @@ function scheduleFirebaseRetry() {
       try {
         await loadFirebaseData();
         startUnreadMessageMonitor();
-        state.currentScreen = state.profile ? "dashboard" : "welcome";
+
+        // Never force the user back to the welcome form after a restore.
+        if (!state.profile) {
+          state.currentScreen = "welcome";
+        } else if (state.currentScreen === "welcome" || state.currentScreen === "loading") {
+          state.currentScreen = "dashboard";
+        }
         render();
       } catch (error) {
         console.error("Initial Firebase load failed:", error);
@@ -2449,6 +2520,42 @@ function scheduleFirebaseRetry() {
       const el = document.getElementById('question-time');
       if (el) el.textContent = formatSeconds(getLiveQuestionSeconds());
     }, 1000);
+
+    // Persist instantly when mobile browsers background/suspend the page.
+    // Firebase may be paused while the screen is off, so localStorage is the
+    // emergency checkpoint and Firebase sync continues when connectivity returns.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        try {
+          flushQuestionTime();
+          saveLocalCache();
+          if (state.activeCategory) saveProgress("in-progress");
+        } catch (e) {
+          console.warn("Background checkpoint failed:", e);
+        }
+      } else {
+        // Rebase the question clock after returning from sleep so the timer
+        // does not incorrectly count the time while the app was suspended.
+        if (state.currentScreen === "quiz") startQuestionClock();
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      try {
+        flushQuestionTime();
+        saveLocalCache();
+        if (state.activeCategory) saveProgress("in-progress");
+      } catch (e) {
+        console.warn("Pagehide checkpoint failed:", e);
+      }
+    });
+
+    window.addEventListener("beforeunload", () => {
+      try {
+        flushQuestionTime();
+        saveLocalCache();
+      } catch (e) {}
+    });
 
     initApp();
   </script>
