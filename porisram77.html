@@ -4409,14 +4409,16 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
   function purchase(){
     if(owned()) return;
-    const current=coins();
-    if(current<COST){
+    const current=Math.max(0, Number(coins())||0);
+    if(current < COST){
+      render();
       alert('You need '+(COST-current)+' more coins to buy Battery.');
       return;
     }
     // Deduct exactly 400 coins and permanently unlock the feature.
     setCoins(current-COST);
     setOwned(true);
+    render();
     const id=uid(),d=db();
     if(id&&d&&d.ref){
       d.ref('users/'+id+'/batteryFeaturePurchase').set({
@@ -4434,7 +4436,8 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
         el.disabled=true;
       }else{
         el.innerHTML='🔋 Buy Battery — '+COST+' 🪙';
-        el.disabled=n<COST;
+        el.disabled=false;
+        el.setAttribute('aria-disabled', n<COST ? 'true' : 'false');
       }
     });
     document.querySelectorAll('[data-battery-lock]').forEach(el=>{
@@ -4502,7 +4505,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 <script id="premium-features-v3">
 (function(){
   'use strict';
-  const VIP_COST=1000, WEAK_COST=500;
+  const VIP_COST=1000, WEAK_COST=400;
   const VIP_KEY='vipProfileFramePurchased';
   const WEAK_KEY='weakQuestionTrainerPurchased';
   const OWN_KEY='premiumOwnedV3';
