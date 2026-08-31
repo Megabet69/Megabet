@@ -4397,8 +4397,9 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     render();
   }
   function coins(){
-    return window.coinSystem ? window.coinSystem.balance() :
-      Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0);
+    const local=Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0);
+    const system=window.coinSystem && typeof window.coinSystem.balance==='function' ? Math.max(0,Number(window.coinSystem.balance())||0) : 0;
+    return Math.max(local,system);
   }
   function setCoins(n){
     n=Math.max(0,Math.floor(Number(n)||0));
@@ -4437,7 +4438,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       }else{
         el.innerHTML='🔋 Buy Battery — '+COST+' 🪙';
         el.disabled=false;
-        el.setAttribute('aria-disabled', n<COST ? 'true' : 'false');
+        el.setAttribute('aria-disabled','false');
       }
     });
     document.querySelectorAll('[data-battery-lock]').forEach(el=>{
@@ -4514,8 +4515,8 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   };
   function uid(){try{return typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||localStorage.getItem('userId')||''}catch(e){return ''}}
   function db(){return window.firebaseDB||window.db||null}
-  function coins(){return window.coinSystem?Number(window.coinSystem.balance()||0):Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0)}
-  function setCoins(n){n=Math.max(0,Math.floor(Number(n)||0));if(window.coinSystem&&window.coinSystem.refresh)window.coinSystem.refresh(n);else localStorage.setItem('rewardCoins',String(n));document.querySelectorAll('#coin-balance,.coin-balance').forEach(e=>e.textContent=n+' 🪙')}
+  function coins(){const local=Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0);const system=window.coinSystem&&typeof window.coinSystem.balance==='function'?Math.max(0,Number(window.coinSystem.balance())||0):0;return Math.max(local,system)}
+  function setCoins(n){n=Math.max(0,Math.floor(Number(n)||0));try{localStorage.setItem('rewardCoins',String(n))}catch(e){}if(window.coinSystem&&window.coinSystem.refresh)window.coinSystem.refresh(n);document.querySelectorAll('#coin-balance,.coin-balance').forEach(e=>e.textContent=n+' 🪙');}
   function getOwned(key){return localStorage.getItem(key)==='1'}
   function setOwned(key,v){localStorage.setItem(key,v?'1':'0');return v}
   function firebaseSet(path,value){const id=uid(),d=db();if(id&&d&&d.ref)return d.ref('users/'+id+'/'+path).set(value).catch(()=>{});return Promise.resolve()}
