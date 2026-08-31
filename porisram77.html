@@ -356,7 +356,258 @@ html.dark input::placeholder, html.dark textarea::placeholder { color:#94a3b8 !i
 html.dark #theme-toggle { background:#1e293b !important; color:#f8fafc !important; border-color:#475569 !important; }
 html.dark header { background:#111827 !important; border-color:#374151 !important; }
 
+
+    .message-reactions { display:flex; flex-wrap:wrap; gap:4px; }
+    .reaction-btn { min-width:30px; min-height:30px; padding:3px 6px; border-radius:999px; border:1px solid transparent; background:rgba(148,163,184,.12); font-size:15px; display:inline-flex; align-items:center; justify-content:center; gap:3px; cursor:pointer; }
+    .reaction-btn span { font-size:10px; font-weight:700; }
+    .reaction-btn.reacted { background:#dbeafe; border-color:#60a5fa; }
+    html.dark .reaction-btn { background:#1f2937; border-color:#374151; }
+    html.dark .reaction-btn.reacted { background:#1e3a8a; border-color:#60a5fa; }
+
+<style>
+.rewards-nav{display:flex;gap:8px;align-items:center}
+.rewards-nav-btn{border:1px solid #e5e7eb;background:#fff;color:#374151;border-radius:11px;padding:8px 11px;min-height:42px;display:inline-flex;align-items:center;gap:6px;font-weight:700;cursor:pointer}
+.rewards-nav-btn:hover{background:#f8fafc}
+.rewards-nav-icon{font-size:17px}
+.rewards-panel[hidden]{display:none!important}
+.rewards-panel{position:fixed;inset:0;z-index:1000;margin:0;max-width:none;border:0;border-radius:0;background:#fff;padding:24px;overflow:auto}
+.rewards-panel .rewards-head{max-width:900px;margin:0 auto 12px}
+.rewards-panel>.coin-balance,.rewards-panel>.reward-tabs,.rewards-panel>#reward-items,.rewards-panel>.reward-earn{max-width:900px;margin-left:auto;margin-right:auto}
+.reward-close{width:42px;height:42px;border:1px solid #d1d5db;background:#fff;border-radius:12px;font-size:27px;line-height:1;cursor:pointer}
+html.dark .rewards-nav-btn,html.dark .reward-close{background:#1f2937;color:#f8fafc;border-color:#475569}
+html.dark .rewards-panel{background:#0f172a}
+@media(max-width:640px){
+ .rewards-nav{width:100%;justify-content:flex-end}
+ .rewards-nav-btn{padding:7px 9px;font-size:12px}
+ .rewards-panel{padding:14px;padding-top:max(14px,env(safe-area-inset-top))}
+}
+
+<style>
+.rewards-nav{display:inline-flex;gap:7px;align-items:center;margin-left:8px;vertical-align:middle}
+.rewards-nav-btn{border:1px solid #e5e7eb;background:#fff;color:#374151;border-radius:10px;padding:7px 10px;min-height:40px;display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.rewards-nav-icon{font-size:16px}
+html.dark .rewards-nav-btn{background:#1f2937;color:#f8fafc;border-color:#475569}
+@media(max-width:640px){
+  .rewards-nav{display:flex;margin:10px 0 0;width:100%;gap:8px}
+  .rewards-nav-btn{flex:1;justify-content:center;min-height:42px}
+}
 </style>
+
+</style>
+
+</style>
+
+<style id="profile-rewards-css">
+.rewards-nav{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-left:8px;
+  vertical-align:middle;
+}
+.rewards-nav-btn{
+  min-height:40px;
+  padding:8px 12px;
+  border:1px solid #dbe1e8;
+  border-radius:10px;
+  background:#fff;
+  color:#334155;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-size:13px;
+  font-weight:700;
+  line-height:1;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:transform .15s ease,background .15s ease,border-color .15s ease;
+}
+.rewards-nav-btn:hover{background:#f8fafc;transform:translateY(-1px)}
+.rewards-nav-icon{font-size:16px;line-height:1}
+html.dark .rewards-nav-btn{
+  background:#1f2937;
+  color:#f8fafc;
+  border-color:#475569;
+}
+html.dark .rewards-nav-btn:hover{background:#273449}
+@media(max-width:640px){
+  .rewards-nav{
+    display:flex;
+    width:100%;
+    margin:10px 0 0;
+    gap:8px;
+  }
+  .rewards-nav-btn{
+    flex:1;
+    min-width:0;
+    min-height:42px;
+  }
+}
+</style>
+
+
+
+
+
+
+
+
+<style id="final-reward-nav-css">
+.profile-action-row .reward-profile-btn{
+  min-height:40px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  white-space:nowrap;
+  cursor:pointer;
+}
+@media(max-width:640px){
+  .profile-action-row .reward-profile-btn{
+    flex:1 1 auto;
+    min-width:100px;
+  }
+}
+</style>
+
+
+<style id="reward-border-match">
+/* Match the existing Leaderboard/Edit Profile button appearance */
+.profile-action-row .reward-profile-btn{
+  border: 2px solid #2563eb !important;
+  background: transparent !important;
+  color: #2563eb !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+.profile-action-row .reward-profile-btn:hover{
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+}
+html.dark .profile-action-row .reward-profile-btn{
+  border-color: #60a5fa !important;
+  color: #60a5fa !important;
+  background: transparent !important;
+}
+html.dark .profile-action-row .reward-profile-btn:hover{
+  background: #172554 !important;
+}
+</style>
+
+
+<style id="coin-system-style">
+.profile-action-row .reward-profile-btn{
+  border:2px solid #2563eb !important;
+  background:transparent !important;
+  color:#2563eb !important;
+  border-radius:10px !important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+html.dark .profile-action-row .reward-profile-btn{border-color:#60a5fa!important;color:#60a5fa!important}
+.rewards-panel[hidden]{display:none!important}
+.rewards-panel{
+  position:fixed;inset:0;z-index:9999;
+  background:#fff;overflow:auto;
+  padding:24px;
+}
+.rewards-panel-inner{max-width:900px;margin:auto}
+.rewards-panel-head{display:flex;justify-content:space-between;align-items:center;gap:15px}
+.rewards-panel-head h2{margin:0;font-size:24px}.rewards-panel-head p{margin:4px 0;color:#6b7280}
+.reward-close{width:42px;height:42px;border:1px solid #d1d5db;border-radius:12px;background:#fff;font-size:26px;cursor:pointer}
+.rewards-balance{display:inline-flex;gap:7px;align-items:center;margin:18px 0;padding:11px 15px;border-radius:12px;background:#fff7ed;color:#b45309;font-weight:700}
+.reward-tabs{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px}
+.reward-tab{border:1px solid #d1d5db;background:#f8fafc;border-radius:10px;padding:9px 12px;cursor:pointer;white-space:nowrap}
+.reward-tab.active{background:#111827;color:#fff;border-color:#111827}
+.reward-items{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.reward-item{border:1px solid #e5e7eb;border-radius:15px;padding:14px;background:#fafafa}
+.reward-preview{text-align:center;font-size:28px;height:45px}.reward-name{font-weight:700}.reward-cost{color:#b45309;font-size:13px;margin:5px 0 10px}
+.reward-action{width:100%;min-height:40px;border:0;border-radius:10px;background:#111827;color:#fff;font-weight:700;cursor:pointer}.reward-action:disabled{opacity:.45}.reward-action.owned{background:#16a34a}
+html.dark .rewards-panel{background:#0f172a;color:#f8fafc}
+html.dark .rewards-panel-head p{color:#94a3b8}
+html.dark .reward-close,.html.dark .reward-tab{background:#1f2937;color:#f8fafc;border-color:#475569}
+html.dark .reward-tab.active{background:#f8fafc;color:#111827}
+html.dark .reward-item{background:#1f2937;border-color:#374151}
+html.dark .reward-action{background:#f8fafc;color:#111827}
+@media(max-width:640px){
+ .rewards-panel{padding:14px;padding-top:max(14px,env(safe-area-inset-top))}
+ .reward-items{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+</style>
+
+
+<style id="direct-cosmetic-effects-css">
+.reward-frame-bronze{border:4px solid #b7791f!important;border-radius:50%!important;padding:3px!important}
+.reward-frame-silver{border:4px solid #94a3b8!important;border-radius:50%!important;padding:3px!important}
+.reward-frame-gold{border:4px solid #eab308!important;border-radius:50%!important;padding:3px!important}
+.reward-frame-fire{border:4px solid #f97316!important;border-radius:50%!important;padding:3px!important;box-shadow:0 0 0 3px rgba(249,115,22,.18),0 0 16px rgba(249,115,22,.35)!important}
+.reward-name-bold{font-weight:900!important}
+.reward-name-fire{font-weight:900!important;text-shadow:0 0 8px rgba(249,115,22,.65)!important}
+.reward-name-star{font-weight:900!important;text-shadow:0 0 7px rgba(234,179,8,.7)!important}
+.reward-chat-sky{background:#eff6ff!important}
+.reward-chat-ocean{background:#ecfeff!important}
+.reward-chat-sunset{background:#fff7ed!important}
+.reward-chat-neon{background:#f5f3ff!important}
+html.dark .reward-chat-sky{background:#172554!important}
+html.dark .reward-chat-ocean{background:#083344!important}
+html.dark .reward-chat-sunset{background:#431407!important}
+html.dark .reward-chat-neon{background:#2e1065!important}
+</style>
+
+
+<style id="purchase-balance-style">
+.rewards-balance{font-size:18px;font-weight:800}
+.reward-action:disabled{cursor:not-allowed;opacity:.45}
+</style>
+
+
+<style id="reward-effects-final-css">
+/* Immediate cosmetic effects */
+.reward-frame-bronze{outline:4px solid #b7791f!important;outline-offset:3px;border-radius:50%!important}
+.reward-frame-silver{outline:4px solid #94a3b8!important;outline-offset:3px;border-radius:50%!important}
+.reward-frame-gold{outline:4px solid #eab308!important;outline-offset:3px;border-radius:50%!important}
+.reward-frame-fire{outline:4px solid #f97316!important;outline-offset:3px;border-radius:50%!important;box-shadow:0 0 0 3px rgba(249,115,22,.2),0 0 18px rgba(249,115,22,.5)!important}
+.reward-name-bold{font-weight:900!important}
+.reward-name-fire{font-weight:900!important;text-shadow:0 0 8px rgba(249,115,22,.7)!important}
+.reward-name-star{font-weight:900!important;text-shadow:0 0 8px rgba(234,179,8,.7)!important}
+.reward-chat-sky{background:#eff6ff!important}
+.reward-chat-ocean{background:#ecfeff!important}
+.reward-chat-sunset{background:#fff7ed!important}
+.reward-chat-neon{background:#f5f3ff!important}
+html.dark .reward-chat-sky{background:#172554!important}
+html.dark .reward-chat-ocean{background:#083344!important}
+html.dark .reward-chat-sunset{background:#431407!important}
+html.dark .reward-chat-neon{background:#2e1065!important}
+
+/* Visible equipped marker */
+.reward-equipped{
+  box-shadow:0 0 0 2px currentColor!important;
+}
+</style>
+
+
+<style id="battery-feature-style">
+.equipped-reward-badge{animation:rewardBadgeIn .2s ease-out}
+@keyframes rewardBadgeIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.battery-locked{opacity:.65}
+.live-battery-percent{color:#64748b}
+html.dark .live-battery-percent{color:#94a3b8}
+</style>
+
+
+<style id="battery-purchase-style">
+.battery-feature-store{margin:14px 0;padding:14px;border:1px solid #e5e7eb;border-radius:14px;background:#f8fafc}
+.battery-feature-title{font-weight:800;font-size:16px}.battery-feature-desc{font-size:12px;color:#64748b;margin:4px 0 10px}
+.battery-buy-btn{min-height:40px;padding:9px 13px;border:0;border-radius:10px;background:#111827;color:#fff;font-weight:800;cursor:pointer}
+.battery-buy-btn:disabled{opacity:.5;cursor:not-allowed}.battery-feature-status{margin-top:8px;font-size:12px;color:#64748b}
+html.dark .battery-feature-store{background:#1f2937;border-color:#374151}
+html.dark .battery-feature-desc,html.dark .battery-feature-status{color:#94a3b8}
+html.dark .battery-buy-btn{background:#f8fafc;color:#111827}
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -975,6 +1226,8 @@ html.dark header { background:#111827 !important; border-color:#374151 !importan
       chatListener: null,
       chatListListener: null,
       unreadChats: {},
+      following: {},
+      followedScores: {},
       chatUnreadListener: null,
       leaderboardListener: null,
       chatGame: null,
@@ -1398,6 +1651,8 @@ function scheduleFirebaseRetry() {
       }
 
       state.currentScreen = "dashboard";
+      // One-time 100 coin reward for completing name + place.
+      try { if (window.coinSystem) window.coinSystem.profileComplete(); } catch (e) {}
       render();
       showToast("Profile saved to Firebase successfully.", "success");
     };
@@ -1451,6 +1706,15 @@ function scheduleFirebaseRetry() {
       flushQuestionTime();
       const q = getCurrentQuestion();
       if (!q) return;
+      // Coin economy: first selection on this question = attempt reward,
+      // then correct/wrong reward. Unique transaction keys prevent duplicates.
+      try {
+        if (window.coinSystem) {
+          window.coinSystem.attempt(q.id, state.activeCategory);
+          if (optionId === q.correct) window.coinSystem.correct(q.id, state.activeCategory);
+          else window.coinSystem.wrong(q.id, state.activeCategory);
+        }
+      } catch (e) { console.warn("Question coin reward failed:", e); }
       state.quiz.answers[q.id] = optionId;
       saveLocalCache();
       saveProgress('in-progress');
@@ -1837,7 +2101,17 @@ function scheduleFirebaseRetry() {
             <button onclick="closeProfileEdit()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
               <i data-lucide="x" class="w-5 h-5"></i>
             </button>
-          </div>
+
+<button type="button" id="reward-nav-btn" class="btn btn-outline reward-profile-btn" title="Reward">
+  <span aria-hidden="true">🎁</span><span>Reward</span>
+</button>
+
+
+
+
+
+
+</div>
 
           <div class="p-6">
             <label class="block text-sm font-bold text-gray-700 mb-3">Choose Profile Picture</label>
@@ -2116,36 +2390,61 @@ function scheduleFirebaseRetry() {
     }
 
     function renderChatMessages() {
-      if (!state.chatMessages.length) {
-        return `
-          <div class="h-full flex flex-col items-center justify-center text-gray-400">
-            <i data-lucide="message-circle" class="w-10 h-10 mb-3"></i>
-            <p class="font-semibold">No messages yet</p>
-            <p class="text-xs mt-1">Start the conversation.</p>
-          </div>`;
-      }
-
+      if (!state.chatMessages.length) return `<div class="h-full flex flex-col items-center justify-center text-gray-400"><i data-lucide="message-circle" class="w-10 h-10 mb-3"></i><p class="font-semibold">No messages yet</p><p class="text-xs mt-1">Start the conversation.</p></div>`;
+      const reactions = ['👍','❤️','🔥','😂','👏'];
       return state.chatMessages.map(m => {
         const mine = m.senderId === getClientId();
-        return `
-          <div class="flex ${mine ? 'justify-end' : 'justify-start'}">
-            <div class="max-w-[80%] px-4 py-2.5 rounded-2xl ${
-              mine
-                ? 'bg-blue-600 text-white rounded-br-md'
-                : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
-            }">
-              <p class="text-sm whitespace-pre-wrap break-words">${escapeHTML(m.text)}</p>
-              <p class="text-[10px] mt-1 ${mine ? 'text-blue-100' : 'text-gray-400'}">
-                ${formatChatTime(m.createdAt)}
-              </p>
-            </div>
-          </div>`;
+        const reactionHtml = reactions.map(emoji => {
+          const users = m.reactions?.[emoji] || {};
+          const count = Object.keys(users).length;
+          const reacted = !!users[getClientId()];
+          return `<button type="button" onclick="toggleChatReaction('${m.id}','${emoji}')" class="reaction-btn ${reacted ? 'reacted' : ''}" title="React ${emoji}">${emoji}${count ? `<span>${count}</span>` : ''}</button>`;
+        }).join('');
+        return `<div class="flex ${mine ? 'justify-end' : 'justify-start'}"><div class="max-w-[80%] px-4 py-2.5 rounded-2xl ${mine ? 'bg-blue-600 text-white rounded-br-md' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'}"><p class="text-sm whitespace-pre-wrap break-words">${escapeHTML(m.text)}</p><p class="text-[10px] mt-1 ${mine ? 'text-blue-100' : 'text-gray-400'}">${formatChatTime(m.createdAt)}</p><div class="message-reactions mt-2">${reactionHtml}</div></div></div>`;
       }).join('');
     }
 
     function formatChatTime(timestamp) {
       const d = new Date(timestamp || Date.now());
       return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    }
+
+    async function toggleChatReaction(messageId, emoji) {
+      const otherId = state.chatUser?.id;
+      if (!otherId) return;
+      const ref = chatRootWith(otherId).child('messages').child(messageId).child('reactions').child(emoji).child(getClientId());
+      try { const snap = await ref.once('value'); if (snap.exists()) await ref.remove(); else await ref.set(true); }
+      catch (e) { console.error(e); showToast('Could not update reaction.', 'error'); }
+    }
+
+    async function loadFollowing() {
+      try { const snap = await firebaseDB.ref('users/' + getClientId() + '/following').once('value'); state.following = snap.val() || {}; }
+      catch (e) { console.error('Following load failed', e); }
+    }
+
+    async function toggleFollow(otherId) {
+      if (!otherId || otherId === getClientId()) return;
+      const ref = firebaseDB.ref('users/' + getClientId() + '/following/' + otherId);
+      try {
+        const snap = await ref.once('value');
+        if (snap.exists()) {
+          await Promise.all([ref.remove(), firebaseDB.ref('users/' + otherId + '/followers/' + getClientId()).remove()]);
+          delete state.following[otherId]; showToast('Unfollowed user.');
+        } else {
+          await Promise.all([ref.set({createdAt:firebase.database.ServerValue.TIMESTAMP}), firebaseDB.ref('users/' + otherId + '/followers/' + getClientId()).set({createdAt:firebase.database.ServerValue.TIMESTAMP})]);
+          state.following[otherId] = true;
+          try { if (window.coinSystem) window.coinSystem.follow(otherId); } catch (e) {}
+          showToast('Following user. +50 🪙', 'success');
+        }
+        render();
+      } catch (e) { console.error(e); showToast('Could not update follow.', 'error'); }
+    }
+
+    async function sendFriendScoreNotification(user, previous) {
+      if (!user?.id || user.id === getClientId() || !state.following[user.id]) return;
+      const a=Number(user.attempted||0), old=Number(previous?.attempted||0); if (a<=old) return;
+      const key=user.id+':'+a; if(state.followedScores[key]) return; state.followedScores[key]=true;
+      try { await firebaseDB.ref('users/'+getClientId()+'/notifications').push().set({type:'friend-score',userId:user.id,name:user.name||'Friend',text:`${user.name||'Your friend'} just scored ${Number(user.accuracy||0).toFixed(1)}% accuracy.`,createdAt:firebase.database.ServerValue.TIMESTAMP,read:false}); showToast(`${user.name||'Friend'} just scored ${Number(user.accuracy||0).toFixed(1)}%!`,'success'); } catch(e) { console.error(e); }
     }
 
     async function openChatWith(encodedId) {
@@ -2403,6 +2702,9 @@ function scheduleFirebaseRetry() {
             winnerId: finalWinner,
             updatedAt: firebase.database.ServerValue.TIMESTAMP
           });
+          if (finalWinner === me) {
+            try { if (window.coinSystem) window.coinSystem.battleWin(game.id); } catch (e) {}
+          }
         } else {
           const nextIndex = Math.floor(Math.random() * cat.questions.length);
           const nextQuestion = cat.questions[nextIndex];
@@ -2632,7 +2934,7 @@ function scheduleFirebaseRetry() {
                     </p>
                   </div>
                   <div class="flex gap-2 profile-action-row">
-                    <button onclick="openProfileEdit()" class="btn btn-primary">
+<button onclick="openProfileEdit()" class="btn btn-primary">
                       <i data-lucide="pencil" class="w-4 h-4"></i> Edit Profile
                     </button>
                     <button onclick="showLeaderboard()" class="btn btn-outline relative">
@@ -2847,6 +3149,9 @@ function scheduleFirebaseRetry() {
                       <p class="text-[11px] text-gray-400">${u.attempted} attempted</p>
                     </div>
                     ${u.id !== getClientId() ? `
+                      <button onclick="toggleFollow('${u.id}')" class="w-10 h-10 rounded-xl ${state.following[u.id] ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'} flex items-center justify-center" title="${state.following[u.id] ? 'Unfollow' : 'Follow'}">
+                        <i data-lucide="${state.following[u.id] ? 'user-check' : 'user-plus'}" class="w-5 h-5"></i>
+                      </button>
                       <button onclick="openChatWith('${encodeURIComponent(u.id)}')" class="leaderboard-message relative w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center" title="Message">
                         <i data-lucide="message-circle" class="w-5 h-5"></i>
                         ${(state.unreadChats && state.unreadChats[u.id]) ? '<span class="message-unread-dot absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-white"></span>' : ''}
@@ -2936,6 +3241,7 @@ function scheduleFirebaseRetry() {
       // Restore local data FIRST. This makes reopening after screen-off
       // essentially instant and prevents the name/place form from flashing.
       restoreLocalCache();
+      await loadFollowing();
 
       state.currentScreen = state.profile ? "dashboard" : "welcome";
       render();
@@ -3057,6 +3363,1084 @@ function scheduleFirebaseRetry() {
   // If the app rebuilds its header dynamically, bind again without duplicating listeners.
   var observer = new MutationObserver(bindThemeButton);
   observer.observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
+
+
+<style>
+.rewards-panel{margin:18px auto;padding:18px;max-width:900px;border:1px solid #e5e7eb;border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.rewards-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.rewards-title{font-weight:800;font-size:20px}.rewards-subtitle{font-size:13px;color:#6b7280;margin-top:3px}
+.coin-balance{font-weight:800;padding:10px 13px;border-radius:12px;background:#fff7ed;color:#b45309;white-space:nowrap}
+.reward-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
+.reward-tab{border:1px solid #e5e7eb;background:#f8fafc;color:#475569;border-radius:10px;padding:9px 12px;white-space:nowrap;cursor:pointer}
+.reward-tab.active{background:#111827;color:#fff;border-color:#111827}
+.reward-items{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:10px}
+.reward-item{border:1px solid #e5e7eb;border-radius:15px;padding:14px;background:#fafafa;display:flex;flex-direction:column;gap:9px}
+.reward-preview{height:52px;display:flex;align-items:center;justify-content:center;font-size:27px}
+.reward-name{font-weight:700}.reward-cost{font-size:13px;color:#b45309}
+.reward-action{min-height:42px;border:0;border-radius:10px;background:#111827;color:#fff;cursor:pointer;font-weight:700}
+.reward-action:disabled{opacity:.5;cursor:not-allowed}
+.reward-action.owned{background:#16a34a}.reward-earn{margin-top:13px;font-size:12px;color:#6b7280}
+html.dark .rewards-panel{background:#111827;border-color:#374151}
+html.dark .rewards-subtitle,html.dark .reward-earn{color:#94a3b8}
+html.dark .reward-tab{background:#1f2937;color:#d1d5db;border-color:#374151}
+html.dark .reward-tab.active{background:#f8fafc;color:#111827;border-color:#f8fafc}
+html.dark .reward-item{background:#1f2937;border-color:#374151}
+html.dark .reward-action{background:#f8fafc;color:#111827}
+@media(max-width:640px){
+ .rewards-panel{margin:12px 0;padding:14px;border-radius:14px}
+ .rewards-head{align-items:flex-start}.rewards-title{font-size:17px}.rewards-subtitle{font-size:12px}
+ .reward-items{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .reward-tab{font-size:12px;padding:8px 10px}
+}
+</style>
+
+
+
+<!-- Coins & Rewards: opened from navigation -->
+<section id="rewards-panel" class="rewards-panel" aria-label="Coins and rewards" hidden>
+  <div class="rewards-head">
+    <div>
+      <div class="rewards-title">🪙 Coins & Rewards</div>
+      <div class="rewards-subtitle">Earn coins from activity and spend them on cosmetics.</div>
+    </div>
+    <button type="button" id="rewards-close" class="reward-close" aria-label="Close rewards">×</button>
+  </div>
+  <div class="coin-balance" id="coin-balance">0 🪙</div>
+  
+<div id="battery-feature-store" class="battery-feature-store">
+  <div class="battery-feature-title">🔋 Battery Visibility</div>
+  <div class="battery-feature-desc">Buy this feature to see other users' battery percentage in Chat and Leaderboard.</div>
+  <button type="button" data-battery-purchase class="battery-buy-btn">🔋 Buy Battery — 400 🪙</button>
+  <div data-battery-lock class="battery-feature-status">🔒 Buy Battery Feature for 400 🪙</div>
+</div>
+
+<div class="reward-tabs" role="tablist" aria-label="Reward categories">
+    <button type="button" class="reward-tab active" data-reward-tab="frames">Profile Frames</button>
+    <button type="button" class="reward-tab" data-reward-tab="badges">Badges</button>
+    <button type="button" class="reward-tab" data-reward-tab="themes">Chat Themes</button>
+    <button type="button" class="reward-tab" data-reward-tab="effects">Name Effects</button>
+  </div>
+  <div id="reward-items" class="reward-items"></div>
+  <div class="reward-earn">Complete quizzes, answer correctly, maintain streaks and win battles to earn coins.</div>
+</section>
+
+<script>
+(function(){
+  const catalog = {
+    frames: [
+      {id:'frame_bronze',name:'Bronze Frame',cost:100,preview:'🟤'},
+      {id:'frame_silver',name:'Silver Frame',cost:250,preview:'⚪'},
+      {id:'frame_gold',name:'Gold Frame',cost:500,preview:'🟡'},
+      {id:'frame_fire',name:'Fire Frame',cost:900,preview:'🔥'}
+    ],
+    badges: [
+      {id:'badge_star',name:'Star Badge',cost:150,preview:'⭐'},
+      {id:'badge_brain',name:'Brain Badge',cost:300,preview:'🧠'},
+      {id:'badge_bolt',name:'Speed Badge',cost:450,preview:'⚡'},
+      {id:'badge_crown',name:'Champion Badge',cost:800,preview:'👑'}
+    ],
+    themes: [
+      {id:'theme_sky',name:'Sky Chat',cost:150,preview:'🌤️'},
+      {id:'theme_ocean',name:'Ocean Chat',cost:300,preview:'🌊'},
+      {id:'theme_sunset',name:'Sunset Chat',cost:500,preview:'🌅'},
+      {id:'theme_neon',name:'Neon Chat',cost:750,preview:'✨'}
+    ],
+    effects: [
+      {id:'effect_none',name:'Classic',cost:0,preview:'Aa'},
+      {id:'effect_bold',name:'Bold Name',cost:200,preview:'𝗔𝗮'},
+      {id:'effect_fire',name:'Fire Name',cost:450,preview:'🔥'},
+      {id:'effect_star',name:'Star Name',cost:700,preview:'✨'}
+    ]
+  };
+
+  let coins = 0, owned = [], activeTab = 'frames';
+
+  function load(){
+    try{
+      coins = Math.max(0, parseInt(localStorage.getItem('rewardCoins') || '0',10) || 0);
+      owned = JSON.parse(localStorage.getItem('rewardOwned') || '[]');
+      if(!Array.isArray(owned)) owned=[];
+    }catch(e){coins=0;owned=[];}
+  }
+  function save(){
+    try{
+      localStorage.setItem('rewardCoins',String(coins));
+      localStorage.setItem('rewardOwned',JSON.stringify(owned));
+    }catch(e){}
+  }
+  function render(){
+    const balance=document.getElementById('coin-balance');
+    const box=document.getElementById('reward-items');
+    if(balance) balance.textContent=coins+' 🪙';
+    if(!box) return;
+    box.innerHTML='';
+    (catalog[activeTab]||[]).forEach(item=>{
+      const isOwned=owned.includes(item.id);
+      const el=document.createElement('div');
+      el.className='reward-item';
+      el.innerHTML='<div class="reward-preview">'+item.preview+'</div>'+
+        '<div class="reward-name">'+item.name+'</div>'+
+        '<div class="reward-cost">'+(item.cost===0?'Free':item.cost+' 🪙')+'</div>';
+      const btn=document.createElement('button');
+      btn.type='button'; btn.className='reward-action'+(isOwned?' owned':'');
+      btn.textContent=isOwned?'Owned':(item.cost===0?'Use':'Buy');
+      btn.disabled=!isOwned && coins<item.cost;
+      btn.addEventListener('click',function(){
+        if(isOwned){ useItem(item); return; }
+        if(coins<item.cost) return;
+        coins-=item.cost; owned.push(item.id); save(); useItem(item); render();
+      });
+      el.appendChild(btn); box.appendChild(el);
+    });
+    document.querySelectorAll('[data-reward-tab]').forEach(b=>b.classList.toggle('active',b.dataset.rewardTab===activeTab));
+  }
+  function useItem(item){
+    try{
+      localStorage.setItem('active_'+activeTab,item.id);
+      if(window.currentUser && window.firebase && window.db){
+        // Best-effort Firebase persistence; local state remains the fallback.
+        const uid=window.currentUser.uid || window.currentUser;
+        if(uid && window.db.ref) window.db.ref('users/'+uid+'/cosmetics/'+activeTab).set(item.id).catch(()=>{});
+      }
+    }catch(e){}
+    const balance=document.getElementById('coin-balance');
+    if(balance){ balance.animate([{transform:'scale(1)'},{transform:'scale(1.08)'},{transform:'scale(1)'}],{duration:220}); }
+  }
+
+  function award(amount, reason){
+    amount=Math.max(0,Number(amount)||0);
+    if(!amount) return;
+    coins+=amount; save(); render();
+    try{
+      if(window.currentUser && window.firebase && window.db){
+        const uid=window.currentUser.uid || window.currentUser;
+        if(uid && window.db.ref){
+          window.db.ref('users/'+uid+'/coins').set(coins);
+          window.db.ref('users/'+uid+'/coinHistory').push({amount,reason:reason||'Activity',at:Date.now()});
+        }
+      }
+    }catch(e){}
+  }
+
+  document.addEventListener('click',function(e){
+    const tab=e.target.closest('[data-reward-tab]');
+    if(tab){activeTab=tab.dataset.rewardTab;render();}
+  });
+
+  // Expose a small API so existing quiz/battle code can award coins without rewriting its flow.
+  window.rewardSystem={awardCoins:award,getCoins:()=>coins,renderRewards:render,openTab:function(tab){activeTab=(tab==='coins'?'frames':(catalog[tab]?tab:'frames'));render();}};
+
+  load(); render();
+})();
+</script>
+
+
+<script>
+(function(){
+  function setupSeparateRewards(){
+    const panel=document.getElementById('rewards-panel');
+    const coinsBtn=document.getElementById('coins-nav-btn');
+    const rewardsBtn=document.getElementById('rewards-nav-btn');
+    const closeBtn=document.getElementById('rewards-close');
+    if(!panel) return;
+    function open(tab){
+      panel.hidden=false;
+      if(tab && window.rewardSystem && window.rewardSystem.openTab) window.rewardSystem.openTab(tab);
+      document.body.style.overflow='hidden';
+    }
+    function close(){
+      panel.hidden=true;
+      document.body.style.overflow='';
+    }
+    if(coinsBtn && !coinsBtn.dataset.bound){ coinsBtn.dataset.bound='1'; coinsBtn.addEventListener('click',()=>open('coins')); }
+    if(rewardsBtn && !rewardsBtn.dataset.bound){ rewardsBtn.dataset.bound='1'; rewardsBtn.addEventListener('click',()=>open('frames')); }
+    if(closeBtn && !closeBtn.dataset.bound){ closeBtn.dataset.bound='1'; closeBtn.addEventListener('click',close); }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setupSeparateRewards,{once:true});
+  else setupSeparateRewards();
+})();
+</script>
+
+
+
+
+
+<script id="rewards-near-profile-js">
+(function(){
+  function bind(){
+    var panel=document.getElementById('rewards-panel');
+    var coins=document.getElementById('coins-nav-btn');
+    var rewards=document.getElementById('rewards-nav-btn');
+    var close=document.getElementById('rewards-close');
+    if(!panel) return;
+    function open(tab){
+      panel.hidden=false;
+      document.body.style.overflow='hidden';
+      if(window.rewardSystem && typeof window.rewardSystem.openTab==='function')
+        window.rewardSystem.openTab(tab);
+    }
+    if(coins && coins.dataset.bound!=='1'){
+      coins.dataset.bound='1';
+      coins.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();open('coins');});
+    }
+    if(rewards && rewards.dataset.bound!=='1'){
+      rewards.dataset.bound='1';
+      rewards.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();open('frames');});
+    }
+    if(close && close.dataset.bound!=='1'){
+      close.dataset.bound='1';
+      close.addEventListener('click',function(){
+        panel.hidden=true;
+        document.body.style.overflow='';
+      });
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind,{once:true});
+  else bind();
+})();
+</script>
+
+
+
+
+
+<script id="final-reward-nav-js">
+(function(){
+  function bind(){
+    var btn=document.getElementById('reward-nav-btn');
+    var panel=document.getElementById('rewards-panel');
+    if(!btn || btn.dataset.bound==='1') return;
+    btn.dataset.bound='1';
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if(panel){
+        panel.hidden=false;
+        document.body.style.overflow='hidden';
+        if(window.rewardSystem && typeof window.rewardSystem.openTab==='function')
+          window.rewardSystem.openTab('frames');
+      }
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind,{once:true});
+  else bind();
+  new MutationObserver(bind).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="coin-reward-engine">
+(function(){
+  const REWARD_RULES = {
+    follow: 50,
+    attempt: 10,
+    correct: 50,
+    battleWin: 100,
+    wrong: -1,
+    profileComplete: 100
+  };
+
+  const catalog = {
+    frames:[
+      {id:'frame_bronze',name:'Bronze Frame',cost:100,preview:'🟤'},
+      {id:'frame_silver',name:'Silver Frame',cost:250,preview:'⚪'},
+      {id:'frame_gold',name:'Gold Frame',cost:500,preview:'🟡'},
+      {id:'frame_fire',name:'Fire Frame',cost:900,preview:'🔥'}
+    ],
+    badges:[
+      {id:'badge_star',name:'Star Badge',cost:150,preview:'⭐'},
+      {id:'badge_brain',name:'Brain Badge',cost:300,preview:'🧠'},
+      {id:'badge_bolt',name:'Speed Badge',cost:450,preview:'⚡'},
+      {id:'badge_crown',name:'Champion Badge',cost:800,preview:'👑'}
+    ],
+    themes:[
+      {id:'theme_sky',name:'Sky Chat',cost:150,preview:'🌤️'},
+      {id:'theme_ocean',name:'Ocean Chat',cost:300,preview:'🌊'},
+      {id:'theme_sunset',name:'Sunset Chat',cost:500,preview:'🌅'},
+      {id:'theme_neon',name:'Neon Chat',cost:750,preview:'✨'}
+    ],
+    effects:[
+      {id:'effect_bold',name:'Bold Name',cost:200,preview:'𝗔𝗮'},
+      {id:'effect_fire',name:'Fire Name',cost:450,preview:'🔥'},
+      {id:'effect_star',name:'Star Name',cost:700,preview:'✨'}
+    ]
+  };
+
+  let coins = 0, owned = [], activeTab = 'frames';
+
+  function uid(){
+    try{
+      if(window.currentUser) return window.currentUser.uid || window.currentUser;
+      if(window.state && window.state.uid) return window.state.uid;
+      return localStorage.getItem('userId') || '';
+    }catch(e){ return ''; }
+  }
+
+  function load(){
+    try{
+      coins = Math.max(0, parseInt(localStorage.getItem('rewardCoins') || '0',10) || 0);
+      owned = JSON.parse(localStorage.getItem('rewardOwned') || '[]');
+      if(!Array.isArray(owned)) owned=[];
+    }catch(e){coins=0;owned=[];}
+  }
+
+  function persist(){
+    try{
+      localStorage.setItem('rewardCoins',String(coins));
+      localStorage.setItem('rewardOwned',JSON.stringify(owned));
+    }catch(e){}
+    updateUI();
+    syncFirebase();
+  }
+
+  function syncFirebase(){
+    try{
+      const id=uid();
+      const db=window.firebaseDB || window.db;
+      if(!id || !db || !db.ref) return;
+      db.ref('users/'+id+'/coins').set(coins).catch(()=>{});
+      db.ref('users/'+id+'/cosmeticsOwned').set(owned).catch(()=>{});
+    }catch(e){}
+  }
+
+  function updateUI(){
+    const el=document.getElementById('coin-balance');
+    if(el) el.textContent=coins;
+    renderStore();
+  }
+
+  function historyKey(){
+    return 'coinHistory';
+  }
+
+  function readHistory(){
+    try{
+      const h=JSON.parse(localStorage.getItem(historyKey())||'[]');
+      return Array.isArray(h)?h:[];
+    }catch(e){return [];}
+  }
+
+  function writeHistory(h){
+    try{localStorage.setItem(historyKey(),JSON.stringify(h.slice(-200)));}catch(e){}
+  }
+
+  function award(amount, reason, uniqueKey){
+    amount=Number(amount)||0;
+    if(!amount && amount!==-1) return 0;
+    let h=readHistory();
+    if(uniqueKey && h.some(x=>x.key===uniqueKey)) return 0;
+    coins=Math.max(0, coins+amount);
+    h.push({key:uniqueKey||null,amount,reason:reason||'Activity',at:Date.now()});
+    writeHistory(h);
+    persist();
+    return amount;
+  }
+
+  // Public, idempotent APIs for the quiz/battle/follow/profile code.
+  window.coinSystem = {
+    rules: REWARD_RULES,
+    award: award,
+    follow: function(targetUid){ return award(50,'Followed a user',targetUid?'follow:'+targetUid+':'+(uid()||'user'):null); },
+    attempt: function(questionId, quizId){ return award(10,'Question attempted',questionId?'attempt:'+(quizId||'quiz')+':'+questionId:null); },
+    correct: function(questionId, quizId){ return award(50,'Correct answer',questionId?'correct:'+(quizId||'quiz')+':'+questionId:null); },
+    wrong: function(questionId, quizId){ return award(-1,'Wrong answer',questionId?'wrong:'+(quizId||'quiz')+':'+questionId:null); },
+    battleWin: function(battleId){ return award(100,'Quiz Battle victory',battleId?'battleWin:'+battleId:null); },
+    profileComplete: function(){ return award(100,'Profile completed','profileComplete'); },
+    balance: function(){return coins;}, refresh: function(remote){ coins=Math.max(0,Number(remote)||0); save(); updateUI(); },
+    history: function(){return readHistory();}
+  };
+
+  function renderStore(){
+    const box=document.getElementById('reward-items');
+    if(!box) return;
+    box.innerHTML='';
+    (catalog[activeTab]||[]).forEach(item=>{
+      const ownedItem=owned.includes(item.id);
+      const card=document.createElement('div');
+      card.className='reward-item';
+      card.dataset.rewardId=item.id;
+      card.dataset.rewardType=activeTab;
+      card.innerHTML='<div class="reward-preview">'+item.preview+'</div>'+
+        '<div class="reward-name">'+item.name+'</div>'+
+        '<div class="reward-cost">'+item.cost+' 🪙</div>';
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='reward-action'+(ownedItem?' owned':'');
+      btn.disabled=!ownedItem && coins<item.cost;
+      btn.textContent=ownedItem?'Use':'Buy';
+      btn.onclick=function(){
+        if(!ownedItem){
+          if(coins<item.cost) return;
+          coins-=item.cost;
+          owned.push(item.id);
+          try{
+            localStorage.setItem('activeCosmetic:'+activeTab,item.id);
+            localStorage.setItem('rewardCoins',String(coins));
+            localStorage.setItem('rewardOwned',JSON.stringify(owned));
+          }catch(e){}
+          persist();
+          if(window.applyPurchasedCosmetic) window.applyPurchasedCosmetic(activeTab,item.id);
+        }else{
+          try{localStorage.setItem('activeCosmetic:'+activeTab,item.id);}catch(e){}
+        }
+        renderStore();
+      };
+      card.appendChild(btn);
+      box.appendChild(card);
+    });
+  }
+
+  function bind(){
+    const reward=document.getElementById('reward-nav-btn');
+    const panel=document.getElementById('rewards-panel');
+    const close=document.getElementById('rewards-close');
+    if(reward && reward.dataset.bound!=='1'){
+      reward.dataset.bound='1';
+      reward.addEventListener('click',function(e){
+        e.preventDefault();e.stopPropagation();
+        if(panel){panel.hidden=false;document.body.style.overflow='hidden';updateUI();}
+      });
+    }
+    if(close && close.dataset.bound!=='1'){
+      close.dataset.bound='1';
+      close.addEventListener('click',function(){
+        if(panel) panel.hidden=true;
+        document.body.style.overflow='';
+      });
+    }
+    document.querySelectorAll('[data-reward-tab]').forEach(function(tab){
+      if(tab.dataset.bound==='1') return;
+      tab.dataset.bound='1';
+      tab.addEventListener('click',function(){
+        activeTab=tab.dataset.rewardTab||'frames';
+        document.querySelectorAll('[data-reward-tab]').forEach(x=>x.classList.toggle('active',x===tab));
+        renderStore();
+      });
+    });
+  }
+
+  load();
+  updateUI();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind,{once:true});
+  else bind();
+
+  // Make the engine available after Firebase/app code is initialized as well.
+  new MutationObserver(function(){bind();}).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
+
+
+<script id="direct-cosmetic-effects">
+(function(){
+  function apply(){
+    const root=document.documentElement;
+    const frame=localStorage.getItem('activeCosmetic:frames')||'';
+    const badge=localStorage.getItem('activeCosmetic:badges')||'';
+    const theme=localStorage.getItem('activeCosmetic:themes')||'';
+    const effect=localStorage.getItem('activeCosmetic:effects')||'';
+
+    root.dataset.profileFrame=frame;
+    root.dataset.profileBadge=badge;
+    root.dataset.chatTheme=theme;
+    root.dataset.nameEffect=effect;
+
+    document.querySelectorAll('.profile-avatar-large').forEach(el=>{
+      el.classList.remove('reward-frame-bronze','reward-frame-silver','reward-frame-gold','reward-frame-fire');
+      if(frame) el.classList.add('reward-'+frame.replace('frame_','frame-'));
+    });
+
+    document.querySelectorAll('.profile-name,.leaderboard-name').forEach(el=>{
+      el.classList.remove('reward-name-bold','reward-name-fire','reward-name-star');
+      if(effect==='effect_bold') el.classList.add('reward-name-bold');
+      if(effect==='effect_fire') el.classList.add('reward-name-fire');
+      if(effect==='effect_star') el.classList.add('reward-name-star');
+    });
+
+    document.querySelectorAll('.chat-shell,.chat-messages').forEach(el=>{
+      el.classList.remove('reward-chat-sky','reward-chat-ocean','reward-chat-sunset','reward-chat-neon');
+      if(theme) el.classList.add('reward-chat-'+theme.replace('theme_',''));
+    });
+
+    document.querySelectorAll('.profile-info-wrap,.profile-cover').forEach(el=>{
+      let b=el.querySelector('.active-reward-badge');
+      if(!badge || badge==='badge_star' || badge==='badge_brain' || badge==='badge_bolt' || badge==='badge_crown'){
+        if(!b && badge){
+          b=document.createElement('span'); b.className='active-reward-badge';
+          b.style.cssText='margin-left:6px;font-size:18px;vertical-align:middle;';
+          const name=el.querySelector('.profile-name');
+          if(name) name.insertAdjacentElement('afterend',b);
+        }
+        if(b) b.textContent=badge==='badge_star'?'⭐':badge==='badge_brain'?'🧠':badge==='badge_bolt'?'⚡':badge==='badge_crown'?'👑':'';
+      }
+    });
+  }
+  setInterval(apply,300);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply,{once:true});
+  else apply();
+})();
+</script>
+
+
+<script id="coin-live-balance-fix">
+(function(){
+  function start(){
+    if(window.__coinLiveBalanceStarted || !window.coinSystem) return;
+    const db=window.firebaseDB || window.db;
+    const id=typeof window.getClientId==='function'
+      ? window.getClientId()
+      : (window.currentUser && window.currentUser.uid);
+    if(!db || !db.ref || !id) return;
+    window.__coinLiveBalanceStarted=true;
+
+    const ref=db.ref('users/'+id+'/coins');
+    ref.on('value',function(snap){
+      if(!snap.exists()) return;
+      const remote=Math.max(0,Number(snap.val())||0);
+      const local=window.coinSystem.balance();
+
+      // Firebase is authoritative only when it contains a real balance.
+      // If local is newer/higher, push it instead of replacing it with zero.
+      if(remote < local){
+        ref.set(local).catch(()=>{});
+        return;
+      }
+      if(remote !== local && typeof window.coinSystem.refresh==='function'){
+        window.coinSystem.refresh(remote);
+      }
+    });
+
+    // Immediately push the current earned balance if Firebase is empty/zero
+    // but the browser already has a non-zero balance.
+    ref.once('value').then(function(snap){
+      const remote=snap.exists() ? Number(snap.val())||0 : 0;
+      const local=window.coinSystem.balance();
+      if(local > remote) ref.set(local).catch(()=>{});
+    }).catch(()=>{});
+  }
+
+  let n=0;
+  const timer=setInterval(function(){
+    start();
+    if(window.__coinLiveBalanceStarted || ++n>50) clearInterval(timer);
+  },300);
+})();
+</script>
+
+
+<script id="coin-balance-ui-refresh">
+(function(){
+  function refresh(){
+    if(window.coinSystem && typeof window.coinSystem.balance==='function'){
+      const value=window.coinSystem.balance();
+      document.querySelectorAll('#coin-balance,.coin-balance').forEach(function(el){
+        el.textContent = value + ' 🪙';
+      });
+    }
+  }
+  setInterval(refresh,500);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',refresh,{once:true});
+  else refresh();
+})();
+</script>
+
+
+<script id="coin-purchase-offline-fix">
+(function(){
+  function getUid(){
+    try{
+      return typeof window.getClientId==='function' ? window.getClientId()
+        : (window.currentUser && window.currentUser.uid) || '';
+    }catch(e){return '';}
+  }
+  function getDb(){ return window.firebaseDB || window.db || null; }
+
+  function setBalanceUI(){
+    if(!window.coinSystem) return;
+    const n=window.coinSystem.balance();
+    document.querySelectorAll('#coin-balance,.coin-balance').forEach(function(el){
+      el.textContent=n+' 🪙';
+    });
+  }
+
+  // Immediate cosmetic effect after buying/using an item.
+  window.applyPurchasedCosmetic=function(type,id){
+    try{
+      document.documentElement.dataset[type==='frames'?'profileFrame':type==='themes'?'chatTheme':type==='effects'?'nameEffect':'badge']=id;
+      document.querySelectorAll('[data-profile-avatar],.profile-avatar-large').forEach(function(el){
+        if(type==='frames'){
+          el.classList.remove('reward-frame-bronze','reward-frame-silver','reward-frame-gold','reward-frame-fire');
+          const c=id.replace('frame_','reward-frame-');
+          el.classList.add(c);
+        }
+      });
+      if(type==='effects'){
+        document.querySelectorAll('.profile-name,.leaderboard-name,[data-user-name]').forEach(function(el){
+          el.classList.remove('reward-name-bold','reward-name-fire','reward-name-star');
+          if(id==='effect_bold') el.classList.add('reward-name-bold');
+          if(id==='effect_fire') el.classList.add('reward-name-fire');
+          if(id==='effect_star') el.classList.add('reward-name-star');
+        });
+      }
+      if(type==='themes'){
+        document.querySelectorAll('.chat-shell,.chat-messages,[data-chat-container]').forEach(function(el){
+          el.classList.remove('reward-chat-sky','reward-chat-ocean','reward-chat-sunset','reward-chat-neon');
+          const c=id.replace('theme_','reward-chat-');
+          el.classList.add(c);
+        });
+      }
+    }catch(e){}
+    setBalanceUI();
+  };
+
+  // Reconcile after the phone/browser comes back online or becomes visible.
+  async function reconcile(){
+    setBalanceUI();
+    const db=getDb(), id=getUid();
+    if(!db || !db.ref || !id || !window.coinSystem) return;
+    try{
+      const ref=db.ref('users/'+id+'/coins');
+      const snap=await ref.once('value');
+      const remote=snap.exists()?Math.max(0,Number(snap.val())||0):0;
+      const local=window.coinSystem.balance();
+
+      // Never erase locally earned/spent balance with a stale remote value.
+      if(local!==remote){
+        if(local>remote) await ref.set(local);
+        else if(typeof window.coinSystem.refresh==='function') window.coinSystem.refresh(remote);
+      }
+      const ownedRef=db.ref('users/'+id+'/cosmeticsOwned');
+      const ownedSnap=await ownedRef.once('value');
+      if(!ownedSnap.exists()){
+        const localOwned=JSON.parse(localStorage.getItem('rewardOwned')||'[]');
+        await ownedRef.set(Array.isArray(localOwned)?localOwned:[]);
+      }
+      setBalanceUI();
+    }catch(e){
+      // Offline: local persistence remains active; retry on online/visibility.
+    }
+  }
+
+  window.addEventListener('online',function(){setTimeout(reconcile,250);});
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible') setTimeout(reconcile,250);
+  });
+  window.addEventListener('pageshow',function(){setTimeout(reconcile,250);});
+  window.addEventListener('focus',function(){setTimeout(reconcile,250);});
+
+  let tries=0;
+  const timer=setInterval(function(){
+    if(window.coinSystem){
+      reconcile();
+      clearInterval(timer);
+    }else if(++tries>50) clearInterval(timer);
+  },300);
+})();
+</script>
+
+
+
+<script id="reliable-reward-purchase-v2">
+(function(){
+  const CATALOG={
+    frames:{
+      frame_bronze:{name:'Bronze Frame',cost:100},
+      frame_silver:{name:'Silver Frame',cost:250},
+      frame_gold:{name:'Gold Frame',cost:500},
+      frame_fire:{name:'Fire Frame',cost:900}
+    },
+    badges:{
+      badge_star:{name:'Star Badge',cost:150,icon:'⭐'},
+      badge_brain:{name:'Brain Badge',cost:300,icon:'🧠'},
+      badge_bolt:{name:'Speed Badge',cost:450,icon:'⚡'},
+      badge_crown:{name:'Champion Badge',cost:800,icon:'👑'}
+    },
+    themes:{
+      theme_sky:{name:'Sky Chat',cost:150},
+      theme_ocean:{name:'Ocean Chat',cost:300},
+      theme_sunset:{name:'Sunset Chat',cost:500},
+      theme_neon:{name:'Neon Chat',cost:750}
+    },
+    effects:{
+      effect_bold:{name:'Bold Name',cost:200},
+      effect_fire:{name:'Fire Name',cost:450},
+      effect_star:{name:'Star Name',cost:700}
+    }
+  };
+
+  function uid(){
+    try{return typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||'';}
+    catch(e){return '';}
+  }
+  function db(){return window.firebaseDB||window.db||null;}
+  function coins(){return Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0);}
+  function setCoins(n){
+    n=Math.max(0,Math.floor(Number(n)||0));
+    localStorage.setItem('rewardCoins',String(n));
+    document.querySelectorAll('#coin-balance,.coin-balance').forEach(e=>e.textContent=n+' 🪙');
+    const d=db(), id=uid();
+    if(d&&d.ref&&id) d.ref('users/'+id+'/coins').set(n).catch(()=>{});
+  }
+  function owned(){
+    try{const a=JSON.parse(localStorage.getItem('rewardOwned')||'[]');return Array.isArray(a)?a:[];}catch(e){return[];}
+  }
+  function saveOwned(a){
+    localStorage.setItem('rewardOwned',JSON.stringify(a));
+    const d=db(),id=uid();
+    if(d&&d.ref&&id)d.ref('users/'+id+'/cosmeticsOwned').set(a).catch(()=>{});
+  }
+
+  function apply(type,id){
+    localStorage.setItem('activeCosmetic:'+type,id);
+    const root=document.documentElement;
+    root.dataset.activeFrame=type==='frames'?id:(root.dataset.activeFrame||'');
+    root.dataset.activeBadge=type==='badges'?id:(root.dataset.activeBadge||'');
+    root.dataset.activeChatTheme=type==='themes'?id:(root.dataset.activeChatTheme||'');
+    root.dataset.activeNameEffect=type==='effects'?id:(root.dataset.activeNameEffect||'');
+
+    if(type==='frames'){
+      document.querySelectorAll('[data-profile-avatar],.profile-avatar-large,.profile-avatar,.avatar').forEach(el=>{
+        ['reward-frame-bronze','reward-frame-silver','reward-frame-gold','reward-frame-fire'].forEach(c=>el.classList.remove(c));
+        const c='reward-frame-'+id.replace('frame_','');
+        if(CATALOG.frames[id])el.classList.add(c);
+      });
+    }
+    if(type==='badges'){
+      document.querySelectorAll('[data-profile-badge],.profile-name,.leaderboard-name,[data-user-name]').forEach(el=>{
+        el.dataset.rewardBadge=id;
+      });
+      document.querySelectorAll('[data-profile-badge]').forEach(el=>{
+        el.textContent=CATALOG.badges[id]?.icon||'';
+      });
+    }
+    if(type==='themes'){
+      document.querySelectorAll('.chat-shell,.chat-messages,[data-chat-container],.chat-container').forEach(el=>{
+        ['reward-chat-sky','reward-chat-ocean','reward-chat-sunset','reward-chat-neon'].forEach(c=>el.classList.remove(c));
+        const c='reward-chat-'+id.replace('theme_','');
+        if(CATALOG.themes[id])el.classList.add(c);
+      });
+    }
+    if(type==='effects'){
+      document.querySelectorAll('.profile-name,.leaderboard-name,[data-user-name]').forEach(el=>{
+        ['reward-name-bold','reward-name-fire','reward-name-star'].forEach(c=>el.classList.remove(c));
+        if(id==='effect_bold')el.classList.add('reward-name-bold');
+        if(id==='effect_fire')el.classList.add('reward-name-fire');
+        if(id==='effect_star')el.classList.add('reward-name-star');
+      });
+    }
+
+    const d=db(),u=uid();
+    if(d&&d.ref&&u)d.ref('users/'+u+'/cosmetics/'+type).set(id).catch(()=>{});
+  }
+
+  function getCardData(btn){
+    const card=btn.closest('.reward-item');
+    if(!card)return null;
+    const tab=document.querySelector('[data-reward-tab].active');
+    const type=tab?.dataset.rewardTab||card.dataset.rewardType||'frames';
+    const id=card.dataset.rewardId;
+    if(!id || !CATALOG[type] || !CATALOG[type][id])return null;
+    return {card,type,id,item:CATALOG[type][id]};
+  }
+
+  function renderState(){
+    const n=coins();
+    document.querySelectorAll('#coin-balance,.coin-balance').forEach(e=>e.textContent=n+' 🪙');
+    const have=owned();
+    document.querySelectorAll('.reward-item').forEach(card=>{
+      const id=card.dataset.rewardId;
+      const btn=card.querySelector('.reward-action');
+      if(!btn||!id)return;
+      const tab=document.querySelector('[data-reward-tab].active');
+      const type=tab?.dataset.rewardTab||card.dataset.rewardType||'frames';
+      const item=CATALOG[type]?.[id];
+      if(!item)return;
+      const isOwned=have.includes(id);
+      btn.disabled=!isOwned && n<item.cost;
+      btn.classList.toggle('owned',isOwned);
+      btn.textContent=isOwned?'Use':'Buy';
+    });
+  }
+
+  document.addEventListener('click',function(e){
+    const btn=e.target.closest('.reward-action');
+    if(!btn)return;
+    const data=getCardData(btn);
+    if(!data)return;
+    e.preventDefault();e.stopImmediatePropagation();
+
+    const have=owned();
+    if(have.includes(data.id)){
+      apply(data.type,data.id);
+      btn.textContent='Used';
+      setTimeout(renderState,500);
+      return;
+    }
+
+    const before=coins();
+    if(before<data.item.cost){
+      renderState();
+      return;
+    }
+
+    const after=before-data.item.cost;
+    // One transaction: deduct first, persist, then equip.
+    setCoins(after);
+    have.push(data.id);
+    saveOwned(have);
+    apply(data.type,data.id);
+
+    btn.classList.add('owned');
+    btn.textContent='Used';
+    renderState();
+
+    const d=db(),u=uid();
+    if(d&&d.ref&&u){
+      d.ref('users/'+u+'/rewardPurchases').push({
+        itemId:data.id,type:data.type,cost:data.item.cost,
+        remainingCoins:after,at:Date.now()
+      }).catch(()=>{});
+    }
+  },true);
+
+  // Make reward cards use exact catalog IDs and keep UI synchronized.
+  function tagCards(){
+    document.querySelectorAll('.reward-item').forEach(card=>{
+      if(card.dataset.rewardId)return;
+      const name=(card.querySelector('.reward-name')?.textContent||'').trim();
+      const tab=document.querySelector('[data-reward-tab].active')?.dataset.rewardTab||'frames';
+      const entry=Object.entries(CATALOG[tab]||{}).find(x=>x[1].name===name);
+      if(entry){card.dataset.rewardId=entry[0];card.dataset.rewardType=tab;}
+    });
+    renderState();
+  }
+
+  window.rewardPurchaseTest={setCoins:function(n){setCoins(n);renderState();},apply:apply};
+  setInterval(tagCards,500);
+  tagCards();
+})();
+</script>
+
+
+
+<script id="profile-reward-rules">
+(function(){
+  function uid(){
+    try{return typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||localStorage.getItem('userId')||'';}catch(e){return '';}
+  }
+  function once(key, amount, reason){
+    if(!window.coinSystem) return;
+    try{
+      const k='coinOnce:'+key+':'+(uid()||'local');
+      if(localStorage.getItem(k)==='1') return;
+      const h=window.coinSystem.history ? window.coinSystem.history() : [];
+      if(h.some(x=>x.key===k)) { localStorage.setItem(k,'1'); return; }
+      const got=window.coinSystem.award(amount,reason,k);
+      if(got) localStorage.setItem(k,'1');
+    }catch(e){console.warn('Profile reward error',e);}
+  }
+
+  // New account/profile initialization reward.
+  function firstProfileReward(){
+    once('firstProfile',100,'New user profile reward');
+  }
+
+  // Extra reward only after BOTH name and place are actually present.
+  function namePlaceReward(){
+    try{
+      const name=(document.querySelector('#profile-name-input,#name-input,input[name="name"],input[placeholder*="name" i]')||{}).value||'';
+      const place=(document.querySelector('#profile-place-input,#place-input,input[name="place"],input[name="address"],input[placeholder*="place" i],input[placeholder*="address" i]')||{}).value||'';
+      if(name.trim() && place.trim()) once('namePlaceComplete',100,'Name and place completed');
+    }catch(e){}
+  }
+
+  window.profileCoinRewards={firstProfileReward:firstProfileReward,namePlaceReward:namePlaceReward};
+
+  // If app exposes a successful profile-save hook, wrap it.
+  let tries=0;
+  const timer=setInterval(function(){
+    if(window.handleProfileSave && !window.__profileSaveRewardWrapped){
+      window.__profileSaveRewardWrapped=true;
+      const original=window.handleProfileSave;
+      window.handleProfileSave=async function(){
+        const r=await original.apply(this,arguments);
+        if(r!==false){firstProfileReward();namePlaceReward();}
+        return r;
+      };
+      clearInterval(timer);
+    }else if(++tries>40) clearInterval(timer);
+  },250);
+})();
+</script>
+
+
+<script id="badge-effect-final">
+(function(){
+  const icons={badge_star:'⭐',badge_brain:'🧠',badge_bolt:'⚡',badge_crown:'👑'};
+  function getBadge(){try{return localStorage.getItem('activeCosmetic:badges')||'';}catch(e){return ''}}
+  function apply(){
+    const id=getBadge(), icon=icons[id]||'';
+    document.querySelectorAll('[data-user-name],.profile-name,.leaderboard-name').forEach(function(name){
+      let b=name.parentElement && name.parentElement.querySelector('.equipped-reward-badge');
+      if(!icon){
+        if(b)b.remove();
+        return;
+      }
+      if(!b){
+        b=document.createElement('span');
+        b.className='equipped-reward-badge';
+        b.style.cssText='display:inline-block;margin-left:5px;font-size:15px;vertical-align:middle;';
+        name.insertAdjacentElement('afterend',b);
+      }
+      b.textContent=icon;
+      b.title='Equipped badge';
+    });
+  }
+  window.addEventListener('storage',apply);
+  setInterval(apply,300);
+  apply();
+})();
+</script>
+
+
+<script id="follow-one-time-fix">
+(function(){
+  function key(otherId){
+    let me='';
+    try{me=typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||localStorage.getItem('userId')||'me';}catch(e){me='me';}
+    return 'followRewarded:'+me+':'+otherId;
+  }
+  function bind(){
+    if(window.__followRewardWrapped || typeof window.toggleFollow!=='function') return;
+    window.__followRewardWrapped=true;
+    const original=window.toggleFollow;
+    window.toggleFollow=async function(otherId){
+      let was=false;
+      try{was=!!(window.state&&window.state.following&&window.state.following[otherId]);}catch(e){}
+      const result=await original.apply(this,arguments);
+      try{
+        const now=!!(window.state&&window.state.following&&window.state.following[otherId]);
+        const k=key(otherId);
+        if(!was && now && localStorage.getItem(k)!=='1'){
+          const got=window.coinSystem&&window.coinSystem.award(50,'First follow reward',k);
+          if(got) localStorage.setItem(k,'1');
+        }
+      }catch(e){}
+      return result;
+    };
+  }
+  let n=0;const t=setInterval(function(){bind();if(window.__followRewardWrapped||++n>40)clearInterval(t);},250);
+})();
+</script>
+
+
+
+<script id="battery-feature-purchase">
+(function(){
+  const COST=400;
+  const OWNED_KEY='batteryFeaturePurchased';
+
+  function uid(){
+    try{return typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||localStorage.getItem('userId')||'';}catch(e){return '';}
+  }
+  function db(){return window.firebaseDB||window.db||null;}
+  function owned(){
+    return localStorage.getItem(OWNED_KEY)==='1';
+  }
+  function setOwned(v){
+    localStorage.setItem(OWNED_KEY,v?'1':'0');
+    const id=uid(),d=db();
+    if(id&&d&&d.ref)d.ref('users/'+id+'/batteryFeaturePurchased').set(!!v).catch(()=>{});
+    render();
+  }
+  function coins(){
+    return window.coinSystem ? window.coinSystem.balance() :
+      Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0);
+  }
+  function setCoins(n){
+    n=Math.max(0,Math.floor(Number(n)||0));
+    if(window.coinSystem && typeof window.coinSystem.refresh==='function') window.coinSystem.refresh(n);
+    else localStorage.setItem('rewardCoins',String(n));
+    document.querySelectorAll('#coin-balance,.coin-balance').forEach(e=>e.textContent=n+' 🪙');
+  }
+
+  function purchase(){
+    if(owned()) return;
+    const current=coins();
+    if(current<COST){
+      alert('You need '+(COST-current)+' more coins to buy Battery.');
+      return;
+    }
+    // Deduct exactly 400 coins and permanently unlock the feature.
+    setCoins(current-COST);
+    setOwned(true);
+    const id=uid(),d=db();
+    if(id&&d&&d.ref){
+      d.ref('users/'+id+'/batteryFeaturePurchase').set({
+        cost:COST,purchasedAt:Date.now()
+      }).catch(()=>{});
+    }
+    showBatteryStatus();
+  }
+
+  function render(){
+    const n=coins(), has=owned();
+    document.querySelectorAll('[data-battery-purchase]').forEach(el=>{
+      if(has){
+        el.innerHTML='🔋 Battery Feature <b>Owned</b>';
+        el.disabled=true;
+      }else{
+        el.innerHTML='🔋 Buy Battery — '+COST+' 🪙';
+        el.disabled=n<COST;
+      }
+    });
+    document.querySelectorAll('[data-battery-lock]').forEach(el=>{
+      el.textContent=has?'🔋 Battery visibility unlocked':'🔒 Buy Battery Feature for 400 🪙';
+    });
+  }
+
+  async function saveBattery(){
+    if(!owned() || !navigator.getBattery) return;
+    try{
+      const b=await navigator.getBattery();
+      const value=Math.round(b.level*100);
+      const id=uid(),d=db();
+      if(id&&d&&d.ref)d.ref('users/'+id+'/batteryPercent').set(value).catch(()=>{});
+      document.querySelectorAll('[data-my-battery]').forEach(el=>el.textContent='🔋 '+value+'%');
+    }catch(e){}
+  }
+
+  function showBatteryStatus(){
+    render(); saveBattery();
+  }
+
+  window.batteryFeature={
+    cost:COST,
+    isPurchased:owned,
+    purchase:purchase,
+    refresh:saveBattery
+  };
+
+  document.addEventListener('click',function(e){
+    const btn=e.target.closest('[data-battery-purchase]');
+    if(btn){e.preventDefault();purchase();}
+  });
+
+  // Load purchase state from Firebase for returning users.
+  function sync(){
+    const id=uid(),d=db();
+    if(!id||!d||!d.ref)return;
+    d.ref('users/'+id+'/batteryFeaturePurchased').once('value').then(s=>{
+      if(s.val()===true)localStorage.setItem(OWNED_KEY,'1');
+      render();saveBattery();
+    }).catch(()=>{});
+  }
+
+  setInterval(function(){render();saveBattery();},5000);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',sync,{once:true});
+  else sync();
 })();
 </script>
 
