@@ -4599,5 +4599,179 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 })();
 </script>
 
+
+<script id="final-purchase-and-social-display-fix">
+(function(){
+'use strict';
+const BATTERY_COST=400, WEAK_COST=400, VIP_COST=1000;
+function uid(){try{return typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||localStorage.getItem('userId')||'guest'}catch(e){return 'guest'}}
+function db(){return window.firebaseDB||window.db||null}
+function key(base){return base+':'+uid()}
+function balance(){try{if(window.coinSystem&&typeof window.coinSystem.balance==='function')return Math.max(0,Number(window.coinSystem.balance())||0)}catch(e){} return Math.max(0,parseInt(localStorage.getItem('rewardCoins')||'0',10)||0)}
+function ui(){document.querySelectorAll('#coin-balance,.coin-balance').forEach(e=>e.textContent=balance()+' 🪙')}
+function firebaseSet(path,val){try{const d=db(),id=uid();if(d&&d.ref&&id&&id!=='guest')return d.ref('users/'+id+'/'+path).set(val)}catch(e){} return Promise.resolve()}
+function firebaseGet(path){try{const d=db(),id=uid();if(d&&d.ref&&id&&id!=='guest')return d.ref('users/'+id+'/'+path).once('value').then(s=>s.val())}catch(e){} return Promise.resolve(null)}
+function spend(cost,reason,unique){
+  if(balance()<cost)return false;
+  try{
+    if(window.coinSystem&&typeof window.coinSystem.award==='function'){
+      const result=window.coinSystem.award(-cost,reason,unique);
+      if(result!==-cost) return false;
+    }else{
+      const n=balance()-cost; localStorage.setItem('rewardCoins',String(n)); ui();
+    }
+  }catch(e){return false}
+  ui(); return true;
+}
+function localOwned(base){return localStorage.getItem(key(base))==='1' || localStorage.getItem(base)==='1'}
+function setLocalOwned(base,v){localStorage.setItem(key(base),v?'1':'0');localStorage.setItem(base,v?'1':'0')}
+
+/* ---------- Battery: owner unlock + owner battery publishing ---------- */
+window.batteryFeature={
+ cost:BATTERY_COST,
+ isPurchased:function(){return localOwned('batteryFeaturePurchased')},
+ purchase:function(){
+   if(localOwned('batteryFeaturePurchased'))return true;
+   if(!spend(BATTERY_COST,'Battery visibility purchase','purchase:battery:'+uid())){ui();return false}
+   setLocalOwned('batteryFeaturePurchased',true);
+   firebaseSet('batteryFeaturePurchased',true);
+   firebaseSet('batteryFeaturePurchase',{purchased:true,cost:BATTERY_COST,purchasedAt:Date.now()});
+   publishBattery(); renderBattery();
+   if(window.showToast)showToast('Battery Visibility purchased successfully.','success');
+   return true;
+ },
+ refresh:publishBattery
+};
+function publishBattery(){
+ if(!navigator.getBattery)return;
+ navigator.getBattery().then(function(b){
+   const pct=Math.round(b.level*100); firebaseSet('batteryPercent',pct);
+   document.querySelectorAll('[data-my-battery]').forEach(e=>e.textContent='🔋 '+pct+'%');
+ }).catch(()=>{});
+}
+function renderBattery(){
+ const own=localOwned('batteryFeaturePurchased');
+ document.querySelectorAll('[data-battery-purchase]').forEach(b=>{b.disabled=!!own;b.innerHTML=own?'🔋 Battery Feature <b>Owned</b>':'🔋 Buy Battery — '+BATTERY_COST+' 🪙'});
+ document.querySelectorAll('[data-battery-lock]').forEach(e=>e.textContent=own?'🔋 Battery visibility unlocked':'🔒 Buy Battery Feature for 400 🪙');
+ ui();
+}
+document.addEventListener('click',function(e){const b=e.target.closest('[data-battery-purchase]');if(b){e.preventDefault();window.batteryFeature.purchase()}});
+
+/* ---------- Premium purchases: use the SAME coinSystem that displays the balance ---------- */
+window.premiumFeaturesV3=window.premiumFeaturesV3||{};
+function buyPremium(kind){
+ const isVip=kind==='vip', base=isVip?'vipProfileFramePurchased':'weakQuestionTrainerPurchased', cost=isVip?VIP_COST:WEAK_COST;
+ if(localOwned(base))return true;
+ if(!spend(cost,isVip?'VIP Profile Frame purchase':'Weak Question Trainer purchase','purchase:'+base+':'+uid())){if(window.showToast)showToast('Not enough coins.','error');return false}
+ setLocalOwned(base,true);
+ firebaseSet(base,{purchased:true,cost,purchasedAt:Date.now()});
+ if(isVip){applyVIPEverywhere(); if(window.showToast)showToast('VIP Profile Frame purchased and equipped.','success')}
+ else if(window.showToast)showToast('Weak Question Trainer unlocked.','success');
+ renderPremiumFixed(); return true;
+}
+function applyVIPEverywhere(){
+ document.querySelectorAll('[data-profile-avatar],.profile-avatar-large,.profile-avatar,.avatar').forEach(el=>{
+   el.classList.add('premium-vip-frame');
+ });
+}
+function removeVIP(){document.querySelectorAll('.premium-vip-frame').forEach(el=>el.classList.remove('premium-vip-frame'))}
+function renderPremiumFixed(){
+ const panel=document.getElementById('rewards-panel'); if(!panel)return;
+ let wrap=document.getElementById('premium-feature-grid-v3'); if(!wrap)return;
+ const vip=localOwned('vipProfileFramePurchased'), weak=localOwned('weakQuestionTrainerPurchased');
+ let weakCount=0;
+ try{weakCount=collectWeak().length}catch(e){}
+ wrap.innerHTML=`<div class="premium-card vip"><div class="premium-icon">👑</div><div class="premium-title">VIP Profile Frame</div><div class="premium-desc">Premium golden frame for your profile. It is saved to your account and other users can see it.</div><button class="premium-buy ${vip?'premium-owned':''}" data-premium-buy="vip">${vip?'✓ Owned & Equipped':'Buy — 1000 🪙'}</button><div class="premium-status">${vip?'Visible on your profile and to other users.':(balance()>=1000?'Ready to purchase.':'Need '+(1000-balance())+' more 🪙')}</div></div><div class="premium-card"><div class="premium-icon">🎯</div><div class="premium-title">Weak Question Trainer</div><div class="premium-desc">Practice your previously wrong questions without changing your normal quiz score.</div><button class="premium-buy ${weak?'premium-owned':''}" data-premium-buy="weak">${weak?'🎯 Open Trainer':'Buy — 400 🪙'}</button><div class="premium-status">${weakCount} weak questions available.</div></div>`;
+ if(vip)applyVIPEverywhere();
+}
+function collectWeak(){
+ const rows=[],seen={};
+ try{
+   Object.values(window.quizData||{}).forEach(cat=>{
+     const p=typeof window.getProgress==='function'?window.getProgress(cat.id):((window.state&&window.state.progressData)||{})[cat.id];
+     const histories=Array.isArray(p?.attemptHistory)?p.attemptHistory:[];
+     const sources=histories.length?histories:[p];
+     sources.forEach(at=>{
+       const ans=at?.answers||{};
+       cat.questions.forEach(q=>{
+         if(ans[q.id] && ans[q.id]!==q.correct){const k=cat.id+'::'+q.id;if(!seen[k]){seen[k]=1;rows.push({cat,q})}}
+       });
+     });
+   });
+ }catch(e){}
+ return rows;
+}
+function openWeakFixed(){
+ if(!localOwned('weakQuestionTrainerPurchased')){if(!buyPremium('weak'))return}
+ const rows=collectWeak(); const old=document.getElementById('weak-trainer-modal-v3');if(old)old.remove();
+ const modal=document.createElement('div');modal.id='weak-trainer-modal-v3';modal.className='premium-modal';document.body.appendChild(modal);
+ if(!rows.length){modal.innerHTML='<div class="premium-modal-box"><div class="premium-modal-head"><div><h2 class="text-xl font-extrabold">🎯 Weak Question Trainer</h2><p class="text-sm text-gray-500 mt-1">Complete quizzes and answer questions incorrectly to build your trainer.</p></div><button class="premium-close" data-close-weak>×</button></div><div class="weak-result"><div style="font-size:44px">📚</div><h3 class="text-lg font-extrabold mt-2">No weak questions yet</h3><p class="text-sm text-gray-500 mt-1">Your wrong answers will appear here after completing a quiz.</p></div></div>';return}
+ let i=0,score=0,answered=false;
+ function draw(){const row=rows[i],q=row.q;answered=false;modal.innerHTML=`<div class="premium-modal-box"><div class="premium-modal-head"><div><div class="text-xs font-bold text-blue-600">WEAK QUESTION TRAINER</div><h2 class="text-xl font-extrabold mt-1">${escapeHtml(row.cat.title)}</h2><p class="text-sm text-gray-500 mt-1">Question ${i+1} of ${rows.length} · Score ${score}</p></div><button class="premium-close" data-close-weak>×</button></div><div class="weak-q"><div class="font-bold leading-relaxed">${escapeHtml(q.text)}</div>${q.options.map(o=>`<button class="weak-option" data-wopt="${escapeHtml(o.id)}">${escapeHtml(o.text)}</button>`).join('')}<div id="wexp" class="hidden mt-3 rounded-lg bg-blue-50 text-blue-800 p-3 text-sm"></div></div><button class="weak-next" id="wnext" disabled>${i===rows.length-1?'Finish Trainer':'Next Question'}</button></div>`}
+ modal.addEventListener('click',function(e){if(e.target.closest('[data-close-weak]')){modal.remove();return}const o=e.target.closest('[data-wopt]');if(o&&!answered){answered=true;const q=rows[i].q,ok=o.dataset.wopt===q.correct;if(ok)score++;modal.querySelectorAll('.weak-option').forEach(b=>{b.disabled=true;if(b.dataset.wopt===q.correct)b.classList.add('correct');if(b===o&&!ok)b.classList.add('wrong')});const exp=modal.querySelector('#wexp');exp.classList.remove('hidden');exp.innerHTML='<b>'+(ok?'Correct!':'Incorrect.')+'</b> Correct answer: '+escapeHtml((q.options.find(x=>x.id===q.correct)||{}).text||'')+'<br>'+escapeHtml(q.explanation||'');modal.querySelector('#wnext').disabled=false}if(e.target.id==='wnext'&&answered){if(i<rows.length-1){i++;draw()}else{modal.querySelector('.premium-modal-box').innerHTML='<div class="weak-result"><div style="font-size:48px">🏆</div><h2 class="text-2xl font-extrabold mt-2">Trainer Complete</h2><p class="text-gray-500 mt-1">You scored <b>'+score+'/'+rows.length+'</b></p><p class="text-sm mt-3">Your original category results were not changed.</p><button class="weak-next" data-close-weak>Close</button>'}}});
+ draw();
+}
+document.addEventListener('click',function(e){const b=e.target.closest('[data-premium-buy]');if(!b)return;const kind=b.dataset.premiumBuy;if(kind==='vip'){if(!localOwned('vipProfileFramePurchased'))buyPremium('vip');else applyVIPEverywhere()}else if(kind==='weak'){if(localOwned('weakQuestionTrainerPurchased'))openWeakFixed();else if(buyPremium('weak'))openWeakFixed()}});
+
+/* ---------- Account-scoped restore ---------- */
+function restore(){
+ Promise.all([firebaseGet('batteryFeaturePurchased'),firebaseGet('vipProfileFramePurchased'),firebaseGet('weakQuestionTrainerPurchased')]).then(function(v){
+   if(v[0]===true||(v[0]&&v[0].purchased))setLocalOwned('batteryFeaturePurchased',true);
+   if(v[1]===true||(v[1]&&v[1].purchased))setLocalOwned('vipProfileFramePurchased',true);
+   if(v[2]===true||(v[2]&&v[2].purchased))setLocalOwned('weakQuestionTrainerPurchased',true);
+   renderBattery();renderPremiumFixed();if(localOwned('vipProfileFramePurchased'))applyVIPEverywhere();publishBattery();
+ }).catch(()=>{renderBattery();renderPremiumFixed();if(localOwned('vipProfileFramePurchased'))applyVIPEverywhere()});
+}
+setTimeout(restore,900);setInterval(function(){renderBattery();if(document.getElementById('rewards-panel')&&!document.getElementById('rewards-panel').hidden)renderPremiumFixed();if(localOwned('vipProfileFramePurchased'))applyVIPEverywhere()},1500);
+
+/* ---------- Publish this user's active cosmetics and render OTHER USERS' cosmetics ---------- */
+function activeCosmetics(){
+ const out={};['frames','badges','themes','effects'].forEach(t=>{const v=localStorage.getItem('activeCosmetic:'+t);if(v)out[t]=v});
+ return out;
+}
+function publishCosmetics(){const c=activeCosmetics();firebaseSet('cosmetics',c);firebaseSet('cosmeticsOwned',JSON.parse(localStorage.getItem('rewardOwned')||'[]')).catch(()=>{});}
+window.publishUserCosmetics=publishCosmetics;
+function addSocialCss(){if(document.getElementById('social-cosmetic-fix-css'))return;const st=document.createElement('style');st.id='social-cosmetic-fix-css';st.textContent='.premium-vip-frame{border:4px solid #f59e0b!important;border-radius:50%!important;box-shadow:0 0 0 3px rgba(245,158,11,.22),0 0 22px rgba(245,158,11,.35)!important;padding:2px!important}.leaderboard-social-avatar{position:relative}.social-vip-ring{border:3px solid #f59e0b!important;box-shadow:0 0 0 2px rgba(245,158,11,.2),0 0 12px rgba(245,158,11,.3)!important}.social-badge{margin-left:4px;font-size:15px;vertical-align:middle}.social-battery{font-size:11px;font-weight:800}';document.head.appendChild(st)}
+function badgeIcon(id){return ({badge_star:'⭐',badge_brain:'🧠',badge_bolt:'⚡',badge_crown:'👑'})[id]||''}
+function enhanceLeaderboard(){
+ addSocialCss();
+ document.querySelectorAll('.leaderboard-row').forEach(row=>{
+   const name=row.querySelector('.leaderboard-name'); if(!name||row.dataset.socialEnhanced==='1')return;
+   const uidVal=row.querySelector('[data-social-user-id]')?.dataset.socialUserId; if(!uidVal)return;
+ });
+}
+/* Merge account cosmetics into live leaderboard users so everyone can see equipped rewards. */
+function syncLeaderboardCosmetics(){
+ try{
+  const d=db(); if(!d||!d.ref)return;
+  d.ref('users').once('value').then(function(snap){
+   const all=snap.val()||{};
+   if(window.state&&Array.isArray(window.state.leaderboard)){
+    window.state.leaderboard=window.state.leaderboard.map(function(u){
+      const raw=all[u.id]||{};
+      const c=raw.cosmetics||{};
+      return Object.assign({},u,{cosmetics:c,batteryPercent:Number.isFinite(Number(raw.batteryPercent))?Math.round(Number(raw.batteryPercent)):u.batteryPercent});
+    });
+    if(window.state.currentScreen==='leaderboard'&&typeof window.render==='function')window.render();
+   }
+  }).catch(()=>{});
+ }catch(e){}
+}
+/* Patch rendered leaderboard from state data after every render. */
+function decorateRows(){
+ addSocialCss();
+ try{
+   (window.state?.leaderboard||[]).forEach(u=>{
+     const rows=[...document.querySelectorAll('.leaderboard-row')];
+     const row=rows.find(r=>r.querySelector('.leaderboard-name')?.textContent?.includes(u.name)); if(!row)return;
+     const av=row.querySelector('.leaderboard-avatar'); if(av && u.cosmetics?.frames==='frame_vip')av.classList.add('social-vip-ring');
+     const nm=row.querySelector('.leaderboard-name'); if(nm){nm.querySelectorAll('.social-badge').forEach(x=>x.remove());const icon=badgeIcon(u.cosmetics?.badges);if(icon){const sp=document.createElement('span');sp.className='social-badge';sp.textContent=icon;sp.title='Equipped badge';nm.appendChild(sp)}}
+   });
+ }catch(e){}
+}
+setTimeout(publishCosmetics,1200);setTimeout(syncLeaderboardCosmetics,1600);setInterval(()=>{publishCosmetics();syncLeaderboardCosmetics();decorateRows()},2500);
+})();
+</script>
+
 </body>
 </html>
