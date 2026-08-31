@@ -1879,6 +1879,31 @@ function scheduleFirebaseRetry() {
 
           const accuracy = attempted ? (correct / attempted) * 100 : 0;
 
+          // Find the category in which this user has the highest accuracy.
+          let bestCategory = null;
+          Object.entries(progress).forEach(([catId, p]) => {
+            if (!p || typeof p !== "object") return;
+
+            const cat = quizData[catId];
+            const answers = p.answers || {};
+            if (!cat || !Object.keys(answers).length) return;
+
+            const catAttempted = Object.keys(answers).length;
+            const catCorrect = cat.questions.filter(q => answers[q.id] === q.correct).length;
+            const catAccuracy = catAttempted ? (catCorrect / catAttempted) * 100 : 0;
+
+            if (!bestCategory ||
+                catAccuracy > bestCategory.accuracy ||
+                (catAccuracy === bestCategory.accuracy && catCorrect > bestCategory.correct)) {
+              bestCategory = {
+                title: cat.title,
+                accuracy: catAccuracy,
+                correct: catCorrect,
+                attempted: catAttempted
+              };
+            }
+          });
+
           return {
             id,
             name: profile.name || "Student",
@@ -1886,7 +1911,8 @@ function scheduleFirebaseRetry() {
             avatar: profile.avatar || "😀",
             attempted,
             correct,
-            accuracy
+            accuracy,
+            bestCategory
           };
         });
 
@@ -2259,7 +2285,7 @@ function scheduleFirebaseRetry() {
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 mobile-safe">
               <div>
                 <h1 class="text-2xl font-extrabold text-gray-900">Leaderboard</h1>
-                <p class="text-sm text-gray-500">Ranked by overall accuracy</p>
+                <p class="text-sm text-gray-500">Ranked by accuracy • Best category shown beside each user</p>
               </div>
               <div class="flex gap-2 mobile-toolbar">
                 <button onclick="goProfile()" class="btn btn-outline">
@@ -2301,6 +2327,12 @@ function scheduleFirebaseRetry() {
                         <i data-lucide="map-pin" class="w-3 h-3"></i>
                         ${escapeHTML(u.place || "Place not set")}
                       </p>
+                      ${u.bestCategory ? `
+                        <p class="text-[11px] text-blue-600 font-semibold truncate mt-0.5 flex items-center gap-1">
+                          <i data-lucide="award" class="w-3 h-3 shrink-0"></i>
+                          Best: ${escapeHTML(u.bestCategory.title)} (${u.bestCategory.accuracy.toFixed(1)}%)
+                        </p>
+                      ` : ''}
                     </div>
                     <div class="leaderboard-accuracy text-right mr-1 sm:mr-3 shrink-0">
                       <p class="font-extrabold ${u.accuracy >= 60 ? 'text-green-600' : u.accuracy >= 40 ? 'text-yellow-600' : 'text-red-600'}">
