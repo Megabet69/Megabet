@@ -2481,6 +2481,16 @@ function scheduleFirebaseRetry() {
       const reactions = ['👍','❤️','🔥','😂','👏'];
       return state.chatMessages.map(m => {
         const mine = m.senderId === getClientId();
+        const isChallenge = m.messageType === 'quiz-challenge';
+        if(isChallenge){
+          const status=m.challengeStatus||'pending';
+          const expired=status==='expired';
+          const accepted=status==='accepted';
+          const declined=status==='declined';
+          let statusText = accepted ? 'Challenge accepted — battle started!' : declined ? 'Challenge declined.' : expired ? 'Challenge expired after 5 minutes.' : (mine ? 'Waiting for opponent to accept...' : 'Challenge received — accept or decline.');
+          const action = (!mine && status==='pending') ? `<div class="grid grid-cols-2 gap-2 mt-3"><button type="button" onclick="acceptQuizChallenge('${escapeHTML(m.gameId||'')}','${escapeHTML(m.senderId||'')}')" class="btn btn-success">Accept ⚔️</button><button type="button" onclick="declineQuizChallenge('${escapeHTML(m.gameId||'')}','${escapeHTML(m.senderId||'')}')" class="btn btn-danger">Decline</button></div>` : '';
+          return `<div class="flex ${mine ? 'justify-end' : 'justify-start'}"><div class="max-w-[88%] w-full sm:w-auto px-4 py-3 rounded-2xl border ${status==='pending' ? 'bg-amber-50 border-amber-200' : status==='accepted' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}"><div class="font-extrabold text-gray-900">⚔️ Quiz Challenge</div><div class="text-xs text-gray-600 mt-1">${escapeHTML(m.categoryTitle||'Quiz')} • ${Number(m.rounds||5)} rounds</div><div class="text-sm font-semibold text-gray-700 mt-2">${escapeHTML(statusText)}</div>${action}<p class="text-[10px] mt-2 text-gray-400">${formatChatTime(m.createdAt)}</p></div></div>`;
+        }
         const reactionHtml = reactions.map(emoji => {
           const users = m.reactions?.[emoji] || {};
           const count = Object.keys(users).length;
@@ -2683,7 +2693,10 @@ function scheduleFirebaseRetry() {
         round: 1,
         questionIndex,
         questionId: cat.questions[questionIndex].id,
-        status: "active",
+        status: "pending",
+        expiresAt: Date.now() + 5 * 60 * 1000,
+        challengerName: state.profile?.name || "Player 1",
+        opponentName: state.chatUser?.name || "Player 2",
         scores: { [getClientId()]: 0, [opponentId]: 0 },
         roundWinner: null,
         roundKey: "1_" + cat.questions[questionIndex].id,
@@ -2694,10 +2707,44 @@ function scheduleFirebaseRetry() {
 
       try {
         await gameRef.set(game);
-        await chatRootWith(opponentId).child("gameInvite").set({ gameId: gameRef.key, from: getClientId(), createdAt: firebase.database.ServerValue.TIMESTAMP });
+        const challengeMessageRef = chatRootWith(opponentId).child("messages").push();
+        await challengeMessageRef.set({
+          senderId: getClientId(),
+          receiverId: opponentId,
+          messageType: "quiz-challenge",
+          gameId: gameRef.key,
+          text: `⚔️ Quiz Challenge sent — waiting for ${state.chatUser?.name || "opponent"} to accept.`,
+          categoryTitle: cat.title,
+          rounds,
+          challengeStatus: "pending",
+          expiresAt: game.expiresAt,
+          createdAt: firebase.database.ServerValue.TIMESTAMP,
+          read: false
+        });
+        const invite = {
+          gameId: gameRef.key,
+          from: getClientId(),
+          fromName: state.profile?.name || "Player 1",
+          categoryTitle: cat.title,
+          rounds,
+          messageId: challengeMessageRef.key,
+          expiresAt: game.expiresAt,
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        };
+        await chatRootWith(opponentId).child("gameInvite").set(invite);
+        await firebaseDB.ref("users/" + opponentId + "/notifications").push().set({
+          type: "quiz-challenge",
+          gameId: gameRef.key,
+          from: getClientId(),
+          name: state.profile?.name || "Player 1",
+          text: `${state.profile?.name || "Player 1"} challenged you to a ${cat.title} quiz battle (${rounds} rounds).`,
+          createdAt: firebase.database.ServerValue.TIMESTAMP,
+          read: false
+        });
         closeChallengeModal();
         state.chatGame = { id: gameRef.key, ...game };
         startChatGameListener(gameRef.key);
+        showToast("Challenge sent. Waiting for acceptance...", "success");
         render();
       } catch (error) {
         console.error("Quiz challenge creation failed:", error);
@@ -2820,6 +2867,19 @@ function scheduleFirebaseRetry() {
 
     function renderChatGame() {
       const g = state.chatGame;
+      if (g && g.status === "pending") {
+        document.body.classList.remove("battle-fullscreen-active");
+        return `<div class="bg-white border border-amber-200 rounded-2xl p-4 shadow-sm">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center text-xl">⏳</div>
+            <div class="min-w-0 flex-1"><p class="text-xs font-bold text-amber-600 uppercase">Challenge Pending</p><p class="font-extrabold text-gray-900">Waiting for ${escapeHTML(g.opponentName || "opponent")} to accept...</p><p class="text-xs text-gray-500 mt-1">${escapeHTML(g.categoryTitle || "Quiz")} • ${Number(g.totalRounds || 5)} rounds</p></div>
+          </div>
+        </div>`;
+      }
+      if (g && g.status === "declined") {
+        document.body.classList.remove("battle-fullscreen-active");
+        return `<div class="bg-white border border-red-200 rounded-2xl p-4 shadow-sm"><p class="font-extrabold text-red-600">Challenge declined</p><p class="text-sm text-gray-500 mt-1">The other player declined this quiz challenge.</p></div>`;
+      }
       if (!g) {
         document.body.classList.remove("battle-fullscreen-active");
         const existing = document.getElementById("chat-game-area");
@@ -5565,6 +5625,200 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
   bind();
   new MutationObserver(bind).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+<script id="quiz-challenge-notification-system">
+(function(){
+  let inviteListener = null;
+  let notificationListener = null;
+  let handledInvites = {};
+  let challengeModal = null;
+
+  function esc(v){
+    return typeof escapeHTML === 'function' ? escapeHTML(String(v ?? '')) : String(v ?? '').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  }
+
+  function removeChallengePopup(){
+    document.getElementById('incoming-quiz-challenge')?.remove();
+    challengeModal = null;
+  }
+
+  async function acceptChallenge(gameId, opponentId){
+    if(!gameId || !opponentId) return;
+    const ref = firebaseDB.ref('quizGames/' + gameId);
+    try{
+      const snap = await ref.once('value');
+      const g = snap.val();
+      if(!g || g.status !== 'pending' || g.opponentId !== getClientId()) return;
+      await ref.update({
+        status:'active',
+        acceptedAt: firebase.database.ServerValue.TIMESTAMP,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+      const challengeChatId = g.opponentId === getClientId() ? g.challengerId : g.opponentId;
+      const challengeMsgSnap = await chatRootWith(challengeChatId).child('messages').orderByChild('gameId').equalTo(gameId).once('value');
+      const challengeMsgUpdates = {};
+      challengeMsgSnap.forEach(child => { challengeMsgUpdates[child.key + '/challengeStatus'] = 'accepted'; challengeMsgUpdates[child.key + '/text'] = `⚔️ Quiz Challenge accepted — battle started!`; });
+      if(Object.keys(challengeMsgUpdates).length) await chatRootWith(challengeChatId).child('messages').update(challengeMsgUpdates);
+      await chatRootWith(opponentId).child('gameInvite').remove();
+      await firebaseDB.ref('users/' + opponentId + '/notifications').push().set({
+        type:'quiz-challenge-accepted', gameId, from:getClientId(),
+        name:state.profile?.name || 'Player 2',
+        text:`${state.profile?.name || 'Player 2'} accepted your quiz challenge.`,
+        createdAt:firebase.database.ServerValue.TIMESTAMP, read:false
+      });
+      removeChallengePopup();
+      state.chatUser = state.chatUser || {id:opponentId,name:g.challengerName||'Opponent',place:'',avatar:'😀'};
+      state.chatGame = {id:gameId,...g,status:'active'};
+      startChatGameListener(gameId);
+      showToast('Challenge accepted. Battle started!', 'success');
+      if(state.currentScreen !== 'chat'){
+        state.currentScreen='chat';
+        render();
+      } else render();
+    }catch(e){
+      console.error('Accept challenge failed:',e);
+      showToast('Could not accept the challenge.', 'error');
+    }
+  }
+
+  async function declineChallenge(gameId, opponentId){
+    if(!gameId || !opponentId) return;
+    try{
+      const ref=firebaseDB.ref('quizGames/' + gameId);
+      const snap=await ref.once('value');
+      const g=snap.val();
+      if(g && g.status==='pending' && g.opponentId===getClientId()){
+        await ref.update({status:'declined',declinedBy:getClientId(),updatedAt:firebase.database.ServerValue.TIMESTAMP});
+      }
+      const declineSnap = await chatRootWith(opponentId).child('messages').orderByChild('gameId').equalTo(gameId).once('value');
+      const declineUpdates = {};
+      declineSnap.forEach(child => { declineUpdates[child.key + '/challengeStatus'] = 'declined'; declineUpdates[child.key + '/text'] = `⚔️ Quiz Challenge declined by ${state.profile?.name || 'the opponent'}.`; });
+      if(Object.keys(declineUpdates).length) await chatRootWith(opponentId).child('messages').update(declineUpdates);
+      await chatRootWith(opponentId).child('gameInvite').remove();
+      await firebaseDB.ref('users/' + opponentId + '/notifications').push().set({
+        type:'quiz-challenge-declined', gameId, from:getClientId(),
+        name:state.profile?.name || 'Player 2',
+        text:`${state.profile?.name || 'Player 2'} declined your quiz challenge.`,
+        createdAt:firebase.database.ServerValue.TIMESTAMP, read:false
+      });
+      removeChallengePopup();
+      showToast('Challenge declined.');
+    }catch(e){
+      console.error('Decline challenge failed:',e);
+      showToast('Could not decline the challenge.', 'error');
+    }
+  }
+
+  async function expirePendingChallenge(gameId){
+    if(!gameId) return;
+    try{
+      const ref=firebaseDB.ref('quizGames/' + gameId);
+      const snap=await ref.once('value');
+      const g=snap.val();
+      if(!g || g.status!=='pending' || Number(g.expiresAt||0) > Date.now()) return;
+      await ref.update({status:'expired',expiredAt:firebase.database.ServerValue.TIMESTAMP,updatedAt:firebase.database.ServerValue.TIMESTAMP});
+      const otherId = g.opponentId === getClientId() ? g.challengerId : g.opponentId;
+      const msgSnap = await chatRootWith(otherId).child('messages').orderByChild('gameId').equalTo(gameId).once('value');
+      const updates={};
+      msgSnap.forEach(child=>{updates[child.key+'/challengeStatus']='expired';updates[child.key+'/text']='⚔️ Quiz Challenge expired — no acceptance within 5 minutes.';});
+      if(Object.keys(updates).length) await chatRootWith(otherId).child('messages').update(updates);
+      await chatRootWith(otherId).child('gameInvite').remove();
+      if(otherId) await firebaseDB.ref('users/'+otherId+'/notifications').push().set({type:'quiz-challenge-expired',gameId,from:getClientId(),text:'Quiz challenge expired after 5 minutes.',createdAt:firebase.database.ServerValue.TIMESTAMP,read:false});
+      removeChallengePopup();
+      if(state.chatGame?.id===gameId){ state.chatGame={...g,status:'expired'}; if(state.currentScreen==='chat') render(); }
+    }catch(e){ console.error('Challenge expiry failed:',e); }
+  }
+
+  function scheduleChallengeExpiry(gameId, expiresAt){
+    const delay=Math.max(0, Number(expiresAt||0)-Date.now());
+    setTimeout(()=>expirePendingChallenge(gameId), delay);
+  }
+
+  function watchPendingChallenges(){
+    firebaseDB.ref('quizGames').on('value', snap=>{
+      const games=snap.val()||{};
+      Object.entries(games).forEach(([id,g])=>{
+        if(g && g.status==='pending' && (g.challengerId===getClientId() || g.opponentId===getClientId())) scheduleChallengeExpiry(id,g.expiresAt);
+      });
+    });
+  }
+
+  function showIncomingChallenge(invite){
+    if(!invite?.gameId || invite.from===getClientId()) return;
+    if(handledInvites[invite.gameId]) return;
+    handledInvites[invite.gameId]=true;
+    removeChallengePopup();
+    const modal=document.createElement('div');
+    modal.id='incoming-quiz-challenge';
+    modal.className='fixed inset-0 z-[500] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4';
+    modal.innerHTML=`
+      <div class="bg-white dark:bg-gray-900 w-full max-w-md rounded-2xl shadow-2xl p-6 border border-indigo-100 dark:border-gray-700">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-2xl">⚔️</div>
+          <div class="min-w-0"><p class="text-xs font-bold text-indigo-600 uppercase">New Challenge</p><h3 class="text-xl font-extrabold text-gray-900 dark:text-white truncate">${esc(invite.fromName||'A player')}</h3></div>
+        </div>
+        <p class="text-gray-600 dark:text-gray-300 mb-2">You have received a quiz battle challenge.</p>
+        <div class="rounded-xl bg-indigo-50 dark:bg-gray-800 p-3 mb-5 text-sm">
+          <div><b>Category:</b> ${esc(invite.categoryTitle||'Quiz')}</div>
+          <div class="mt-1"><b>Rounds:</b> ${esc(invite.rounds||5)}</div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" id="decline-incoming-challenge" class="btn btn-danger">Decline</button>
+          <button type="button" id="accept-incoming-challenge" class="btn btn-success">Accept ⚔️</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#accept-incoming-challenge').onclick=()=>acceptChallenge(invite.gameId,invite.from);
+    modal.querySelector('#decline-incoming-challenge').onclick=()=>declineChallenge(invite.gameId,invite.from);
+    challengeModal=modal;
+    if(window.lucide) lucide.createIcons();
+  }
+
+  function watchIncomingInvite(){
+    if(!window.firebaseDB || !window.getClientId || !window.chatRootWith) return;
+    // Scan all chats because the challenge invite is stored in the shared chat node.
+    if(inviteListener) firebaseDB.ref('chats').off('value',inviteListener);
+    inviteListener=snapshot=>{
+      const chats=snapshot.val()||{};
+      const me=getClientId();
+      Object.values(chats).forEach(chat=>{
+        if(!chat?.gameInvite || chat.gameInvite.from===me) return;
+        showIncomingChallenge(chat.gameInvite);
+      });
+    };
+    firebaseDB.ref('chats').on('value',inviteListener);
+  }
+
+  function watchNotifications(){
+    if(notificationListener) firebaseDB.ref('users/'+getClientId()+'/notifications').off('value',notificationListener);
+    notificationListener=snap=>{
+      const data=snap.val()||{};
+      Object.entries(data).forEach(([id,n])=>{
+        if(!n || n.read || n.type!=='quiz-challenge') return;
+        firebaseDB.ref('users/'+getClientId()+'/notifications/'+id+'/read').set(true).catch(()=>{});
+      });
+    };
+    firebaseDB.ref('users/'+getClientId()+'/notifications').on('value',notificationListener);
+  }
+
+  // The app has no Firebase Auth, so wait until the stable client id exists.
+  let started=false;
+  const boot=setInterval(()=>{
+    try{
+      if(typeof getClientId==='function' && window.firebaseDB && !started){
+        started=true;
+        watchIncomingInvite();
+        watchNotifications();
+        watchPendingChallenges();
+        clearInterval(boot);
+      }
+    }catch(e){}
+  },300);
+
+  window.acceptQuizChallenge=acceptChallenge;
+  window.declineQuizChallenge=declineChallenge;
 })();
 </script>
 
