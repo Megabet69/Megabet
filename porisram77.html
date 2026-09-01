@@ -649,6 +649,32 @@ html.dark .weak-trainer-card{background:#172033;border-color:#334155}.html.dark 
     </div>
   </header>
 
+  
+<style id="mobile-header-no-overlap">
+#header-profile{min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;}
+.header-user-info{min-width:0;max-width:100%;white-space:nowrap;}
+.header-user-name,.header-user-place{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.header-user-name{max-width:150px;}
+.header-user-place{max-width:110px;}
+.header-coin{flex:0 0 auto;white-space:nowrap;}
+@media(max-width:640px){
+  header .max-w-5xl{height:auto!important;min-height:64px;padding-top:8px;padding-bottom:8px;align-items:center;}
+  header .max-w-5xl>div:last-child{min-width:0;flex:1;justify-content:flex-end;gap:6px;}
+  #firebase-status{display:none!important;}
+  #header-profile{flex:0 1 auto;max-width:calc(100vw - 58px);gap:5px;}
+  .header-user-info{padding:5px 7px!important;gap:5px!important;font-size:12px!important;border-radius:10px!important;max-width:100%;}
+  .header-user-icon,.header-place-icon,.header-divider,.header-place-divider,.header-user-place{display:none!important;}
+  .header-user-name{max-width:calc(100vw - 145px);}
+  .header-coin{padding:4px 7px!important;font-size:11px!important;gap:3px!important;}
+  #theme-toggle{flex:0 0 40px;width:40px;height:40px;}
+  #header-profile .btn{font-size:11px!important;padding:6px 8px!important;min-height:36px;white-space:nowrap;}
+}
+@media(max-width:380px){
+  .header-user-name{max-width:90px;}
+  #header-profile .btn{display:none!important;}
+}
+</style>
+
   <!-- Main App Container -->
   <main id="app-root" class="max-w-5xl mx-auto p-4 md:p-6 pb-20 w-full flex-grow"></main>
 
@@ -1892,12 +1918,12 @@ function scheduleFirebaseRetry() {
     function updateHeader() {
       if (state.profile) {
         headerProfileEl.innerHTML = `
-          <div class="hidden sm:flex items-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
-            <i data-lucide="user" class="text-blue-500 w-3.5 h-3.5"></i><span class="font-medium text-gray-800">${escapeHtml(state.profile.name)}</span>
-            <span class="text-gray-300">|</span>
-            <i data-lucide="map-pin" class="text-red-500 w-3.5 h-3.5"></i>${escapeHtml(state.profile.place)}
-            <span class="text-gray-300">|</span>
-            <span id="header-coin-balance" class="inline-flex items-center gap-1 font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full" title="Your coins">${window.coinSystem && typeof window.coinSystem.balance === 'function' ? window.coinSystem.balance() : 0} 🪙</span>
+          <div class="header-user-info flex items-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
+            <i data-lucide="user" class="text-blue-500 w-3.5 h-3.5 header-user-icon"></i><span class="font-medium text-gray-800 header-user-name">${escapeHtml(state.profile.name)}</span>
+            <span class="text-gray-300 header-divider">|</span>
+            <i data-lucide="map-pin" class="text-red-500 w-3.5 h-3.5 header-place-icon"></i><span class="header-user-place">${escapeHtml(state.profile.place)}</span>
+            <span class="text-gray-300 header-divider header-place-divider">|</span>
+            <span id="header-coin-balance" class="inline-flex items-center gap-1 font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full header-coin" title="Your coins">${window.coinSystem && typeof window.coinSystem.balance === 'function' ? window.coinSystem.balance() : 0} 🪙</span>
           </div>
           ${state.currentScreen !== 'dashboard' ? `<button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="goDashboard()">Dashboard</button>` : ''}
           ${state.currentScreen !== 'profile' && state.currentScreen !== 'welcome' && state.currentScreen !== 'loading' ? `<button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="showProfile()"><i data-lucide="user" class="w-4 h-4"></i> Profile</button>` : ''}`;
