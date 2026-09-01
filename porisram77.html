@@ -42,6 +42,8 @@
     .mobile-safe { min-width: 0; }
     .leaderboard-row { min-width: 0; }
     .leaderboard-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .leaderboard-bio { max-width: 100%; }
+    .leaderboard-bio span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     /* Full-screen Quiz Battle: large, thumb-friendly controls */
     body.battle-fullscreen-active { overflow: hidden !important; }
     body.battle-fullscreen-active #chat-game-area {
@@ -590,6 +592,26 @@ html.dark .reward-chat-neon{background:#2e1065!important}
 </style>
 
 
+
+
+<style id="mystery-reward-ui-css">
+.mystery-reward-card{margin:14px 0 18px;padding:16px;border:1px solid #e5e7eb;border-radius:16px;background:linear-gradient(135deg,#faf5ff,#fff);display:flex;gap:13px;align-items:center;box-sizing:border-box}
+.mystery-reward-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#f3e8ff;font-size:26px;flex:0 0 auto}
+.mystery-reward-content{min-width:0;flex:1}
+.mystery-reward-title{font-weight:900;font-size:17px;color:#111827}
+.mystery-reward-desc{font-size:12px;color:#64748b;margin-top:3px;line-height:1.4}
+.mystery-reward-btn{margin-top:10px;border:0;border-radius:10px;padding:10px 15px;background:#111827;color:#fff;font-weight:900;cursor:pointer}
+.mystery-reward-btn:disabled{opacity:.5;cursor:not-allowed}
+.mystery-reward-status{min-height:18px;margin-top:7px;font-size:13px;font-weight:800;color:#15803d}
+.mystery-reward-status.error{color:#dc2626}
+.mystery-reward-status.rolling{color:#7c3aed}
+html.dark .mystery-reward-card{background:linear-gradient(135deg,#1e1b2e,#1f2937);border-color:#374151}
+html.dark .mystery-reward-title{color:#f8fafc}
+html.dark .mystery-reward-desc{color:#94a3b8}
+html.dark .mystery-reward-icon{background:#312e81}
+html.dark .mystery-reward-btn{background:#f8fafc;color:#111827}
+@media(max-width:640px){.mystery-reward-card{align-items:flex-start}.mystery-reward-btn{width:100%}}
+</style>
 
 <style id="weak-trainer-free-ui">
 .weak-trainer-card{max-width:900px;margin:14px auto 16px;padding:16px;border:1px solid #dbeafe;border-radius:16px;background:linear-gradient(135deg,#eff6ff,#f8fafc);display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"icon copy button" "icon copy status";gap:4px 12px;align-items:center;box-sizing:border-box}
@@ -3158,6 +3180,7 @@ function scheduleFirebaseRetry() {
         });
         return {
           id, name: profile.name || "Student", place: profile.place || "Place not set",
+          bio: String(profile.bio || "").trim(),
           avatar: profile.avatar || "😀", attempted, correct,
           accuracy: attempted ? (correct / attempted) * 100 : 0, bestCategory,
           batteryPercent: Number.isFinite(Number(data?.batteryPercent)) ? Math.round(Number(data.batteryPercent)) : null,
@@ -4090,6 +4113,12 @@ function scheduleFirebaseRetry() {
                         <i data-lucide="map-pin" class="w-3 h-3"></i>
                         ${escapeHTML(u.place || "Place not set")}
                       </p>
+                      ${u.bio ? `
+                        <p class="leaderboard-bio text-[11px] text-gray-500 mt-0.5 truncate flex items-center gap-1" title="${escapeHTML(u.bio)}">
+                          <i data-lucide="user-round" class="w-3 h-3 shrink-0"></i>
+                          <span>${escapeHTML(u.bio)}</span>
+                        </p>
+                      ` : ''}
                       ${u.bestCategory ? `
                         <p class="text-[11px] text-blue-600 font-semibold truncate mt-0.5 flex items-center gap-1">
                           <i data-lucide="award" class="w-3 h-3 shrink-0"></i>
@@ -4393,6 +4422,17 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
   
 
+
+
+<div id="mystery-reward-card" class="mystery-reward-card">
+  <div class="mystery-reward-icon">🎰</div>
+  <div class="mystery-reward-content">
+    <div class="mystery-reward-title">Mystery Reward</div>
+    <div class="mystery-reward-desc">Open a mystery box for a chance to win up to 500 🪙.</div>
+    <button type="button" id="mystery-reward-btn" class="mystery-reward-btn">Open Mystery Box — 50 🪙</button>
+    <div id="mystery-reward-status" class="mystery-reward-status" aria-live="polite"></div>
+  </div>
+</div>
 
 <div id="weak-question-trainer-free" class="weak-trainer-card">
   <div class="weak-trainer-icon">🎯</div>
@@ -7473,5 +7513,155 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
 })();
 </script>
+
+<script id="mystery-reward-system-v1">
+(function(){
+  if(window.__mysteryRewardStarted) return;
+  window.__mysteryRewardStarted = true;
+
+  const COST = 50;
+  const OUTCOMES = [
+    {coins:0,   weight:30},
+    {coins:50,  weight:25},
+    {coins:51,  weight:12},
+    {coins:60,  weight:10},
+    {coins:78,  weight:8},
+    {coins:90,  weight:6},
+    {coins:100, weight:5},
+    {coins:250, weight:3},
+    {coins:500, weight:1}
+  ];
+
+  function uid(){
+    try{
+      if(typeof window.getClientId==='function') return String(window.getClientId()||'');
+      if(window.currentUser && window.currentUser.uid) return String(window.currentUser.uid);
+      return String(localStorage.getItem('porisram_firebase_user_id')||localStorage.getItem('userId')||'');
+    }catch(e){return '';}
+  }
+  function db(){ return window.firebaseDB || window.db || null; }
+
+  function getBalance(){
+    try{
+      if(window.coinSystem && typeof window.coinSystem.balance==='function')
+        return Math.max(0,Math.floor(Number(window.coinSystem.balance())||0));
+      return Math.max(0,Math.floor(Number(localStorage.getItem('rewardCoins')||0)));
+    }catch(e){return 0;}
+  }
+
+  function setBalance(n){
+    n=Math.max(0,Math.floor(Number(n)||0));
+    try{localStorage.setItem('rewardCoins',String(n));}catch(e){}
+    try{
+      if(window.coinSystem && typeof window.coinSystem.refresh==='function'){
+        window.coinSystem.refresh(n);
+      }else{
+        document.querySelectorAll('#coin-balance,#header-coin-balance,.coin-balance,#coinBalance,[data-coins],.coins')
+          .forEach(function(el){el.textContent=n.toLocaleString()+' 🪙';});
+      }
+    }catch(e){}
+    return n;
+  }
+
+  function addHistory(amount, reason, key){
+    try{
+      const k='coinHistory';
+      const h=JSON.parse(localStorage.getItem(k)||'[]');
+      if(!Array.isArray(h)) return;
+      if(key && h.some(x=>x && x.key===key)) return;
+      h.push({key:key||null,amount:Number(amount)||0,reason:reason||'Mystery Reward',at:Date.now()});
+      localStorage.setItem(k,JSON.stringify(h.slice(-200)));
+    }catch(e){}
+    try{
+      const d=db(), id=uid();
+      if(d && d.ref && id){
+        d.ref('users/'+id+'/coinHistory').push({
+          amount:Number(amount)||0,
+          reason:reason||'Mystery Reward',
+          key:key||null,
+          at:Date.now()
+        }).catch(function(){});
+      }
+    }catch(e){}
+  }
+
+  function chooseOutcome(){
+    const total=OUTCOMES.reduce((s,x)=>s+x.weight,0);
+    let r=Math.random()*total;
+    for(const x of OUTCOMES){
+      r-=x.weight;
+      if(r<0) return x.coins;
+    }
+    return OUTCOMES[0].coins;
+  }
+
+  function setStatus(msg, type){
+    const el=document.getElementById('mystery-reward-status');
+    if(!el)return;
+    el.textContent=msg||'';
+    el.className='mystery-reward-status '+(type||'');
+  }
+
+  function updateButton(){
+    const btn=document.getElementById('mystery-reward-btn');
+    if(!btn)return;
+    const n=getBalance();
+    btn.disabled=n<COST;
+    btn.textContent=n>=COST?'Open Mystery Box — 50 🪙':'Need 50 🪙 to open';
+  }
+
+  function init(){
+    const btn=document.getElementById('mystery-reward-btn');
+    if(!btn || btn.dataset.bound==='1') return;
+    btn.dataset.bound='1';
+    updateButton();
+
+    btn.addEventListener('click',function(){
+      if(btn.dataset.opening==='1') return;
+
+      const before=getBalance();
+      if(before<COST){
+        setStatus('You need 50 🪙 to open the mystery box.','error');
+        updateButton();
+        return;
+      }
+
+      btn.dataset.opening='1';
+      btn.disabled=true;
+      setStatus('🎁 Opening mystery box…','rolling');
+
+      // Deduct the 50-coin entry cost first.
+      setBalance(before-COST);
+
+      // Small reveal delay for a clear, reliable result.
+      setTimeout(function(){
+        const reward=chooseOutcome();
+        const finalBalance=getBalance()+reward;
+        setBalance(finalBalance);
+
+        const key='mystery:'+uid()+':'+Date.now()+':'+Math.random().toString(36).slice(2);
+        addHistory(-COST,'Mystery Box opened',key+':cost');
+        if(reward>0) addHistory(reward,'Mystery Reward: +'+reward+' 🪙',key+':reward');
+
+        if(reward===0){
+          setStatus('😯 Mystery Box: 0 🪙 — better luck next time!');
+        }else{
+          setStatus('🎉 Mystery Box reward: +'+reward.toLocaleString()+' 🪙');
+        }
+
+        btn.dataset.opening='0';
+        updateButton();
+      },850);
+    });
+  }
+
+  init();
+  setInterval(function(){
+    init();
+    updateButton();
+  },500);
+})();
+</script>
+
 </body>
 </html>
