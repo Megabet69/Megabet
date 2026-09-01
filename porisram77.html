@@ -1326,6 +1326,11 @@ html.dark .weak-trainer-card{background:#172033;border-color:#334155}.html.dark 
       return clientId;
     }
 
+    // Expose the already-initialized Firebase database and stable client ID
+    // to feature modules that are loaded in separate script scopes.
+    try { window.firebaseDB = firebaseDB; } catch (e) {}
+    try { window.getClientId = getClientId; } catch (e) {}
+
     function userRoot() {
       return firebaseDB.ref("users/" + getClientId());
     }
@@ -5919,12 +5924,28 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
   function uid(){
     try{
-      if(typeof window.getClientId==='function') return window.getClientId();
-      if(window.currentUser) return window.currentUser.uid||window.currentUser;
+      if(window.currentUser && window.currentUser.uid) return window.currentUser.uid;
+      if(typeof window.getClientId==='function'){
+        const id=window.getClientId();
+        if(id) return id;
+      }
       return localStorage.getItem('porisram_firebase_user_id')||localStorage.getItem('userId')||'';
-    }catch(e){return '';}
+    }catch(e){
+      try{return localStorage.getItem('porisram_firebase_user_id')||localStorage.getItem('userId')||'';}
+      catch(x){return '';}
+    }
   }
-  function db(){try{return window.firebaseDB||window.db||null;}catch(e){return null;}}
+  function db(){
+    try{
+      if(window.firebaseDB && typeof window.firebaseDB.ref==='function') return window.firebaseDB;
+      if(window.db && typeof window.db.ref==='function') return window.db;
+      if(window.firebase && typeof window.firebase.database==='function'){
+        try{return window.firebase.database();}
+        catch(e){}
+      }
+    }catch(e){}
+    return null;
+  }
 
   function coins(){
     try{
@@ -6000,31 +6021,71 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   }
 
   async function click(){
+    // If already purchased, never charge again.
     if(await owned()){start();return;}
-    const balance=coins();
-    if(balance<PRICE){
-      toast('You need '+(PRICE-balance)+' more 🪙 to buy All Govt Exam.','error');
-      return;
-    }
+
     const id=uid(),d=db();
     if(!id||!d||!d.ref){
       toast('Please wait for Firebase to connect, then try again.','error');
       return;
     }
+
     try{
-      await d.ref('users/'+id+'/features/'+FEATURE).set(true);
-      await d.ref('users/'+id+'/features/allGovtExamPurchasedAt').set(Date.now());
-      await d.ref('users/'+id+'/coins').set(balance-PRICE);
-      setCoins(balance-PRICE);
+      // IMPORTANT: use the authoritative Firebase coin balance, not a stale
+      // localStorage balance. This fixes purchases failing even when the user
+      // visibly has 1000+ coins.
+      const coinRef=d.ref('users/'+id+'/coins');
+      const coinSnap=await coinRef.once('value');
+      const firebaseBalance=Math.max(0,Number(coinSnap.val())||0);
+
+      if(firebaseBalance<PRICE){
+        toast('You need '+(PRICE-firebaseBalance)+' more 🪙 to buy All Govt Exam.','error');
+        return;
+      }
+
+      // Atomically reserve/deduct exactly 1000 coins. If another tab/device
+      // spends coins at the same time, the transaction re-checks the balance.
+      const tx=await coinRef.transaction(function(current){
+        const balance=Math.max(0,Number(current)||0);
+        if(balance<PRICE)return; // abort transaction
+        return balance-PRICE;
+      });
+
+      if(!tx.committed){
+        const latest=Math.max(0,Number(tx.snapshot&&tx.snapshot.val())||0);
+        toast('Your coin balance changed. You now have '+latest+' 🪙. Please try again.','error');
+        if(window.coinSystem&&typeof window.coinSystem.refresh==='function')
+          window.coinSystem.refresh(latest);
+        return;
+      }
+
+      const newBalance=Math.max(0,Number(tx.snapshot.val())||0);
+
+      // Unlock only after the coin transaction succeeds.
+      try{
+        await d.ref('users/'+id+'/features/'+FEATURE).set(true);
+        await d.ref('users/'+id+'/features/allGovtExamPurchasedAt').set(Date.now());
+      }catch(featureError){
+        // Refund the exact 1000 coins if unlocking failed.
+        await coinRef.transaction(function(current){
+          return Math.max(0,Number(current)||0)+PRICE;
+        });
+        throw featureError;
+      }
+
+      // Keep every coin display in sync with Firebase.
+      setCoins(newBalance);
+      if(window.coinSystem&&typeof window.coinSystem.refresh==='function')
+        window.coinSystem.refresh(newBalance);
+
       toast('All Govt Exam unlocked for 1000 🪙!','success');
-      render();
+      await render();
       start();
     }catch(e){
-      console.error(e);
-      toast('Purchase failed. No coins were deducted.','error');
+      console.error('All Govt Exam purchase failed:',e);
+      toast('Purchase failed. Your coins were not charged.','error');
     }
   }
-
   async function render(){
     const card=document.getElementById('all-govt-exam-category');
     if(!card)return;
@@ -6302,6 +6363,13 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   }
   clean();
   new MutationObserver(clean).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="all-govt-purchase-sync-fix">
+(function(){
+  window.__allGovtPurchaseInProgress=false;
 })();
 </script>
 
