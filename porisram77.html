@@ -391,6 +391,7 @@ html.dark .rewards-nav-btn{background:#1f2937;color:#f8fafc;border-color:#475569
   .rewards-nav{display:flex;margin:10px 0 0;width:100%;gap:8px}
   .rewards-nav-btn{flex:1;justify-content:center;min-height:42px}
 }
+.reattempt-fee-badge{font-size:.68rem;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;flex-shrink:0;margin-left:.15rem}
 </style>
 
 </style>
@@ -1850,55 +1851,144 @@ function scheduleFirebaseRetry() {
       saveLocalCache();
       render();
 
-      state.timerInterval = setInterval(() => {
-        state.quiz.timeSpent++;
+      // Reliable quiz timer: elapsed time starts immediately and is updated
+      // without re-rendering the whole question every second.
+      if (state.timerInterval) clearInterval(state.timerInterval);
+      state.quiz.timerStartedAt = Date.now() - (Number(state.quiz.timeSpent) || 0) * 1000;
+
+      const updateQuizTimer = () => {
+        if (state.currentScreen !== 'quiz') {
+          if (state.timerInterval) clearInterval(state.timerInterval);
+          state.timerInterval = null;
+          return;
+        }
+
+        state.quiz.timeSpent = Math.max(
+          0,
+          Math.floor((Date.now() - state.quiz.timerStartedAt) / 1000)
+        );
+
         const display = document.getElementById('timer-display');
-        if (display) display.innerHTML = `<i data-lucide="clock" class="text-blue-500 w-4 h-4 mr-2"></i> ${formatTime(state.quiz.timeSpent)}`;
-        if (display) lucide.createIcons();
-      }, 1000);
+        if (display) {
+          display.textContent = formatTime(state.quiz.timeSpent);
+        }
+      };
+
+      updateQuizTimer();
+      state.timerInterval = setInterval(updateQuizTimer, 250);
     };
 
     window.reattemptQuiz = (categoryId) => {
-      const cat = quizData[categoryId];
-      if (!cat) return;
+      const COST = 20;
+
+      // Validate category first so coins are never charged for an invalid test.
+      const cat = quizData && quizData[categoryId];
+      if (!cat || !Array.isArray(cat.questions) || !cat.questions.length) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('This test is not available right now.', 'error');
+        }
+        return;
+      }
+
+      if (!window.coinSystem ||
+          typeof window.coinSystem.balance !== 'function' ||
+          typeof window.coinSystem.award !== 'function') {
+        if (typeof window.showToast === 'function') {
+          
+        }
+        return;
+      }
+
+      const balance = Number(window.coinSystem.balance());
+      if (!Number.isFinite(balance) || balance < COST) {
+        if (typeof window.showToast === 'function') {
+          
+        }
+        return;
+      }
+
+      // Charge exactly once.
+      let charged = false;
+      try {
+        const result = Number(window.coinSystem.award(
+          -COST,
+          'Re-attempt fee',
+          'reattempt:' + String(categoryId) + ':' + String(Date.now()) + ':' + Math.random().toString(36).slice(2)
+        ));
+        charged = result === -COST;
+      } catch (e) {
+        console.error('Re-attempt charge failed:', e);
+      }
+
+      if (!charged) {
+        if (typeof window.showToast === 'function') {
+          
+        }
+        return;
+      }
+
+      // Stop any old quiz timer and discard only the completed attempt's
+      // answer state. A completely fresh attempt starts immediately.
       if (state.timerInterval) clearInterval(state.timerInterval);
-      const previous = getProgress(categoryId) || {};
-      const history = Array.isArray(previous.attemptHistory) ? previous.attemptHistory : [];
+      state.timerInterval = null;
       state.activeCategory = categoryId;
 
-      // Every Super10 re-attempt gets a new random selection and order.
+      const previous = getProgress(categoryId) || {};
+      const history = Array.isArray(previous.attemptHistory) ? previous.attemptHistory : [];
+
+      // Super10 gets a fresh random set on every re-attempt.
       if (categoryId === 'super10') {
         quizData.super10.questions = buildSuper10Questions();
       }
+
       const activeCat = quizData[categoryId];
-      state.quiz.answers = {};
-      state.quiz.timeSpent = 0;
-      state.quiz.timeByQuestion = {};
-      state.quiz.currentIndex = 0;
-      state.quiz.questionStartedAt = null;
+      if (!activeCat || !Array.isArray(activeCat.questions) || !activeCat.questions.length) {
+        // This should not happen after validation; restore the fee if it does.
+        try {
+          window.coinSystem.award(COST, 'Re-attempt rollback', 'reattempt-rollback:' + Date.now());
+        } catch (e) {}
+        if (typeof window.showToast === 'function') {
+          
+        }
+        return;
+      }
+
+      state.quiz = {
+        answers: {},
+        currentIndex: 0,
+        timeSpent: 0,
+        timeByQuestion: {},
+        questionSet: activeCat.questions.map(q => ({...q})),
+        attemptStartedAt: Date.now(),
+        status: 'in-progress',
+        attemptNo: history.length + 1,
+        super10PendingRewards: {},
+        pendingCoinRewards: {}
+      };
+
       state.progressData[categoryId] = {
         ...previous,
-        answers:{},
-        currentQuestionIndex:0,
-        timeSpent:0,
-        timeByQuestion:{},
-        attemptHistory:history,
-        status:'in-progress',
-        ...(categoryId === 'super10' ? {questionSet: activeCat.questions.map(q => ({...q}))} : {}),
-        lastUpdated:new Date().toISOString()
+        status: 'in-progress',
+        answers: {},
+        currentQuestionIndex: 0,
+        timeSpent: 0,
+        timeByQuestion: {},
+        questionSet: state.quiz.questionSet,
+        attemptNo: state.quiz.attemptNo,
+        lastUpdated: new Date().toISOString()
       };
+
       saveLocalCache();
-      state.currentScreen = 'quiz';
-      startQuestionClock();
-      render();
       saveProgress('in-progress');
-      state.timerInterval = setInterval(() => {
-        state.quiz.timeSpent++;
-        const display = document.getElementById('timer-display');
-        if (display) display.innerHTML = `<i data-lucide="clock" class="text-blue-500 w-4 h-4 mr-2"></i> ${formatTime(state.quiz.timeSpent)}`;
-        if (display) lucide.createIcons();
-      }, 1000);
-    };
+
+      state.currentScreen = 'quiz';
+      render();
+      startTimer();
+
+      if (typeof window.showToast === 'function') {
+        
+      }
+    };;
 
     window.handleOptionSelect = (optionId) => {
       flushQuestionTime();
@@ -2026,18 +2116,80 @@ function scheduleFirebaseRetry() {
       closeModal();
       flushQuestionTime();
       if (state.timerInterval) clearInterval(state.timerInterval);
+      state.timerInterval = null;
 
-      const cat = quizData[state.activeCategory];
+      const categoryId = state.activeCategory;
+      const cat = quizData[categoryId];
+      if (!cat || !Array.isArray(cat.questions)) return;
+
       const result = calculateResult(cat, state.quiz.answers, state.quiz.timeByQuestion, state.quiz.timeSpent);
-      const existing = getProgress(state.activeCategory) || {};
-      const history = Array.isArray(existing.attemptHistory) ? [...existing.attemptHistory] : [];
-      history.push({attemptNo:history.length+1,completedAt:new Date().toISOString(),answers:{...state.quiz.answers},timeByQuestion:{...state.quiz.timeByQuestion},timeSpent:state.quiz.timeSpent,correct:result.correct,wrong:result.wrong,skipped:result.skipped,accuracy:result.accuracy,score:result.overallPercentage});
-      state.progressData[state.activeCategory] = {...existing,attemptHistory:history};
+      const passed = result.overallPercentage >= PERFORMANCE.PASS_PERCENT;
+      // Category completion reward:
+      // IMPORTANT: fewer than 5 answered questions = NO completion reward.
+      // 5 or more answered questions: PASS = +300 coins, FAIL = +150 coins.
+      try {
+        const rewardQuestions = Array.isArray(state.quiz.questionSet)
+          ? state.quiz.questionSet
+          : [];
+
+        const answeredCount = rewardQuestions.reduce((count, q) => {
+          return count + (
+            state.quiz.answers &&
+            Object.prototype.hasOwnProperty.call(state.quiz.answers, q.id)
+              ? 1 : 0
+          );
+        }, 0);
+
+        if (answeredCount >= 5) {
+          const correctCount = rewardQuestions.reduce((count, q) => {
+            return count + (
+              state.quiz.answers &&
+              state.quiz.answers[q.id] === q.correct ? 1 : 0
+            );
+          }, 0);
+
+          const percent = (correctCount / (rewardQuestions.length || 1)) * 100;
+          const passMark = Number(
+            (quizData[state.activeCategory] &&
+              quizData[state.activeCategory].passMark) ||
+            state.quiz.passMark || 40
+          );
+
+          const rewardAmount = percent >= passMark ? 300 : 150;
+          const rewardKey =
+            'category-complete:' +
+            String(state.activeCategory) + ':' +
+            String(state.quiz.attemptNo || Date.now());
+
+          if (window.coinSystem &&
+              typeof window.coinSystem.award === 'function') {
+            window.coinSystem.award(
+              rewardAmount,
+              percent >= passMark
+                ? 'Category test passed'
+                : 'Category test failed',
+              rewardKey
+            );
+          }
+        } else {
+          console.log(
+            'Completion reward skipped: only ' + answeredCount +
+            ' question(s) attempted; minimum is 5.'
+          );
+        }
+      } catch (e) {
+        console.warn('Category completion reward failed:', e);
+      }
+
+
       saveProgress('completed');
       state.currentScreen = 'review';
       render();
+      showToast(
+        passed ? 'Test passed! +300 🪙 added.' : 'Test completed. +150 🪙 added.',
+        'success'
+      );
     };
-
     window.goDashboard = () => {
       // Leaving a live test intentionally or accidentally always saves it
       // as in-progress so the user can resume the exact same test later.
@@ -2205,7 +2357,7 @@ function scheduleFirebaseRetry() {
               <h3 class="text-xl font-bold text-gray-900 mb-2">${cat.title}</h3><p class="text-sm text-gray-500 mb-5">${total} ${cat.id === 'super10' ? 'random questions from all categories' : 'curated questions'}</p>
               ${inProgress ? `<div class="mb-5"><div class="flex justify-between text-xs mb-1.5 font-medium"><span>Progress</span><span class="text-blue-600">${attempted} / ${total}</span></div><div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full bg-blue-500" style="width:${percent}%"></div></div></div>` : ''}
               ${mini}
-              ${completed ? `<div class="grid grid-cols-2 gap-2"><button onclick="reattemptQuiz('${cat.id}')" class="btn btn-primary w-full">🔄 Re-attempt</button><button onclick="startQuiz('${cat.id}')" class="btn btn-outline w-full">View Results</button></div>` : `<button onclick="startQuiz('${cat.id}')" class="btn btn-primary w-full">${inProgress ? '▶ Resume Test' : 'Start Test'}</button>`}
+              ${completed ? `<div class="grid grid-cols-2 gap-2"><button onclick="reattemptQuiz('${cat.id}')" class="btn btn-primary w-full">🔄 Re-attempt <span class="reattempt-fee-badge">−20 🪙</span></button><button onclick="startQuiz('${cat.id}')" class="btn btn-outline w-full">View Results</button></div>` : `<button onclick="startQuiz('${cat.id}')" class="btn btn-primary w-full">${inProgress ? '▶ Resume Test' : 'Start Test'}</button>`}
             </div>`;
           }).join('')}
         </div>
@@ -4334,6 +4486,13 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     h.push({key:uniqueKey||null,amount,reason:reason||'Activity',at:Date.now()});
     writeHistory(h);
     persist();
+
+    // Update every visible balance immediately.
+    try {
+      document.querySelectorAll('#coin-balance,#header-coin-balance,.coin-balance')
+        .forEach(function(el){ el.textContent = coins + (el.id === 'header-coin-balance' ? ' 🪙' : ''); });
+    } catch(e) {}
+
     return amount;
   }
 
@@ -4343,8 +4502,8 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     award: award,
     follow: function(targetUid){ return award(50,'Followed a user',targetUid?'follow:'+targetUid+':'+(uid()||'user'):null); },
     attempt: function(questionId, quizId){ return award(10,'Question attempted',questionId?'attempt:'+(quizId||'quiz')+':'+questionId:null); },
-    correct: function(questionId, quizId){ return award(30,'Correct answer',questionId?'correct:'+(quizId||'quiz')+':'+questionId:null); },
-    wrong: function(questionId, quizId){ return award(-2,'Wrong answer',questionId?'wrong:'+(quizId||'quiz')+':'+questionId:null); },
+    correct: function(questionId, quizId){ return award(10,'Correct answer',questionId?'correct:'+(quizId||'quiz')+':'+questionId:null); },
+    wrong: function(questionId, quizId){ return award(-3,'Wrong answer',questionId?'wrong:'+(quizId||'quiz')+':'+questionId:null); },
     battleWin: function(battleId){ return award(100,'Quiz Battle victory',battleId?'battleWin:'+battleId:null); },
     profileComplete: function(){ return award(100,'Profile completed','profileComplete'); },
     balance: function(){return coins;}, refresh: function(remote){ coins=Math.max(0,Number(remote)||0); save(); updateUI(); },
@@ -5937,7 +6096,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     if(price>0){
       const coins=getCoins();
       if(coins<price){
-        if(typeof window.showToast==='function') window.showToast('Not enough coins.','error');
+        
         return;
       }
       setCoins(coins-price);
@@ -6034,7 +6193,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       b.dataset.unlocked='true';
     });
 
-    if(typeof window.showToast==='function') window.showToast('Weak Question Trainer unlocked for 500 🪙.','success');
+    
 
     setTimeout(function(){
       if(typeof window.startTrainer==='function') window.startTrainer();
@@ -6833,3 +6992,4 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
 </body>
 </html>
+
