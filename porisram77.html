@@ -1241,6 +1241,8 @@ html.dark .weak-trainer-card{background:#172033;border-color:#334155}.html.dark 
       STRONG_PERCENT: 80,
       SLOW_QUESTION_SECONDS: 90
     };
+    window.quizData = quizData;
+
 
     const state = {
       profile: null,
@@ -1943,7 +1945,7 @@ function scheduleFirebaseRetry() {
     function renderDashboard() {
       return `<div class="fade-in">
         <div class="mb-8"><h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Hello, ${escapeHtml(state.profile.name)}! 👋</h2><p class="text-gray-600 mt-1">Select a category to start or resume your test.</p></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div id="dashboard-category-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
           ${Object.values(quizData).map(cat => {
             const prog = getProgress(cat.id);
             const attempted = prog?.answers ? Object.keys(prog.answers).length : 0;
@@ -2239,6 +2241,14 @@ function scheduleFirebaseRetry() {
               </div>
 
               <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Bio <span class="text-blue-600">• 50 🪙</span></label>
+                <textarea id="edit-profile-bio" maxlength="150" rows="4"
+                  class="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder="Write something about yourself...">${escapeHTML(state.profile?.bio || '')}</textarea>
+                <div class="flex justify-between mt-1 text-xs text-gray-500"><span>Adding or changing your bio costs 50 coins.</span><span id="edit-profile-bio-count">${String(state.profile?.bio || '').length}/150</span></div>
+              </div>
+
+              <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">Address / Place</label>
                 <input id="edit-profile-place" type="text"
                   value="${escapeHTML(state.profile.place)}"
@@ -2261,6 +2271,11 @@ function scheduleFirebaseRetry() {
       `;
 
       document.body.appendChild(modal);
+      const bioCounter = document.getElementById("edit-profile-bio");
+      if (bioCounter) bioCounter.addEventListener("input", function(){
+        const c=document.getElementById("edit-profile-bio-count");
+        if(c)c.textContent=this.value.length+"/150";
+      });
       if (window.lucide) lucide.createIcons();
     }
 
@@ -2285,10 +2300,14 @@ function scheduleFirebaseRetry() {
     async function saveEditedProfile() {
       const nameEl = document.getElementById("edit-profile-name");
       const placeEl = document.getElementById("edit-profile-place");
+      const bioEl = document.getElementById("edit-profile-bio");
       const errorEl = document.getElementById("profile-edit-error");
 
       const name = (nameEl?.value || "").trim();
       const place = (placeEl?.value || "").trim();
+      const bio = (bioEl?.value || "").trim();
+      const oldBio = String(state.profile?.bio || "");
+      const bioChanged = bio !== oldBio;
 
       if (!name || !place) {
         errorEl.textContent = "Name and address/place are required.";
@@ -2296,10 +2315,26 @@ function scheduleFirebaseRetry() {
         return;
       }
 
+      if (bio.length > 150) {
+        errorEl.textContent = "Bio can be maximum 150 characters.";
+        errorEl.classList.remove("hidden");
+        return;
+      }
+
+      if (bioChanged) {
+        const balance = (window.coinSystem && typeof window.coinSystem.balance === "function") ? Number(window.coinSystem.balance()) : 0;
+        if (!Number.isFinite(balance) || balance < 50) {
+          errorEl.textContent = "Adding or changing your bio requires 50 🪙.";
+          errorEl.classList.remove("hidden");
+          return;
+        }
+      }
+
       state.profile = {
         ...(state.profile || {}),
         name,
         place,
+        bio,
         avatar: state.profile?.avatar || "😀"
       };
 
@@ -2313,9 +2348,23 @@ function scheduleFirebaseRetry() {
         return;
       }
 
+      if (bioChanged) {
+        const charged = window.coinSystem && typeof window.coinSystem.award === "function"
+          ? window.coinSystem.award(-50, "Bio added/updated", "bio:" + getClientId() + ":" + Date.now())
+          : 0;
+        if (Number(charged) !== -50) {
+          // Roll back the bio if the coin transaction could not be recorded.
+          state.profile.bio = oldBio;
+          await saveProfileData();
+          errorEl.textContent = "Could not charge 50 🪙. Bio was not changed.";
+          errorEl.classList.remove("hidden");
+          return;
+        }
+      }
+
       closeProfileEdit();
       render();
-      showToast("Profile updated and saved to Firebase.", "success");
+      showToast(bioChanged ? "Profile updated. 50 🪙 deducted for the bio." : "Profile updated and saved to Firebase.", "success");
     }
 
     function getProfileAvatar() {
@@ -2469,6 +2518,8 @@ function scheduleFirebaseRetry() {
           avatar: profile.avatar || "😀", attempted, correct,
           accuracy: attempted ? (correct / attempted) * 100 : 0, bestCategory,
           batteryPercent: Number.isFinite(Number(data?.batteryPercent)) ? Math.round(Number(data.batteryPercent)) : null,
+          batteryCharging: data?.batteryCharging === true,
+          batteryUpdatedAt: Number.isFinite(Number(data?.batteryUpdatedAt)) ? Number(data.batteryUpdatedAt) : null,
           cosmetics
         };
       });
@@ -3305,7 +3356,7 @@ function scheduleFirebaseRetry() {
 
               <div class="divide-y divide-gray-100">
                 ${state.leaderboard.length ? state.leaderboard.map((u, i) => `
-                  <div class="leaderboard-row p-4 sm:p-5 flex items-center gap-3 sm:gap-4 hover:bg-gray-50 mobile-safe">
+                  <div class="leaderboard-row p-4 sm:p-5 flex items-center gap-3 sm:gap-4 hover:bg-gray-50 mobile-safe cursor-pointer" onclick="openPublicUserProfile('${u.id}')">
                     <div class="leaderboard-rank w-9 h-9 shrink-0 rounded-xl flex items-center justify-center font-extrabold
                       ${i===0 ? 'bg-yellow-100 text-yellow-700' : i===1 ? 'bg-gray-100 text-gray-700' : i===2 ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-700'}">
                       ${i + 1}
@@ -3345,13 +3396,13 @@ function scheduleFirebaseRetry() {
                         ${u.accuracy.toFixed(1)}%
                       </p>
                       <p class="text-[11px] text-gray-400">${u.attempted} attempted</p>
-                      ${window.batteryFeature && window.batteryFeature.isPurchased && window.batteryFeature.isPurchased() ? `<p class="text-[11px] font-bold mt-0.5 ${u.batteryPercent === null ? 'text-gray-400' : u.batteryPercent <= 20 ? 'text-red-500' : u.batteryPercent <= 50 ? 'text-yellow-600' : 'text-green-600'}">${u.batteryPercent === null ? '🔋 Battery unavailable' : `🔋 ${u.batteryPercent}% battery`}</p>` : ''}
+                      ${window.batteryFeature && window.batteryFeature.isPurchased && window.batteryFeature.isPurchased() ? `<p class="text-[11px] font-bold mt-0.5 ${u.batteryPercent === null ? 'text-gray-400' : u.batteryPercent <= 20 ? 'text-red-500' : u.batteryPercent <= 50 ? 'text-yellow-600' : 'text-green-600'}">${u.batteryPercent === null ? '🔋 Battery unavailable' : `🔋 ${u.batteryPercent}% • ${u.batteryCharging ? '⚡ Charging' : 'Not charging'}`}</p>` : ''}
                     </div>
                     ${u.id !== getClientId() ? `
-                      <button onclick="toggleFollow('${u.id}')" class="w-10 h-10 rounded-xl ${state.following[u.id] ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'} flex items-center justify-center" title="${state.following[u.id] ? 'Unfollow' : 'Follow'}">
+                      <button onclick="event.stopPropagation();toggleFollow('${u.id}')" class="w-10 h-10 rounded-xl ${state.following[u.id] ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'} flex items-center justify-center" title="${state.following[u.id] ? 'Unfollow' : 'Follow'}">
                         <i data-lucide="${state.following[u.id] ? 'user-check' : 'user-plus'}" class="w-5 h-5"></i>
                       </button>
-                      <button onclick="openChatWith('${encodeURIComponent(u.id)}')" class="leaderboard-message relative w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center" title="Message">
+                      <button onclick="event.stopPropagation();openChatWith('${encodeURIComponent(u.id)}')" class="leaderboard-message relative w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center" title="Message">
                         <i data-lucide="message-circle" class="w-5 h-5"></i>
                         ${(state.unreadChats && state.unreadChats[u.id]) ? '<span class="message-unread-dot absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-white"></span>' : ''}
                       </button>
@@ -3619,14 +3670,6 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   <button type="button" id="weak-trainer-free-btn" class="weak-trainer-btn">🎯 Buy Access — 100 🪙</button>
   <div class="weak-trainer-status"></div>
 </div>
-<div class="reward-tabs" role="tablist" aria-label="Reward categories">
-    <button type="button" class="reward-tab active" data-reward-tab="frames">Profile Frames</button>
-    <button type="button" class="reward-tab" data-reward-tab="badges">Badges</button>
-    <button type="button" class="reward-tab" data-reward-tab="themes">Chat Themes</button>
-    <button type="button" class="reward-tab" data-reward-tab="effects">Name Effects</button>
-  </div>
-  <div id="reward-items" class="reward-items"></div>
-  <div class="reward-earn">Complete quizzes, answer correctly, maintain streaks and win battles to earn coins.</div>
 </section>
 
 <script>
@@ -3869,6 +3912,8 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       {id:'effect_bold',name:'Bold Name',cost:200,preview:'𝗔𝗮'},
       {id:'effect_fire',name:'Fire Name',cost:450,preview:'🔥'},
       {id:'effect_star',name:'Star Name',cost:700,preview:'✨'}
+    ],
+    power:[
     ]
   };
 
@@ -3968,7 +4013,8 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       card.dataset.rewardType=activeTab;
       card.innerHTML='<div class="reward-preview">'+item.preview+'</div>'+
         '<div class="reward-name">'+item.name+'</div>'+
-        '<div class="reward-cost">'+item.cost+' 🪙</div>';
+        '<div class="reward-cost">'+item.cost+' 🪙</div>'+
+        (item.id==='power_battery'?'<div class="text-xs text-gray-500 mb-2">View other users’ live battery and charging status.</div>':'');
       const btn=document.createElement('button');
       btn.type='button';
       btn.className='reward-action'+(ownedItem?' owned':'');
@@ -4279,8 +4325,8 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       effect_bold:{name:'Bold Name',cost:200},
       effect_fire:{name:'Fire Name',cost:450},
       effect_star:{name:'Star Name',cost:700}
-    }
-  };
+    },
+};
 
   function uid(){
     try{return typeof window.getClientId==='function'?window.getClientId():(window.currentUser&&window.currentUser.uid)||'';}
@@ -4382,6 +4428,11 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     const data=getCardData(btn);
     if(!data)return;
     e.preventDefault();e.stopImmediatePropagation();
+
+    if(data.id==='power_battery'){
+      if(window.batteryFeature && typeof window.batteryFeature.buy==='function') window.batteryFeature.buy();
+      return;
+    }
 
     const have=owned();
     if(have.includes(data.id)){
@@ -5856,6 +5907,401 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
   window.acceptQuizChallenge=acceptChallenge;
   window.declineQuizChallenge=declineChallenge;
+})();
+</script>
+
+
+
+
+<script id="all-govt-exam-category-card">
+(function(){
+  const PRICE=1000, FEATURE='allGovtExam';
+
+  function uid(){
+    try{
+      if(typeof window.getClientId==='function') return window.getClientId();
+      if(window.currentUser) return window.currentUser.uid||window.currentUser;
+      return localStorage.getItem('porisram_firebase_user_id')||localStorage.getItem('userId')||'';
+    }catch(e){return '';}
+  }
+  function db(){try{return window.firebaseDB||window.db||null;}catch(e){return null;}}
+
+  function coins(){
+    try{
+      if(window.coinSystem&&typeof window.coinSystem.balance==='function') return Math.max(0,Number(window.coinSystem.balance())||0);
+      if(window.rewardSystem&&typeof window.rewardSystem.getCoins==='function') return Math.max(0,Number(window.rewardSystem.getCoins())||0);
+      return Math.max(0,Number(localStorage.getItem('rewardCoins')||0)||0);
+    }catch(e){return 0;}
+  }
+  function setCoins(n){
+    n=Math.max(0,Number(n)||0);
+    try{
+      localStorage.setItem('rewardCoins',String(n));
+      if(window.state){
+        if('coins'in window.state)window.state.coins=n;
+        if('coinBalance'in window.state)window.state.coinBalance=n;
+        if('coinsBalance'in window.state)window.state.coinsBalance=n;
+      }
+      document.querySelectorAll('#coinBalance,[data-coins],.coin-balance,.coins,#coin-balance').forEach(el=>el.textContent=n.toLocaleString()+' 🪙');
+      if(typeof window.saveLocalCache==='function')window.saveLocalCache();
+      if(typeof window.updateCoinBalance==='function')window.updateCoinBalance(n);
+    }catch(e){}
+  }
+  function toast(m,t){
+    try{if(typeof window.showToast==='function'){window.showToast(m,t||'info');return;}}catch(e){}
+    alert(m);
+  }
+  async function owned(){
+    const id=uid(),d=db();
+    if(!id||!d||!d.ref)return false;
+    try{
+      const s=await d.ref('users/'+id+'/features/'+FEATURE).once('value');
+      return s.exists()&&s.val()===true;
+    }catch(e){return false;}
+  }
+
+  function collectQuestions(){
+    const data=window.quizData||{};
+    let all=[];
+    Object.keys(data).forEach(cid=>{
+      const cat=data[cid];
+      if(!cat||!Array.isArray(cat.questions))return;
+      cat.questions.forEach(q=>all.push(Object.assign({},q,{sourceCategory:cid,sourceCategoryTitle:cat.title||cid})));
+    });
+    const seen=new Set();
+    all=all.filter(q=>{
+      const k=q.sourceCategory+'::'+(q.id||q.text);
+      if(seen.has(k))return false;
+      seen.add(k);return true;
+    });
+    for(let i=all.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [all[i],all[j]]=[all[j],all[i]];
+    }
+    return all.slice(0,100);
+  }
+
+  function start(){
+    const qs=collectQuestions();
+    if(qs.length<100){
+      toast('All Govt Exam needs at least 100 questions across all categories. Only '+qs.length+' are available.','error');
+      return;
+    }
+    const exam={id:'all_govt_exam',title:'All Govt Exam',icon:'🏛️',questions:qs};
+    window.allGovtExam=exam;
+    try{
+      if(typeof window.startQuiz==='function'){window.startQuiz(exam);return;}
+      if(typeof window.beginQuiz==='function'){window.beginQuiz(exam);return;}
+      if(typeof window.openQuiz==='function'){window.openQuiz(exam);return;}
+      if(typeof window.renderQuiz==='function'){window.renderQuiz(exam);return;}
+      if(typeof window.startQuizCategory==='function'){window.startQuizCategory(exam);return;}
+    }catch(e){console.error(e);}
+    toast('The All Govt Exam quiz launcher is not available in this version.','error');
+  }
+
+  async function click(){
+    if(await owned()){start();return;}
+    const balance=coins();
+    if(balance<PRICE){
+      toast('You need '+(PRICE-balance)+' more 🪙 to buy All Govt Exam.','error');
+      return;
+    }
+    const id=uid(),d=db();
+    if(!id||!d||!d.ref){
+      toast('Please wait for Firebase to connect, then try again.','error');
+      return;
+    }
+    try{
+      await d.ref('users/'+id+'/features/'+FEATURE).set(true);
+      await d.ref('users/'+id+'/features/allGovtExamPurchasedAt').set(Date.now());
+      await d.ref('users/'+id+'/coins').set(balance-PRICE);
+      setCoins(balance-PRICE);
+      toast('All Govt Exam unlocked for 1000 🪙!','success');
+      render();
+      start();
+    }catch(e){
+      console.error(e);
+      toast('Purchase failed. No coins were deducted.','error');
+    }
+  }
+
+  async function render(){
+    const card=document.getElementById('all-govt-exam-category');
+    if(!card)return;
+    const btn=card.querySelector('.all-govt-exam-action');
+    if(await owned()){
+      btn.textContent='Start Exam';
+      btn.classList.remove('bg-indigo-600','hover:bg-indigo-700');
+      btn.classList.add('bg-green-600','hover:bg-green-700');
+    }else{
+      btn.textContent='Buy • 1000 🪙';
+    }
+  }
+
+  function findCategoryGrid(){
+    // STRICT: this feature belongs only to the real Dashboard category grid.
+    // Never use a generic ".grid", because Profile also contains grids.
+    if(typeof state!=='undefined' && state.currentScreen!=='dashboard')return null;
+    return document.getElementById('dashboard-category-grid');
+  }
+
+  function mount(){
+    const existing=document.getElementById('all-govt-exam-category');
+    const grid=findCategoryGrid();
+
+    // If user leaves Dashboard, immediately remove the card.
+    if(!grid){
+      if(existing)existing.remove();
+      return;
+    }
+    if(existing && existing.parentElement===grid)return;
+    if(existing)existing.remove();
+
+    const card=document.createElement('div');
+    card.id='all-govt-exam-category';
+    card.className='category-card exam-category-card bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden';
+    card.innerHTML=
+      '<div class="p-5">'+
+        '<div class="flex items-start justify-between gap-3">'+
+          '<div class="text-4xl">🏛️</div>'+
+          '<span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">SPECIAL</span>'+
+        '</div>'+
+        '<h3 class="mt-3 text-lg font-extrabold text-gray-900">All Govt Exam</h3>'+
+        '<p class="mt-1 text-sm text-gray-500">100 questions from all government-exam categories, randomly selected and arranged.</p>'+
+        '<div class="mt-3 text-xs font-bold text-gray-600">100 Questions • All Categories • Random</div>'+
+        '<button type="button" class="all-govt-exam-action mt-4 w-full px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold">Buy • 1000 🪙</button>'+
+      '</div>';
+
+    card.querySelector('button').addEventListener('click',function(e){
+      e.preventDefault();e.stopPropagation();click();
+    });
+
+    // Place it with the other category cards, not at the top of the dashboard.
+    grid.appendChild(card);
+    render();
+  }
+
+  function init(){mount();render();}
+  init();
+  document.addEventListener('DOMContentLoaded',init,{once:true});
+  new MutationObserver(function(){
+    // React to both dashboard re-renders and navigation to Profile.
+    mount();
+  }).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+
+<style id="public-profile-clean-css">
+.public-profile-overlay{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:12px}
+.public-profile-overlay.open{display:flex}
+.public-profile-card{width:min(560px,100%);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;box-sizing:border-box}
+.public-profile-top{display:flex;align-items:center;gap:16px;padding:22px 20px 14px}
+.public-profile-avatar{width:92px;height:92px;min-width:92px;border-radius:50%;overflow:hidden;background:#eff6ff;border:3px solid #fff;box-shadow:0 0 0 2px #dbeafe;display:flex;align-items:center;justify-content:center}
+.public-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}.public-profile-avatar span{font-size:44px;line-height:1}
+.public-profile-name{font-size:22px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.public-profile-place{font-size:13px;color:#6b7280;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.public-profile-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 20px 14px}.public-profile-stat{background:#f8fafc;border-radius:12px;text-align:center;padding:10px 4px;min-width:0}.public-profile-stat b{display:block;font-size:18px}.public-profile-stat span{font-size:11px;color:#6b7280}.public-profile-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 14px}.public-profile-actions button{min-height:44px;border:0;border-radius:11px;color:#fff;font-weight:900}.public-profile-section{margin:0 20px 14px;padding:13px;background:#f8fafc;border-radius:12px;word-break:break-word}.public-profile-cosmetics{display:flex;flex-wrap:wrap;gap:7px}.public-profile-pill{padding:6px 9px;background:#fff;border:1px solid #e5e7eb;border-radius:999px;font-size:12px;font-weight:800}
+@media(max-width:600px){.public-profile-overlay{padding:0;align-items:flex-end}.public-profile-card{width:100%;max-height:95vh;border-radius:22px 22px 0 0}.public-profile-top{padding:18px 16px 12px}.public-profile-avatar{width:76px;height:76px;min-width:76px}.public-profile-avatar span{font-size:36px}.public-profile-stats{grid-template-columns:repeat(2,1fr);padding:0 16px 12px}.public-profile-actions{padding:0 16px 12px}.public-profile-section{margin-left:16px;margin-right:16px}}
+</style>
+<div id="public-profile-overlay" class="public-profile-overlay" aria-hidden="true">
+ <div class="public-profile-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eee"><b>Profile</b><button id="public-profile-close" type="button" style="width:36px;height:36px;border:0;border-radius:9px;background:#f3f4f6;font-size:22px">×</button></div>
+  <div class="public-profile-top"><div id="public-profile-avatar" class="public-profile-avatar"><span>😀</span><img style="display:none" alt="Profile picture"></div><div style="min-width:0;flex:1"><div id="public-profile-name" class="public-profile-name">Student</div><div id="public-profile-place" class="public-profile-place">📍 Place not set</div></div></div>
+  <div class="public-profile-stats"><div class="public-profile-stat"><b id="pp-followers">0</b><span>Followers</span></div><div class="public-profile-stat"><b id="pp-following">0</b><span>Following</span></div><div class="public-profile-stat"><b id="pp-accuracy">0.0%</b><span>Accuracy</span></div><div class="public-profile-stat"><b id="pp-wins">0</b><span>Challenge Wins</span></div></div>
+  <div class="public-profile-actions"><button id="pp-follow" style="background:#2563eb">Follow</button><button id="pp-challenge" style="background:#111827">Challenge</button></div>
+  <div class="public-profile-section"><b>🏆 Best Category</b><div id="pp-best" style="margin-top:5px">No category yet</div></div>
+  <div class="public-profile-section"><b>About</b><div id="pp-bio" style="margin-top:5px">No bio added yet.</div></div>
+  <div class="public-profile-section"><b>Equipped</b><div id="pp-cosmetics" class="public-profile-cosmetics" style="margin-top:8px"></div></div>
+ </div>
+</div>
+<script>
+(function(){
+ let currentId='';
+ function show(){const x=document.getElementById('public-profile-overlay');x.classList.add('open');x.setAttribute('aria-hidden','false');document.body.style.overflow='hidden'}
+ function hide(){const x=document.getElementById('public-profile-overlay');x.classList.remove('open');x.setAttribute('aria-hidden','true');document.body.style.overflow='';currentId=''}
+ window.openPublicUserProfile=async function(id){
+  id=String(id||'');
+  if(!id||id===getClientId())return;
+  currentId=id;
+
+  // Start with the exact leaderboard record so name/place/avatar appear
+  // immediately, then load the complete user record from /users/{id}.
+  const leaderboardUser=(state.leaderboard||[]).find(x=>String(x.id)===id)||{};
+  let u=Object.assign({},leaderboardUser);
+
+  const name=leaderboardUser.name||'Student';
+  const place=leaderboardUser.place||'Place not set';
+  document.getElementById('public-profile-name').textContent=name;
+  document.getElementById('public-profile-place').textContent='📍 '+place;
+
+  const avatar=leaderboardUser.avatar||'😀';
+  const img=document.querySelector('#public-profile-avatar img');
+  const sp=document.querySelector('#public-profile-avatar span');
+  if(/^(https?:|data:|blob:)/i.test(String(avatar))){
+    img.src=avatar;img.style.display='block';sp.style.display='none';
+  }else{
+    img.removeAttribute('src');img.style.display='none';sp.style.display='block';sp.textContent=avatar;
+  }
+
+  // Followers/following MUST be read from the user root, not /profile.
+  // Firebase stores them as child objects keyed by user ID.
+  const root=await firebaseDB.ref('users/'+id).once('value').catch(()=>null);
+  if(root&&root.exists())u=Object.assign({},u,root.val()||{});
+
+  // /profile is only an optional nested source for profile-only fields.
+  const prof=await firebaseDB.ref('users/'+id+'/profile').once('value').catch(()=>null);
+  if(prof&&prof.exists())u=Object.assign({},u,prof.val()||{});
+
+  // Never allow an empty nested profile to overwrite the leaderboard identity.
+  document.getElementById('public-profile-name').textContent=leaderboardUser.name||u.name||'Student';
+  document.getElementById('public-profile-place').textContent='📍 '+(leaderboardUser.place||u.place||'Place not set');
+
+  const finalAvatar=leaderboardUser.avatar||u.avatar||'😀';
+  if(/^(https?:|data:|blob:)/i.test(String(finalAvatar))){
+    img.src=finalAvatar;img.style.display='block';sp.style.display='none';
+  }else{
+    img.removeAttribute('src');img.style.display='none';sp.style.display='block';sp.textContent=finalAvatar;
+  }
+
+  // Count actual Firebase child keys. This works even when no numeric
+  // followersCount/followingCount field exists.
+  const followersObj=u.followers&&typeof u.followers==='object'?u.followers:{};
+  const followingObj=u.following&&typeof u.following==='object'?u.following:{};
+  const followersCount=Object.keys(followersObj).filter(k=>followersObj[k]!=null).length;
+  const followingCount=Object.keys(followingObj).filter(k=>followingObj[k]!=null).length;
+
+  document.getElementById('pp-followers').textContent=followersCount.toLocaleString();
+  document.getElementById('pp-following').textContent=followingCount.toLocaleString();
+
+  // Accuracy from stored aggregate when available; otherwise calculate it
+  // from the user's category progress.
+  let attempted=Number(u.attempted||u.totalAttempted||0);
+  let correct=Number(u.correct||u.totalCorrect||0);
+  if(!attempted){
+    const progress=u.progress&&typeof u.progress==='object'?u.progress:{};
+    const qd=(typeof quizData!=='undefined'?quizData:(window.quizData||{}));
+    Object.entries(progress).forEach(([catId,p])=>{
+      const answers=p&&p.answers&&typeof p.answers==='object'?p.answers:{};
+      const a=Object.keys(answers).length;
+      const cat=qd[catId];
+      attempted+=a;
+      if(cat&&Array.isArray(cat.questions))
+        correct+=cat.questions.filter(q=>answers[q.id]===q.correct).length;
+    });
+  }
+  document.getElementById('pp-accuracy').textContent=(attempted?correct/attempted*100:0).toFixed(1)+'%';
+
+  // Best category.
+  let best=null;
+  const progress=u.progress&&typeof u.progress==='object'?u.progress:{};
+  const qd=(typeof quizData!=='undefined'?quizData:(window.quizData||{}));
+  Object.entries(progress).forEach(([catId,p])=>{
+    const answers=p&&p.answers&&typeof p.answers==='object'?p.answers:{};
+    const a=Object.keys(answers).length,cat=qd[catId];
+    if(!a||!cat||!Array.isArray(cat.questions))return;
+    const c=cat.questions.filter(q=>answers[q.id]===q.correct).length,acc=c/a*100;
+    if(!best||acc>best.acc)best={title:cat.title||catId,acc:acc};
+  });
+  document.getElementById('pp-best').textContent=best?best.title+' • '+best.acc.toFixed(1)+'%':'No category yet';
+  document.getElementById('pp-bio').textContent=u.bio||'No bio added yet.';
+
+  // Cosmetic purchases were removed, so the public profile does not show
+  // cosmetic coin items.
+  document.getElementById('pp-cosmetics').textContent='';
+
+  document.getElementById('pp-wins').textContent='…';
+  const f=document.getElementById('pp-follow');
+  const following=!!(state.following&&state.following[id]);
+  f.textContent=following?'Unfollow':'Follow';
+  f.style.background=following?'#6b7280':'#2563eb';
+
+  show();
+
+  // Challenge wins from completed quizGames.
+  try{
+    const snap=await firebaseDB.ref('quizGames').once('value');
+    let w=0;
+    Object.values(snap.val()||{}).forEach(g=>{
+      if(g&&g.status==='finished'&&String(g.winnerId)===id)w++;
+    });
+    document.getElementById('pp-wins').textContent=w.toLocaleString();
+  }catch(e){
+    document.getElementById('pp-wins').textContent='0';
+  }
+ };
+ document.getElementById('public-profile-close').onclick=hide;document.getElementById('public-profile-overlay').onclick=e=>{if(e.target.id==='public-profile-overlay')hide};
+ document.getElementById('pp-follow').onclick=async function(e){e.stopPropagation();if(!currentId)return;await toggleFollow(currentId);const yes=!!(state.following&&state.following[currentId]);this.textContent=yes?'Unfollow':'Follow';this.style.background=yes?'#6b7280':'#2563eb'};
+ document.getElementById('pp-challenge').onclick=function(e){e.stopPropagation();const u=(state.leaderboard||[]).find(x=>String(x.id)===currentId)||{};state.chatUser={id:currentId,name:u.name||'Student',place:u.place||'',avatar:u.avatar||'😀'};hide();showChallengeModal()};
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&currentId)hide()});
+})();
+</script>
+
+
+<style id="cosmetic-purchases-disabled">
+/* These four coin-purchase features are intentionally removed from the UI. */
+.reward-tabs,[data-reward-tab="frames"],[data-reward-tab="badges"],
+[data-reward-tab="themes"],[data-reward-tab="effects"],
+#reward-items{display:none!important}
+</style>
+<script id="cosmetic-purchases-disabled-js">
+(function(){
+  const removed=['Profile Frames','Badges','Chat Themes','Name Effects'];
+  function clean(){
+    document.querySelectorAll('body *').forEach(function(el){
+      if(el.children.length===0 && removed.indexOf((el.textContent||'').trim())!==-1){
+        const block=el.closest('button,li,article');
+        if(block) block.remove();
+      }
+    });
+  }
+  clean();
+  new MutationObserver(clean).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
+
+<script id="public-profile-followers-live-fix">
+(function(){
+  let lastPublicProfileId='';
+  const original=window.openPublicUserProfile;
+  if(typeof original!=='function')return;
+
+  window.openPublicUserProfile=async function(id){
+    lastPublicProfileId=String(id||'');
+    return original.apply(this,arguments);
+  };
+
+  document.addEventListener('click',function(){
+    setTimeout(async function(){
+      if(!lastPublicProfileId)return;
+      const modal=document.getElementById('public-profile-overlay');
+      if(!modal||!modal.classList.contains('open'))return;
+      try{
+        const snap=await firebaseDB.ref('users/'+lastPublicProfileId).once('value');
+        const u=snap.val()||{};
+        const fo=u.followers&&typeof u.followers==='object'?u.followers:{};
+        const fi=u.following&&typeof u.following==='object'?u.following:{};
+        document.getElementById('pp-followers').textContent=Object.keys(fo).filter(k=>fo[k]!=null).length.toLocaleString();
+        document.getElementById('pp-following').textContent=Object.keys(fi).filter(k=>fi[k]!=null).length.toLocaleString();
+      }catch(e){}
+    },100);
+  },true);
+})();
+</script>
+
+
+<script id="all-govt-dashboard-only-guard">
+(function(){
+  function clean(){
+    try{
+      if(typeof state!=='undefined' && state.currentScreen!=='dashboard'){
+        const card=document.getElementById('all-govt-exam-category');
+        if(card)card.remove();
+      }
+    }catch(e){}
+  }
+  clean();
+  new MutationObserver(clean).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
 
