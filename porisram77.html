@@ -655,6 +655,14 @@ html.dark #withdrawal-status-meta{color:#94a3b8}
 }
 </style>
 
+<style id="fast-login-ui">
+  /* Keep the first screen lightweight and prevent layout movement while icons load. */
+  .home-start-btn { min-height: 48px; touch-action: manipulation; }
+  #app-root { contain: layout paint; }
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in, .slide-up { animation: none !important; }
+  }
+</style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -1692,6 +1700,9 @@ function scheduleFirebaseRetry() {
 
     // ---------------- PROFILE ----------------
     window.handleProfileSave = async () => {
+      // Start Preparation should always take the user directly to Home.
+      // The profile is cached locally first; Firebase sync happens in the background.
+
       const nameEl = document.getElementById("input-name");
       const placeEl = document.getElementById("input-place");
       const btn = document.getElementById("btn-save-profile");
@@ -1707,7 +1718,7 @@ function scheduleFirebaseRetry() {
       if (btn) {
         btn.disabled = true;
         btn.innerHTML =
-          '<i data-lucide="loader-circle" class="w-5 h-5 animate-spin"></i> Saving to Firebase...';
+          '<i data-lucide="loader-circle" class="w-5 h-5 animate-spin"></i> Starting your preparation...';
         if (window.lucide) lucide.createIcons();
       }
 
@@ -1719,40 +1730,19 @@ function scheduleFirebaseRetry() {
         createdAt: state.profile?.createdAt || new Date().toISOString()
       };
 
-      // Save locally first so the next open never asks for these fields again.
+      // Save locally and redirect immediately. Do not make the user wait for Firebase.
       saveLocalCache();
-      const saved = await saveProfileData();
-
-      // Public bio mirror: the profile object remains intact, while this
-      // dedicated field makes the bio directly readable by other users.
-      if (saved && bioChanged) {
-        try {
-          await firebaseDB.ref("users/" + getClientId() + "/bio").set(bio);
-        } catch (e) {
-          console.warn("Could not mirror public bio:", e);
-        }
-      }
-
-      if (!saved) {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML =
-            'Start Preparation <i data-lucide="chevron-right" class="w-5 h-5"></i>';
-          if (window.lucide) lucide.createIcons();
-        }
-
-        showToast(
-          "Could not save to Firebase. Open the browser console (F12) for the exact error.",
-          "error"
-        );
-        return;
-      }
-
       state.currentScreen = "dashboard";
-      // One-time 100 coin reward for completing name + place.
       try { if (window.coinSystem) window.coinSystem.profileComplete(); } catch (e) {}
       render();
-      showToast("Profile saved to Firebase successfully.", "success");
+      showToast("Welcome! Your preparation starts now.", "success");
+
+      // Background Firebase sync; it must never block the Home redirect.
+      Promise.resolve().then(() => saveProfileData()).catch(error => {
+        console.warn("Background profile sync failed:", error);
+        setFirebaseStatus("offline");
+        scheduleFirebaseRetry();
+      });
     };
 
     window.validateProfileForm = () => {
@@ -3256,7 +3246,40 @@ function scheduleFirebaseRetry() {
       if (state.currentScreen === 'loading') {
         content = `<div class="flex flex-col items-center justify-center mt-32"><div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div><p class="mt-4 text-gray-600 font-medium">Loading...</p></div>`;
       } else if (state.currentScreen === 'welcome') {
-        content = `<div class="fade-in max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border border-gray-100 mt-10"><div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-inner"><i data-lucide="book-open" class="w-8 h-8"></i></div><h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome!</h2><p class="text-gray-600 mb-8">Please enter your details to begin your preparation. Your profile and progress will be saved securely to Firebase.</p><div class="space-y-4"><div><label class="block text-sm font-semibold text-gray-700 mb-1">Full Name</label><div class="relative"><i data-lucide="user" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i><input type="text" id="input-name" oninput="validateProfileForm()" onchange="validateProfileForm()" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter your name" /></div></div><div><label class="block text-sm font-semibold text-gray-700 mb-1">District / Place</label><div class="relative"><i data-lucide="map-pin" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i><input type="text" id="input-place" oninput="validateProfileForm()" onchange="validateProfileForm()" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter your place" /></div></div><button id="btn-save-profile" onclick="handleProfileSave()" disabled class="btn btn-primary home-start-btn mt-4 text-base">Start Preparation <i data-lucide="chevron-right" class="w-5 h-5"></i></button></div></div>`;
+        content = `<div class="fade-in max-w-md mx-auto bg-white p-7 sm:p-8 rounded-2xl shadow-xl border border-gray-100 mt-6 sm:mt-10">
+  <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-5 shadow-inner">
+    <i data-lucide="book-open" class="w-8 h-8"></i>
+  </div>
+  <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 text-xs font-bold mb-3">
+    🚀 Start Learning Today
+  </div>
+  <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome to Assam Exam Prep Pro</h2>
+  <p class="text-gray-600 mb-5">Prepare smarter for Assam government exams with mock tests, progress tracking, rewards and daily practice.</p>
+  <div class="grid grid-cols-3 gap-2 mb-6">
+    <div class="rounded-xl bg-blue-50 border border-blue-100 p-3 text-center">
+      <div class="text-xl mb-1">📝</div><div class="text-xs font-bold text-blue-800">Mock Tests</div>
+    </div>
+    <div class="rounded-xl bg-amber-50 border border-amber-100 p-3 text-center">
+      <div class="text-xl mb-1">🪙</div><div class="text-xs font-bold text-amber-800">Earn Coins</div>
+    </div>
+    <div class="rounded-xl bg-purple-50 border border-purple-100 p-3 text-center">
+      <div class="text-xl mb-1">🏆</div><div class="text-xs font-bold text-purple-800">Compete</div>
+    </div>
+  </div>
+  <div class="space-y-4">
+    <div><label class="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
+      <div class="relative"><i data-lucide="user" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i>
+        <input type="text" id="input-name" autocomplete="name" oninput="validateProfileForm()" onchange="validateProfileForm()" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter your name" />
+      </div>
+    </div>
+    <div><label class="block text-sm font-semibold text-gray-700 mb-1">District / Place</label>
+      <div class="relative"><i data-lucide="map-pin" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i>
+        <input type="text" id="input-place" autocomplete="address-level2" oninput="validateProfileForm()" onchange="validateProfileForm()" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter your place" />
+      </div>
+    </div>
+    <button id="btn-save-profile" onclick="handleProfileSave()" disabled class="btn btn-primary home-start-btn mt-2 text-base w-full">Start Preparation <i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+  </div>
+</div>`;
       } else if (state.currentScreen === 'firebase-error') {
         content = `
           <div class="max-w-md mx-auto mt-16 bg-white rounded-2xl shadow-sm border border-red-200 p-8 text-center fade-in">
@@ -3616,35 +3639,34 @@ function scheduleFirebaseRetry() {
     }
 
     async function initApp() {
-      // Restore local data FIRST. This makes reopening after screen-off
-      // essentially instant and prevents the name/place form from flashing.
+      // Render from local cache immediately. Never wait for the network
+      // before showing the login/welcome screen.
       restoreLocalCache();
-      await loadFollowing();
-
       state.currentScreen = state.profile ? "dashboard" : "welcome";
       render();
-      setFirebaseStatus("offline");
 
-      try {
-        await loadFirebaseData();
-        startUnreadMessageMonitor();
-
-        // Never force the user back to the welcome form after a restore.
-        if (!state.profile) {
-          state.currentScreen = "welcome";
-        } else if (state.currentScreen === "welcome" || state.currentScreen === "loading") {
-          state.currentScreen = "dashboard";
+      // Network work happens in the background and must never block first paint.
+      Promise.allSettled([
+        loadFollowing(),
+        loadFirebaseData()
+      ]).then(results => {
+        const firebaseResult = results[1];
+        if (firebaseResult && firebaseResult.status === "fulfilled") {
+          startUnreadMessageMonitor();
+          if (state.profile && (state.currentScreen === "welcome" || state.currentScreen === "loading")) {
+            state.currentScreen = "dashboard";
+            render();
+          }
+          setFirebaseStatus("online");
+        } else {
+          setFirebaseStatus("offline");
+          scheduleFirebaseRetry();
         }
-        render();
-      } catch (error) {
-        console.error("Initial Firebase load failed:", error);
+      }).catch(error => {
+        console.error("Background data load failed:", error);
         setFirebaseStatus("offline");
         scheduleFirebaseRetry();
-
-        // The app remains usable instead of staying on Loading.
-        state.currentScreen = state.profile ? "dashboard" : "welcome";
-        render();
-      }
+      });
     }
 
     // Keep the question timer display accurate without re-rendering the question.
