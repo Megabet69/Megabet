@@ -858,6 +858,43 @@ input:focus,select:focus,textarea:focus{
 }
 </style>
 
+
+<style id="quiz-spacing-fix">
+/* Compact quiz viewport: remove unnecessary vertical gaps and prevent
+   the answer/Next area from creating avoidable page scrolling. */
+body.quiz-active{overflow-x:hidden}
+.quiz-compact{
+  max-width:900px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+.quiz-compact .mb-6{margin-bottom:1rem!important}
+.quiz-compact .mb-5{margin-bottom:.8rem!important}
+.quiz-compact .p-8{padding:1.25rem!important}
+.quiz-compact .p-6{padding:1rem!important}
+.quiz-compact .gap-6{gap:1rem!important}
+.quiz-compact .gap-5{gap:.8rem!important}
+.quiz-compact .mt-6{margin-top:1rem!important}
+.quiz-compact .mt-5{margin-top:.8rem!important}
+.quiz-compact #timer-display{
+  padding:7px 10px!important;
+  min-height:36px!important;
+}
+.quiz-compact #question-time{line-height:1.1}
+.quiz-compact .quiz-actions{
+  margin-top:12px!important;
+  padding-top:12px!important;
+}
+@media(max-width:640px){
+  .quiz-compact .p-8{padding:12px!important}
+  .quiz-compact .p-6{padding:12px!important}
+  .quiz-compact .mb-6{margin-bottom:10px!important}
+  .quiz-compact .mt-6{margin-top:10px!important}
+  .quiz-compact .gap-6{gap:10px!important}
+  .quiz-compact .gap-5{gap:8px!important}
+}
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -7238,6 +7275,41 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   var observer=new MutationObserver(decorateLeaderboard);
   observer.observe(document.body,{childList:true,subtree:true});
   setInterval(decorateLeaderboard,2000);
+})();
+</script>
+
+
+<script id="quiz-spacing-runtime">
+(function(){
+  function compactQuiz(){
+    try{
+      var screen = document.querySelector('#app') || document.querySelector('main') || document.body;
+      if(!screen) return;
+      var active = window.state && state.currentScreen === 'quiz';
+      document.body.classList.toggle('quiz-active', !!active);
+
+      if(active){
+        screen.classList.add('quiz-compact');
+
+        // Keep the question content inside the viewport naturally.
+        var buttons = screen.querySelectorAll('button');
+        buttons.forEach(function(b){
+          if(/next|submit|finish|continue/i.test((b.textContent||'').trim())){
+            b.classList.add('quiz-actions');
+          }
+        });
+      }else{
+        screen.classList.remove('quiz-compact');
+      }
+    }catch(e){}
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',compactQuiz);
+  }else compactQuiz();
+
+  new MutationObserver(compactQuiz).observe(document.body,{childList:true,subtree:true});
+  setInterval(compactQuiz,1000);
 })();
 </script>
 
