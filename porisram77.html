@@ -1733,7 +1733,7 @@ function scheduleFirebaseRetry() {
       // Save locally and redirect immediately. Do not make the user wait for Firebase.
       saveLocalCache();
       state.currentScreen = "dashboard";
-      try { if (window.coinSystem) window.coinSystem.profileComplete(); } catch (e) {}
+      try { if (window.profileCoinRewards && window.profileCoinRewards.namePlaceReward) window.profileCoinRewards.namePlaceReward(); } catch (e) {}
       render();
       showToast("Welcome! Your preparation starts now.", "success");
 
@@ -3845,7 +3845,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     <div class="weak-trainer-title">Weak Question Trainer</div>
     <div class="weak-trainer-desc">Practice questions you previously answered incorrectly without changing your normal quiz score.</div>
   </div>
-  <button type="button" id="weak-trainer-free-btn" class="weak-trainer-btn">🎯 Buy Access — 100 🪙</button>
+  <button type="button" id="weak-trainer-free-btn" class="weak-trainer-btn">🎯 Buy Access — 500 🪙</button>
   <div class="weak-trainer-status"></div>
 </div>
 </section>
@@ -4061,10 +4061,10 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   const REWARD_RULES = {
     follow: 50,
     attempt: 10,
-    correct: 50,
+    correct: 30,
     battleWin: 100,
-    wrong: -1,
-    profileComplete: 100
+    wrong: -2,
+    profileComplete: 0
   };
 
   const catalog = {
@@ -4171,8 +4171,8 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     award: award,
     follow: function(targetUid){ return award(50,'Followed a user',targetUid?'follow:'+targetUid+':'+(uid()||'user'):null); },
     attempt: function(questionId, quizId){ return award(10,'Question attempted',questionId?'attempt:'+(quizId||'quiz')+':'+questionId:null); },
-    correct: function(questionId, quizId){ return award(50,'Correct answer',questionId?'correct:'+(quizId||'quiz')+':'+questionId:null); },
-    wrong: function(questionId, quizId){ return award(-1,'Wrong answer',questionId?'wrong:'+(quizId||'quiz')+':'+questionId:null); },
+    correct: function(questionId, quizId){ return award(30,'Correct answer',questionId?'correct:'+(quizId||'quiz')+':'+questionId:null); },
+    wrong: function(questionId, quizId){ return award(-2,'Wrong answer',questionId?'wrong:'+(quizId||'quiz')+':'+questionId:null); },
     battleWin: function(battleId){ return award(100,'Quiz Battle victory',battleId?'battleWin:'+battleId:null); },
     profileComplete: function(){ return award(100,'Profile completed','profileComplete'); },
     balance: function(){return coins;}, refresh: function(remote){ coins=Math.max(0,Number(remote)||0); save(); updateUI(); },
@@ -4686,17 +4686,15 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     }catch(e){console.warn('Profile reward error',e);}
   }
 
-  // New account/profile initialization reward.
-  function firstProfileReward(){
-    once('firstProfile',100,'New user profile reward');
-  }
-
-  // Extra reward only after BOTH name and place are actually present.
+  // Give 100 🪙 once when the user has a name, and another 100 🪙 once
+  // when the user has a place. The two rewards are independent.
+  function firstProfileReward(){ return; }
   function namePlaceReward(){
     try{
-      const name=(document.querySelector('#profile-name-input,#name-input,input[name="name"],input[placeholder*="name" i]')||{}).value||'';
-      const place=(document.querySelector('#profile-place-input,#place-input,input[name="place"],input[name="address"],input[placeholder*="place" i],input[placeholder*="address" i]')||{}).value||'';
-      if(name.trim() && place.trim()) once('namePlaceComplete',100,'Name and place completed');
+      const name=(document.querySelector('#profile-name-input,#name-input,#input-name,input[name="name"],input[placeholder*="name" i]')||{}).value||'';
+      const place=(document.querySelector('#profile-place-input,#place-input,#input-place,input[name="place"],input[name="address"],input[placeholder*="place" i],input[placeholder*="address" i]')||{}).value||'';
+      if(name.trim()) once('nameComplete',100,'Name added');
+      if(place.trim()) once('placeComplete',100,'Place added');
     }catch(e){}
   }
 
@@ -5782,7 +5780,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
 <script id="weak-trainer-100-coin-access-final">
 (function(){
-  const PRICE=100;
+  const PRICE=500;
   const ACCESS_KEY='porisram77_weak_trainer_access_v1';
 
   function uid(){
@@ -5864,7 +5862,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       b.dataset.unlocked='true';
     });
 
-    if(typeof window.showToast==='function') window.showToast('Weak Question Trainer unlocked for 100 🪙.','success');
+    if(typeof window.showToast==='function') window.showToast('Weak Question Trainer unlocked for 500 🪙.','success');
 
     setTimeout(function(){
       if(typeof window.startTrainer==='function') window.startTrainer();
@@ -5881,7 +5879,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       b.textContent='🎯 Open Weak Trainer';
       b.dataset.unlocked='true';
     }else{
-      b.textContent='🎯 Buy Access — 100 🪙';
+      b.textContent='🎯 Buy Access — 500 🪙';
       b.dataset.unlocked='false';
     }
 
