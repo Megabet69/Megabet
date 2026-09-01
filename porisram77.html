@@ -618,6 +618,43 @@ html.dark .weak-trainer-card{background:#172033;border-color:#334155}.html.dark 
 }
 </style>
 
+<style id="cash-conversion-style">
+.cash-conversion-card{margin:14px 0 18px;padding:16px;border:1px solid #dbeafe;border-radius:16px;background:linear-gradient(135deg,#eff6ff,#ffffff);box-shadow:0 4px 14px rgba(15,23,42,.05)}
+.cash-conversion-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.cash-conversion-title{font-size:17px;font-weight:900;color:#111827}
+.cash-conversion-subtitle{font-size:12px;color:#64748b;margin-top:3px}
+.cash-conversion-rate{font-size:12px;font-weight:800;color:#2563eb;background:#dbeafe;border-radius:999px;padding:6px 9px;white-space:nowrap}
+.cash-conversion-value{font-size:30px;font-weight:950;color:#15803d;margin-top:14px}
+.cash-conversion-min{font-size:11px;color:#64748b;margin-top:2px}
+.cash-withdraw-form{margin-top:14px}
+.cash-withdraw-form label{display:block;font-size:12px;font-weight:800;color:#374151;margin-bottom:6px}
+.cash-withdraw-form input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#111827;outline:none}
+.cash-withdraw-form input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.cash-withdraw-btn{width:100%;margin-top:9px;min-height:44px;border:0;border-radius:10px;background:#16a34a;color:#fff;font-weight:900;cursor:pointer}
+.cash-withdraw-btn:hover:not(:disabled){background:#15803d}
+.cash-withdraw-btn:disabled{opacity:.55;cursor:not-allowed}
+.cash-withdraw-message{font-size:12px;font-weight:700;margin-top:8px;min-height:17px}
+.cash-withdraw-message.error{color:#dc2626}.cash-withdraw-message.success{color:#15803d}
+.withdrawal-status-card{margin-top:13px;padding:12px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0}
+.withdrawal-status-title{font-size:12px;font-weight:900;color:#334155}
+#withdrawal-status-text{font-size:14px;font-weight:900;color:#2563eb;margin-top:4px;text-transform:capitalize}
+#withdrawal-status-meta{font-size:11px;color:#64748b;margin-top:4px}.withdrawal-pending-note{margin-top:10px;padding:10px 12px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12px;font-weight:800}.withdrawal-pending-note b{font-size:14px}.withdrawal-coins-deducted{display:block;margin-top:3px;font-size:11px;font-weight:700;color:#7c2d12}
+html.dark .cash-conversion-card{background:linear-gradient(135deg,#172033,#111827);border-color:#334155}
+html.dark .cash-conversion-title{color:#f8fafc}.html.dark .cash-conversion-subtitle,.html.dark .cash-conversion-min{color:#94a3b8}
+html.dark .cash-conversion-rate{background:#172554;color:#93c5fd}
+html.dark .cash-conversion-value{color:#4ade80}
+html.dark .cash-withdraw-form label{color:#e2e8f0}
+html.dark .cash-withdraw-form input{background:#1e293b;color:#f8fafc;border-color:#475569}
+html.dark .withdrawal-status-card{background:#1e293b;border-color:#374151}
+html.dark .withdrawal-status-title{color:#e2e8f0}
+html.dark #withdrawal-status-meta{color:#94a3b8}
+@media(max-width:640px){
+  .cash-conversion-head{flex-direction:column}
+  .cash-conversion-rate{align-self:flex-start}
+  .cash-conversion-value{font-size:27px}
+}
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -3744,11 +3781,39 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   <div class="rewards-head">
     <div>
       <div class="rewards-title">🪙 Coins & Rewards</div>
-      <div class="rewards-subtitle">Earn coins from activity and spend them on cosmetics.</div>
+      <div class="rewards-subtitle">Earn coins from activity and convert eligible coins to cash.</div>
     </div>
     <button type="button" id="rewards-close" class="reward-close" aria-label="Close rewards">×</button>
   </div>
   <div class="coin-balance" id="coin-balance">0 🪙</div>
+  <div id="cash-conversion-card" class="cash-conversion-card">
+    <div class="cash-conversion-head">
+      <div>
+        <div class="cash-conversion-title">💵 Cash Conversion</div>
+        <div class="cash-conversion-subtitle">Your coins can be converted directly to Indian Rupees.</div>
+      </div>
+      <div class="cash-conversion-rate">1 🪙 = ₹0.0002</div>
+    </div>
+    <div class="cash-conversion-value" id="cash-conversion-value">₹0.00</div>
+    <div class="cash-conversion-min">Minimum withdrawal: ₹10.00 (50,000 🪙)</div>
+
+    <div class="cash-withdraw-form">
+      <label for="withdraw-upi">UPI ID</label>
+      <input id="withdraw-upi" type="text" inputmode="email" autocomplete="off"
+             placeholder="example@upi" maxlength="100">
+      <button type="button" id="withdraw-cash-btn" class="cash-withdraw-btn">
+        Withdraw Cash
+      </button>
+      <div id="withdraw-message" class="cash-withdraw-message" aria-live="polite"></div>
+    </div>
+
+    <div id="withdrawal-status-card" class="withdrawal-status-card" hidden>
+      <div class="withdrawal-status-title">Withdrawal Status</div>
+      <div id="withdrawal-status-text"></div>
+      <div id="withdrawal-status-meta"></div>
+    </div>
+  </div>
+
   
 
 
@@ -4346,6 +4411,9 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
   // Reconcile after the phone/browser comes back online or becomes visible.
   async function reconcile(){
+    // Never let the generic coin synchronizer restore an old local balance
+    // while a cash withdrawal is atomically deducting coins in Firebase.
+    if(window.__cashWithdrawalInProgress) return;
     setBalanceUI();
     const db=getDb(), id=getUid();
     if(!db || !db.ref || !id || !window.coinSystem) return;
@@ -6062,301 +6130,6 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   window.declineQuizChallenge=declineChallenge;
 })();
 </script>
-
-
-
-
-<script id="all-govt-exam-category-card">
-(function(){
-  const PRICE=1000, FEATURE='allGovtExam';
-
-  function uid(){
-    try{
-      if(window.currentUser && window.currentUser.uid) return window.currentUser.uid;
-      if(typeof window.getClientId==='function'){
-        const id=window.getClientId();
-        if(id) return id;
-      }
-      return localStorage.getItem('porisram_firebase_user_id')||localStorage.getItem('userId')||'';
-    }catch(e){
-      try{return localStorage.getItem('porisram_firebase_user_id')||localStorage.getItem('userId')||'';}
-      catch(x){return '';}
-    }
-  }
-  function db(){
-    try{
-      if(window.firebaseDB && typeof window.firebaseDB.ref==='function') return window.firebaseDB;
-      if(window.db && typeof window.db.ref==='function') return window.db;
-      if(window.firebase && typeof window.firebase.database==='function'){
-        try{return window.firebase.database();}
-        catch(e){}
-      }
-    }catch(e){}
-    return null;
-  }
-
-  function coins(){
-    try{
-      if(window.coinSystem&&typeof window.coinSystem.balance==='function') return Math.max(0,Number(window.coinSystem.balance())||0);
-      if(window.rewardSystem&&typeof window.rewardSystem.getCoins==='function') return Math.max(0,Number(window.rewardSystem.getCoins())||0);
-      return Math.max(0,Number(localStorage.getItem('rewardCoins')||0)||0);
-    }catch(e){return 0;}
-  }
-  function setCoins(n){
-    n=Math.max(0,Number(n)||0);
-    try{
-      localStorage.setItem('rewardCoins',String(n));
-      if(window.state){
-        if('coins'in window.state)window.state.coins=n;
-        if('coinBalance'in window.state)window.state.coinBalance=n;
-        if('coinsBalance'in window.state)window.state.coinsBalance=n;
-      }
-      document.querySelectorAll('#coinBalance,[data-coins],.coin-balance,.coins,#coin-balance').forEach(el=>el.textContent=n.toLocaleString()+' 🪙');
-      if(typeof window.saveLocalCache==='function')window.saveLocalCache();
-      if(typeof window.updateCoinBalance==='function')window.updateCoinBalance(n);
-    }catch(e){}
-  }
-  function toast(m,t){
-    try{if(typeof window.showToast==='function'){window.showToast(m,t||'info');return;}}catch(e){}
-    alert(m);
-  }
-  async function owned(){
-    const id=uid(),d=db();
-    if(!id||!d||!d.ref)return false;
-    try{
-      const s=await d.ref('users/'+id+'/features/'+FEATURE).once('value');
-      return s.exists()&&s.val()===true;
-    }catch(e){return false;}
-  }
-
-  function collectQuestions(){
-    const data=window.quizData||{};
-    // ONLY these existing app categories feed All Govt Exam.
-    const allowed=['adre','police','reasoning','history'];
-    let all=[];
-
-    allowed.forEach(cid=>{
-      const cat=data[cid];
-      if(!cat || !Array.isArray(cat.questions)) return;
-      cat.questions.forEach((q,index)=>{
-        if(!q) return;
-        all.push(Object.assign({},q,{
-          // Make every question ID unique inside the combined 100-question
-          // exam so answers/progress/review cannot collide between categories.
-          id:cid+'__'+String(q.id||index),
-          sourceCategory:cid,
-          sourceQuestionId:q.id||index,
-          sourceCategoryTitle:cat.title||cid
-        }));
-      });
-    });
-
-    // Fisher-Yates shuffle.
-    for(let i=all.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [all[i],all[j]]=[all[j],all[i]];
-    }
-
-    return all.slice(0,100);
-  }
-  function registerExam(exam){
-    // Non-enumerable so Dashboard's Object.values(quizData) does NOT create
-    // another visible category card.
-    Object.defineProperty(window.quizData,'all_govt_exam',{
-      value:exam,writable:true,configurable:true,enumerable:false
-    });
-    window.allGovtExam=exam;
-  }
-
-  function start(){
-    const qs=collectQuestions();
-    if(qs.length<100){
-      toast('All Govt Exam needs at least 100 questions across all categories. Only '+qs.length+' are available.','error');
-      return;
-    }
-
-    const exam={
-      id:'all_govt_exam',
-      title:'All Govt Exam',
-      icon:'landmark',
-      color:'indigo',
-      questions:qs
-    };
-    registerExam(exam);
-
-    // The core quiz engine expects the category ID, not the category object.
-    // This enables normal progress, submit, review and re-attempt behavior.
-    try{
-      if(typeof window.startQuiz==='function'){
-        window.startQuiz('all_govt_exam');
-        return;
-      }
-    }catch(e){
-      console.error('All Govt Exam start failed:',e);
-    }
-    toast('Could not start All Govt Exam. Please try again.','error');
-  }
-  async function click(){
-    if(await owned()){start();return;}
-
-    const id=uid(),d=db();
-    if(!id||!d||typeof d.ref!=='function'){
-      toast('Firebase is not ready. Please wait a moment and try again.','error');
-      return;
-    }
-
-    try{
-      const coinRef=d.ref('users/'+id+'/coins');
-      const featureRef=d.ref('users/'+id+'/features/'+FEATURE);
-
-      // Read Firebase first: this is the real balance used for purchasing.
-      const snap=await coinRef.once('value');
-      const balance=Math.max(0,Number(snap.val())||0);
-      if(balance<PRICE){
-        toast('You need '+(PRICE-balance)+' more 🪙 to buy All Govt Exam.','error');
-        return;
-      }
-
-      // Atomic deduction prevents double-spending across devices/tabs.
-      const tx=await coinRef.transaction(current=>{
-        const n=Math.max(0,Number(current)||0);
-        return n>=PRICE ? n-PRICE : undefined;
-      });
-
-      if(!tx.committed){
-        const latest=Math.max(0,Number(tx.snapshot?.val())||0);
-        toast('Purchase could not be completed. Current balance: '+latest+' 🪙.','error');
-        setCoins(latest);
-        return;
-      }
-
-      const remaining=Math.max(0,Number(tx.snapshot.val())||0);
-
-      try{
-        await featureRef.set(true);
-        await d.ref('users/'+id+'/features/allGovtExamPurchasedAt').set(Date.now());
-      }catch(unlockError){
-        // Never keep the user's coins if the feature cannot be unlocked.
-        await coinRef.transaction(current=>Math.max(0,Number(current)||0)+PRICE);
-        throw unlockError;
-      }
-
-      setCoins(remaining);
-      if(window.coinSystem && typeof window.coinSystem.refresh==='function'){
-        window.coinSystem.refresh(remaining);
-      }
-
-      toast('All Govt Exam purchased successfully for 1000 🪙!','success');
-      await render();
-      start();
-    }catch(e){
-      console.error('All Govt Exam purchase error:',e);
-      toast('Purchase failed. No coins were charged. Please try again.','error');
-    }
-  }
-  const originalReattemptQuiz=window.reattemptQuiz;
-  if(typeof originalReattemptQuiz==='function'){
-    window.reattemptQuiz=function(categoryId){
-      if(categoryId==='all_govt_exam'){
-        const qs=collectQuestions();
-        if(qs.length<100){
-          toast('All Govt Exam requires at least 100 questions across ADRE, Assam Police, Reasoning & Aptitude, and Assam & Indian History. Only '+qs.length+' are available.','error');
-          return;
-        }
-
-        // Every re-attempt receives a newly shuffled set of 100.
-        registerExam({
-          id:'all_govt_exam',
-          title:'All Govt Exam',
-          icon:'landmark',
-          color:'indigo',
-          questions:qs
-        });
-
-        // Clear the previous saved question set so startQuiz cannot restore
-        // the old 100-question selection.
-        try{
-          const p=getProgress('all_govt_exam')||{};
-          delete p.questionSet;
-          p.answers={};
-          p.currentQuestionIndex=0;
-          p.timeSpent=0;
-          p.timeByQuestion={};
-          p.status='in-progress';
-          state.progressData.all_govt_exam=p;
-          saveLocalCache();
-        }catch(e){}
-      }
-      return originalReattemptQuiz(categoryId);
-    };
-  }
-  async function render(){
-    const card=document.getElementById('all-govt-exam-category');
-    if(!card)return;
-    const btn=card.querySelector('.all-govt-exam-action');
-    if(await owned()){
-      btn.textContent='Start Exam';
-      btn.classList.remove('bg-indigo-600','hover:bg-indigo-700');
-      btn.classList.add('bg-green-600','hover:bg-green-700');
-    }else{
-      btn.textContent='Buy • 1000 🪙';
-    }
-  }
-
-  function findCategoryGrid(){
-    // STRICT: this feature belongs only to the real Dashboard category grid.
-    // Never use a generic ".grid", because Profile also contains grids.
-    if(typeof state!=='undefined' && state.currentScreen!=='dashboard')return null;
-    return document.getElementById('dashboard-category-grid');
-  }
-
-  function mount(){
-    const existing=document.getElementById('all-govt-exam-category');
-    const grid=findCategoryGrid();
-
-    // If user leaves Dashboard, immediately remove the card.
-    if(!grid){
-      if(existing)existing.remove();
-      return;
-    }
-    if(existing && existing.parentElement===grid)return;
-    if(existing)existing.remove();
-
-    const card=document.createElement('div');
-    card.id='all-govt-exam-category';
-    card.className='category-card exam-category-card bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden';
-    card.innerHTML=
-      '<div class="p-5">'+
-        '<div class="flex items-start justify-between gap-3">'+
-          '<div class="text-4xl">🏛️</div>'+
-          '<span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">SPECIAL</span>'+
-        '</div>'+
-        '<h3 class="mt-3 text-lg font-extrabold text-gray-900">All Govt Exam</h3>'+
-        '<p class="mt-1 text-sm text-gray-500">100 questions from all government-exam categories, randomly selected and arranged.</p>'+
-        '<div class="mt-3 text-xs font-bold text-gray-600">100 Questions • All Categories • Random</div>'+
-        '<button type="button" class="all-govt-exam-action mt-4 w-full px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold">Buy • 1000 🪙</button>'+
-      '</div>';
-
-    card.querySelector('button').addEventListener('click',function(e){
-      e.preventDefault();e.stopPropagation();click();
-    });
-
-    // Place it with the other category cards, not at the top of the dashboard.
-    grid.appendChild(card);
-    render();
-  }
-
-  function init(){mount();render();}
-  init();
-  document.addEventListener('DOMContentLoaded',init,{once:true});
-  new MutationObserver(function(){
-    // React to both dashboard re-renders and navigation to Profile.
-    mount();
-  }).observe(document.documentElement,{childList:true,subtree:true});
-})();
-</script>
-
-
 <style id="public-profile-clean-css">
 .public-profile-overlay{position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:12px}
 .public-profile-overlay.open{display:flex}
@@ -6601,6 +6374,268 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     }catch(e){console.warn('Public bio listener failed',e)}
     return result;
   };
+})();
+</script>
+
+<script id="cash-withdrawal-system">
+(function(){
+  const RATE = 0.0002;       // ₹ per coin
+  const MIN_RUPEES = 10;
+  const MIN_COINS = Math.ceil(MIN_RUPEES / RATE); // 50,000 coins
+
+  function uid(){
+    try{
+      if(typeof window.getClientId==='function') return String(window.getClientId()||'');
+      if(window.currentUser && window.currentUser.uid) return String(window.currentUser.uid);
+      return String(localStorage.getItem('porisram_firebase_user_id')||'');
+    }catch(e){ return ''; }
+  }
+  function db(){ return window.firebaseDB || window.db || null; }
+
+  let firebaseCoins = null;
+  function getCoins(){
+    try{
+      // Firebase is the source of truth. This avoids the duplicated reward
+      // modules briefly showing 0 while the real balance is already stored.
+      if(firebaseCoins !== null && Number.isFinite(Number(firebaseCoins))) return Math.max(0, Math.floor(Number(firebaseCoins)));
+      if(window.coinSystem && typeof window.coinSystem.balance==='function'){
+        return Math.max(0, Math.floor(Number(window.coinSystem.balance())||0));
+      }
+      return Math.max(0, Math.floor(Number(localStorage.getItem('rewardCoins')||0)));
+    }catch(e){ return 0; }
+  }
+
+  function startCoinListener(){
+    const id=uid(), d=db();
+    if(!id||!d||!d.ref||window.__cashCoinListenerStarted)return;
+    window.__cashCoinListenerStarted=true;
+    const ref=d.ref('users/'+id+'/coins');
+    ref.on('value',function(snap){
+      const n=Math.max(0,Math.floor(Number(snap.val())||0));
+      firebaseCoins=n;
+      try{localStorage.setItem('rewardCoins',String(n));}catch(e){}
+      if(window.coinSystem && typeof window.coinSystem.refresh==='function' && Number(window.coinSystem.balance())!==n){
+        window.coinSystem.refresh(n);
+      }
+      updateCash();
+      // Keep every visible coin counter synchronized.
+      document.querySelectorAll('#coin-balance,#coinBalance,[data-coins],.coin-balance,.coins').forEach(function(el){
+        el.textContent=n.toLocaleString()+' 🪙';
+      });
+    });
+  }
+
+  function money(coins){
+    return (Math.max(0, Number(coins)||0) * RATE).toFixed(2);
+  }
+
+  function setMessage(text,type){
+    const el=document.getElementById('withdraw-message');
+    if(!el)return;
+    el.textContent=text||'';
+    el.className='cash-withdraw-message '+(type||'');
+  }
+
+  function updateCash(){
+    const coins=getCoins();
+    const el=document.getElementById('cash-conversion-value');
+    if(el) el.textContent='₹'+money(coins);
+    const btn=document.getElementById('withdraw-cash-btn');
+    if(btn && !btn.dataset.processing){
+      btn.disabled=coins<MIN_COINS;
+      btn.textContent=coins>=MIN_COINS?'Withdraw Cash':'Need 50,000 🪙';
+    }
+  }
+
+  function fmtTime(ts){
+    try{return new Date(Number(ts)).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});}
+    catch(e){return '';}
+  }
+
+  function renderStatus(data){
+    const card=document.getElementById('withdrawal-status-card');
+    const text=document.getElementById('withdrawal-status-text');
+    const meta=document.getElementById('withdrawal-status-meta');
+    if(!card||!text||!meta)return;
+    if(!data){ card.hidden=true; return; }
+    card.hidden=false;
+    const status=String(data.status||'processing').replace(/[-_]/g,' ');
+    text.textContent=status.charAt(0).toUpperCase()+status.slice(1);
+    meta.textContent='₹'+Number(data.amount||0).toFixed(2)+' • '+String(data.upiId||'')+
+      (data.createdAt?' • '+fmtTime(data.createdAt):'');
+    let note=document.getElementById('withdrawal-pending-note');
+    if(!note){
+      note=document.createElement('div');
+      note.id='withdrawal-pending-note';
+      note.className='withdrawal-pending-note';
+      card.appendChild(note);
+    }
+    const normalized=String(data.status||'processing').toLowerCase();
+    if(normalized==='processing'||normalized==='pending'){
+      note.innerHTML='⏳ Pending withdrawal: <b>₹'+Number(data.amount||0).toFixed(2)+'</b><span class="withdrawal-coins-deducted">'+Number(data.coins||0).toLocaleString()+' 🪙 deducted from your balance. Admin will update the status.</span>';
+      note.style.display='block';
+    }else{
+      note.innerHTML='Status updated by admin: <b>'+status+'</b>';
+      note.style.display='block';
+    }
+  }
+
+  function loadLatest(){
+    const id=uid(), d=db();
+    if(!id||!d||!d.ref)return;
+    const ref=d.ref('withdrawalRequests/'+id).orderByChild('createdAt').limitToLast(1);
+
+    const applySnapshot=function(snap){
+      let latest=null;
+      snap.forEach(child=>{ latest=child.val(); });
+      if(latest) {
+        renderStatus(latest);
+        try{localStorage.setItem('lastWithdrawalRequest',JSON.stringify(latest));}catch(e){}
+      } else {
+        try{
+          const raw=localStorage.getItem('lastWithdrawalRequest');
+          renderStatus(raw?JSON.parse(raw):null);
+        }catch(_){}
+      }
+    };
+
+    try{
+      ref.on('value',applySnapshot);
+    }catch(e){
+      try{
+        ref.once('value').then(applySnapshot).catch(function(){
+          const raw=localStorage.getItem('lastWithdrawalRequest');
+          renderStatus(raw?JSON.parse(raw):null);
+        });
+      }catch(_){}
+    }
+  }
+
+  async function withdraw(){
+    const btn=document.getElementById('withdraw-cash-btn');
+    const upiEl=document.getElementById('withdraw-upi');
+    if(!btn||!upiEl)return;
+
+    const id=uid(), d=db();
+    if(!id||!d||typeof d.ref!=='function'){
+      setMessage('Firebase is not ready. Please try again.','error');
+      return;
+    }
+
+    const upi=String(upiEl.value||'').trim();
+    // Practical UPI ID validation: handle common IDs such as name@upi, number@bank, etc.
+    if(!/^[A-Za-z0-9._-]{2,100}@[A-Za-z0-9._-]{2,50}$/.test(upi)){
+      setMessage('Enter a valid UPI ID, for example name@upi.','error');
+      upiEl.focus();
+      return;
+    }
+
+    btn.dataset.processing='1';
+    window.__cashWithdrawalInProgress=true;
+    btn.disabled=true;
+    btn.textContent='Processing...';
+    setMessage('','');
+
+    const coinRef=d.ref('users/'+id+'/coins');
+    let coinsWithdrawn=0;
+
+    try{
+      // Atomic deduction: prevents the same coins being withdrawn twice
+      // from different tabs/devices.
+      const tx=await coinRef.transaction(function(current){
+        const n=Math.max(0,Math.floor(Number(current)||0));
+        if(n<MIN_COINS) return;
+        coinsWithdrawn=n;
+        return 0;
+      });
+
+      if(!tx.committed){
+        const latest=Math.max(0,Math.floor(Number(tx.snapshot && tx.snapshot.val())||0));
+        if(window.coinSystem && typeof window.coinSystem.refresh==='function'){
+          window.coinSystem.refresh(latest);
+        }else{
+          try{localStorage.setItem('rewardCoins',String(latest));}catch(e){}
+        }
+        updateCash();
+        setMessage('Minimum withdrawal is ₹10.00 (50,000 🪙).','error');
+        return;
+      }
+
+      coinsWithdrawn=Math.max(0,Math.floor(Number(coinsWithdrawn)||0));
+      const amount=Number((coinsWithdrawn*RATE).toFixed(2));
+      const requestRef=d.ref('withdrawalRequests/'+id).push();
+      const request={
+        requestId:requestRef.key,
+        userId:id,
+        upiId:upi,
+        coins:coinsWithdrawn,
+        amount:amount,
+        currency:'INR',
+        ratePerCoin:RATE,
+        status:'processing',
+        createdAt:firebase.database.ServerValue.TIMESTAMP,
+        updatedAt:firebase.database.ServerValue.TIMESTAMP
+      };
+
+      try{
+        await requestRef.set(request);
+      }catch(requestError){
+        // Never permanently remove coins if the withdrawal request itself
+        // could not be saved.
+        await coinRef.transaction(function(current){
+          return Math.max(0,Math.floor(Number(current)||0))+coinsWithdrawn;
+        });
+        throw requestError;
+      }
+
+      // Synchronize the UI with the exact Firebase balance after deduction.
+      const remainingCoins=Math.max(0,Math.floor(Number(tx.snapshot && tx.snapshot.val())||0));
+      try{localStorage.setItem('rewardCoins',String(remainingCoins));}catch(e){}
+      if(window.coinSystem && typeof window.coinSystem.refresh==='function'){
+        window.coinSystem.refresh(remainingCoins);
+      }
+      firebaseCoins=remainingCoins;
+      document.querySelectorAll('#coin-balance,#coinBalance,[data-coins],.coin-balance,.coins').forEach(function(el){
+        el.textContent=remainingCoins.toLocaleString()+' 🪙';
+      });
+
+      try{localStorage.setItem('lastWithdrawalRequest',JSON.stringify({
+        requestId:requestRef.key,userId:id,upiId:upi,coins:coinsWithdrawn,amount:amount,status:'processing',createdAt:Date.now()
+      }));}catch(e){}
+
+      renderStatus({upiId:upi,amount:amount,status:'processing',createdAt:Date.now()});
+      setMessage('Withdrawal request placed. Status: Processing.','success');
+      upiEl.value='';
+      updateCash();
+
+    }catch(e){
+      console.error('Cash withdrawal failed:',e);
+      setMessage('Withdrawal failed. No coins were deducted. Please try again.','error');
+    }finally{
+      delete btn.dataset.processing;
+      window.__cashWithdrawalInProgress=false;
+      updateCash();
+    }
+  }
+
+  function init(){
+    const btn=document.getElementById('withdraw-cash-btn');
+    if(btn && btn.dataset.bound!=='1'){
+      btn.dataset.bound='1';
+      btn.addEventListener('click',withdraw);
+    }
+    startCoinListener();
+    updateCash();
+    loadLatest();
+
+    // Keep the displayed rupee conversion synchronized with the real coin balance.
+    if(!window.__cashConversionTimer){
+      window.__cashConversionTimer=setInterval(updateCash,500);
+    }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
 })();
 </script>
 
