@@ -1896,12 +1896,23 @@ function scheduleFirebaseRetry() {
             <i data-lucide="user" class="text-blue-500 w-3.5 h-3.5"></i><span class="font-medium text-gray-800">${escapeHtml(state.profile.name)}</span>
             <span class="text-gray-300">|</span>
             <i data-lucide="map-pin" class="text-red-500 w-3.5 h-3.5"></i>${escapeHtml(state.profile.place)}
+            <span class="text-gray-300">|</span>
+            <span id="header-coin-balance" class="inline-flex items-center gap-1 font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full" title="Your coins">${window.coinSystem && typeof window.coinSystem.balance === 'function' ? window.coinSystem.balance() : 0} 🪙</span>
           </div>
           ${state.currentScreen !== 'dashboard' ? `<button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="goDashboard()">Dashboard</button>` : ''}
           ${state.currentScreen !== 'profile' && state.currentScreen !== 'welcome' && state.currentScreen !== 'loading' ? `<button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="showProfile()"><i data-lucide="user" class="w-4 h-4"></i> Profile</button>` : ''}`;
         lucide.createIcons();
       } else headerProfileEl.innerHTML = '';
     }
+
+    // Keep the user's coin balance visible in the top profile area on every screen.
+    function refreshHeaderCoinBalance() {
+      const el = document.getElementById('header-coin-balance');
+      if (!el) return;
+      const value = window.coinSystem && typeof window.coinSystem.balance === 'function' ? window.coinSystem.balance() : 0;
+      el.textContent = value + ' 🪙';
+    }
+    setInterval(refreshHeaderCoinBalance, 500);
 
     function renderDashboard() {
       return `<div class="fade-in">
