@@ -1449,6 +1449,8 @@ html.dark .weak-trainer-card{background:#172033;border-color:#334155}.html.dark 
         name: String(state.profile.name || ""),
         place: String(state.profile.place || ""),
         avatar: String(state.profile.avatar || "😀"),
+        bio: String(state.profile.bio || ""),
+        bio: String(state.profile.bio || ""),
         createdAt: state.profile.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -1627,6 +1629,9 @@ function scheduleFirebaseRetry() {
         attemptHistory: Array.isArray(existing.attemptHistory) ? existing.attemptHistory : [],
         lastUpdated: new Date().toISOString()
       };
+      if(state.activeCategory==='all_govt_exam' && window.quizData && window.quizData.all_govt_exam){
+        data.questionSet=window.quizData.all_govt_exam.questions.map(q=>({...q}));
+      }
       if (status) data.status = status;
       return data;
     }
@@ -1681,6 +1686,16 @@ function scheduleFirebaseRetry() {
       saveLocalCache();
       const saved = await saveProfileData();
 
+      // Public bio mirror: the profile object remains intact, while this
+      // dedicated field makes the bio directly readable by other users.
+      if (saved && bioChanged) {
+        try {
+          await firebaseDB.ref("users/" + getClientId() + "/bio").set(bio);
+        } catch (e) {
+          console.warn("Could not mirror public bio:", e);
+        }
+      }
+
       if (!saved) {
         if (btn) {
           btn.disabled = false;
@@ -1711,6 +1726,19 @@ function scheduleFirebaseRetry() {
 
     // ---------------- QUIZ ----------------
     window.startQuiz = (categoryId) => {
+      if(categoryId==='all_govt_exam'){
+        const saved=getProgress('all_govt_exam');
+        if(saved?.questionSet && Array.isArray(saved.questionSet) && saved.questionSet.length>=100){
+          Object.defineProperty(window.quizData,'all_govt_exam',{
+            value:{
+              id:'all_govt_exam',title:'All Govt Exam',icon:'landmark',color:'indigo',
+              questions:saved.questionSet
+            },
+            writable:true,configurable:true,enumerable:false
+          });
+          window.allGovtExam=window.quizData.all_govt_exam;
+        }
+      }
       if (state.timerInterval) clearInterval(state.timerInterval);
 
       state.activeCategory = categoryId;
@@ -2307,6 +2335,7 @@ function scheduleFirebaseRetry() {
       const placeEl = document.getElementById("edit-profile-place");
       const bioEl = document.getElementById("edit-profile-bio");
       const errorEl = document.getElementById("profile-edit-error");
+      const btn = document.getElementById("save-profile-edit");
 
       const name = (nameEl?.value || "").trim();
       const place = (placeEl?.value || "").trim();
@@ -2319,7 +2348,6 @@ function scheduleFirebaseRetry() {
         errorEl.classList.remove("hidden");
         return;
       }
-
       if (bio.length > 150) {
         errorEl.textContent = "Bio can be maximum 150 characters.";
         errorEl.classList.remove("hidden");
@@ -2327,7 +2355,8 @@ function scheduleFirebaseRetry() {
       }
 
       if (bioChanged) {
-        const balance = (window.coinSystem && typeof window.coinSystem.balance === "function") ? Number(window.coinSystem.balance()) : 0;
+        const balance = window.coinSystem && typeof window.coinSystem.balance === "function"
+          ? Number(window.coinSystem.balance()) : 0;
         if (!Number.isFinite(balance) || balance < 50) {
           errorEl.textContent = "Adding or changing your bio requires 50 🪙.";
           errorEl.classList.remove("hidden");
@@ -2335,6 +2364,12 @@ function scheduleFirebaseRetry() {
         }
       }
 
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Saving...";
+      }
+
+      const previousProfile = {...(state.profile || {})};
       state.profile = {
         ...(state.profile || {}),
         name,
@@ -2343,34 +2378,55 @@ function scheduleFirebaseRetry() {
         avatar: state.profile?.avatar || "😀"
       };
 
-      saveLocalCache();
-      const saved = await saveProfileData();
+      try {
+        // Save the complete profile, INCLUDING BIO, to Firebase first.
+        const saved = await saveProfileData();
+        if (!saved) throw new Error("profile-save-failed");
 
-      if (!saved) {
-        errorEl.textContent =
-          "Could not save to Firebase. Check your database rules and connection.";
-        errorEl.classList.remove("hidden");
-        return;
-      }
+        // Also keep a simple public field for leaderboard/public-profile reads.
+        await firebaseDB.ref("users/" + getClientId() + "/bio").set(bio);
 
-      if (bioChanged) {
-        const charged = window.coinSystem && typeof window.coinSystem.award === "function"
-          ? window.coinSystem.award(-50, "Bio added/updated", "bio:" + getClientId() + ":" + Date.now())
-          : 0;
-        if (Number(charged) !== -50) {
-          // Roll back the bio if the coin transaction could not be recorded.
-          state.profile.bio = oldBio;
-          await saveProfileData();
+        // Charge only after Firebase successfully stored the new bio.
+        if (bioChanged) {
+          const charged = window.coinSystem && typeof window.coinSystem.award === "function"
+            ? window.coinSystem.award(-50, "Bio added/updated", "bio:" + getClientId() + ":" + Date.now())
+            : 0;
+
+          if (Number(charged) !== -50) {
+            // Restore the previous bio in Firebase if charging failed.
+            state.profile = previousProfile;
+            await saveProfileData();
+            await firebaseDB.ref("users/" + getClientId() + "/bio").set(oldBio);
+            throw new Error("bio-charge-failed");
+          }
+        }
+
+        saveLocalCache();
+        closeProfileEdit();
+        render();
+        showToast(
+          bioChanged ? "Bio saved to Firebase. 50 🪙 deducted." : "Profile updated and saved to Firebase.",
+          "success"
+        );
+      } catch (e) {
+        console.error("Profile/bio Firebase save failed:", e);
+        state.profile = previousProfile;
+        saveLocalCache();
+
+        if (e.message === "bio-charge-failed") {
           errorEl.textContent = "Could not charge 50 🪙. Bio was not changed.";
-          errorEl.classList.remove("hidden");
-          return;
+        } else {
+          errorEl.textContent = "Could not save bio to Firebase. Please try again.";
+        }
+        errorEl.classList.remove("hidden");
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Save";
         }
       }
-
-      closeProfileEdit();
-      render();
-      showToast(bioChanged ? "Profile updated. 50 🪙 deducted for the bio." : "Profile updated and saved to Firebase.", "success");
     }
+
+
 
     function getProfileAvatar() {
       ensureProfileFields();
@@ -2725,7 +2781,31 @@ function scheduleFirebaseRetry() {
         }
         state.chatGame = { id: gameId, ...game };
         if (state.chatGameSelection?.roundKey !== game.roundKey) state.chatGameSelection = null;
-        if (state.currentScreen === "chat") {
+
+        // When the challenge becomes active, BOTH players must enter the
+        // battle screen. The challenger may currently be on Dashboard/Profile,
+        // while the accepter is coming from the popup.
+        if (game.status === "active") {
+          state.chatUser = state.chatUser || {
+            id: game.challengerId === getClientId() ? game.opponentId : game.challengerId,
+            name: game.challengerId === getClientId() ? (game.opponentName || "Opponent") : (game.challengerName || "Opponent"),
+            place: "",
+            avatar: "😀"
+          };
+          state.currentScreen = "chat";
+          render();
+
+          // render() creates #chat-game-area; force the battle into the
+          // fullscreen container immediately on both devices.
+          setTimeout(() => {
+            const box = document.getElementById("chat-game-area");
+            if (box) {
+              box.innerHTML = renderChatGame();
+              box.classList.add("battle-fullscreen");
+              if (window.lucide) lucide.createIcons();
+            }
+          }, 0);
+        } else if (state.currentScreen === "chat") {
           const box = document.getElementById("chat-game-area");
           if (box) {
             box.innerHTML = renderChatGame();
@@ -2817,6 +2897,8 @@ function scheduleFirebaseRetry() {
         const invite = {
           gameId: gameRef.key,
           from: getClientId(),
+          to: opponentId,
+          status: 'pending',
           fromName: state.profile?.name || "Player 1",
           categoryTitle: cat.title,
           rounds,
@@ -2829,7 +2911,11 @@ function scheduleFirebaseRetry() {
           type: "quiz-challenge",
           gameId: gameRef.key,
           from: getClientId(),
+          to: opponentId,
           name: state.profile?.name || "Player 1",
+          categoryTitle: cat.title,
+          rounds,
+          expiresAt: game.expiresAt,
           text: `${state.profile?.name || "Player 1"} challenged you to a ${cat.title} quiz battle (${rounds} rounds).`,
           createdAt: firebase.database.ServerValue.TIMESTAMP,
           read: false
@@ -5765,11 +5851,17 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       state.chatUser = state.chatUser || {id:opponentId,name:g.challengerName||'Opponent',place:'',avatar:'😀'};
       state.chatGame = {id:gameId,...g,status:'active'};
       startChatGameListener(gameId);
+      state.currentScreen='chat';
+      render();
+      setTimeout(()=>{
+        const box=document.getElementById('chat-game-area');
+        if(box){
+          box.innerHTML=renderChatGame();
+          box.classList.add('battle-fullscreen');
+          if(window.lucide) lucide.createIcons();
+        }
+      },0);
       showToast('Challenge accepted. Battle started!', 'success');
-      if(state.currentScreen !== 'chat'){
-        state.currentScreen='chat';
-        render();
-      } else render();
     }catch(e){
       console.error('Accept challenge failed:',e);
       showToast('Could not accept the challenge.', 'error');
@@ -5870,29 +5962,85 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   }
 
   function watchIncomingInvite(){
-    if(!window.firebaseDB || !window.getClientId || !window.chatRootWith) return;
-    // Scan all chats because the challenge invite is stored in the shared chat node.
+    if(!window.firebaseDB || !window.getClientId) return;
     if(inviteListener) firebaseDB.ref('chats').off('value',inviteListener);
+
     inviteListener=snapshot=>{
       const chats=snapshot.val()||{};
-      const me=getClientId();
+      const me=String(getClientId());
+
       Object.values(chats).forEach(chat=>{
-        if(!chat?.gameInvite || chat.gameInvite.from===me) return;
-        showIncomingChallenge(chat.gameInvite);
+        const invite=chat && chat.gameInvite;
+        if(!invite) return;
+
+        const from=String(invite.from||invite.senderId||'');
+        const to=String(invite.to||invite.recipientId||invite.targetUserId||'');
+        const status=String(invite.status||'pending').toLowerCase();
+        const expiresAt=Number(invite.expiresAt||0);
+
+        // A shared/old chat invite must never be treated as a new challenge.
+        if(!from || from===me) return;
+        if(!to || to!==me) return;
+        if(status!=='pending' && status!=='sent') return;
+        if(expiresAt && expiresAt<=Date.now()) return;
+        if(!invite.gameId) return;
+
+        firebaseDB.ref('quizGames/'+invite.gameId).once('value').then(gameSnap=>{
+          const game=gameSnap.val();
+          if(!game || game.status!=='pending') return;
+          if(String(game.opponentId||'')!==me) return;
+          if(Number(game.expiresAt||0) && Number(game.expiresAt)<=Date.now()) return;
+          if(handledInvites[invite.gameId]) return;
+          showIncomingChallenge(invite);
+        }).catch(()=>{});
       });
     };
+
     firebaseDB.ref('chats').on('value',inviteListener);
   }
 
   function watchNotifications(){
     if(notificationListener) firebaseDB.ref('users/'+getClientId()+'/notifications').off('value',notificationListener);
+
     notificationListener=snap=>{
       const data=snap.val()||{};
+      const me=String(getClientId());
+
       Object.entries(data).forEach(([id,n])=>{
-        if(!n || n.read || n.type!=='quiz-challenge') return;
-        firebaseDB.ref('users/'+getClientId()+'/notifications/'+id+'/read').set(true).catch(()=>{});
+        if(!n || n.type!=='quiz-challenge' || n.read) return;
+
+        const from=String(n.from||'');
+        const gameId=String(n.gameId||'');
+        if(!from || !gameId || from===me) return;
+
+        // Notifications are the authoritative per-user delivery channel.
+        // Verify the game is actually addressed to this user before showing it.
+        firebaseDB.ref('quizGames/'+gameId).once('value').then(gameSnap=>{
+          const game=gameSnap.val();
+          if(!game) return;
+          if(String(game.opponentId||'')!==me) return;
+          if(String(game.challengerId||'')!==from) return;
+          if(game.status!=='pending') return;
+          if(Number(game.expiresAt||0) && Number(game.expiresAt)<=Date.now()) return;
+          if(handledInvites[gameId]) return;
+
+          showIncomingChallenge({
+            gameId,
+            from,
+            to:me,
+            status:'pending',
+            fromName:n.name||game.challengerName||'A player',
+            categoryTitle:n.categoryTitle||game.categoryTitle||'Quiz',
+            rounds:n.rounds||game.totalRounds||5,
+            expiresAt:game.expiresAt
+          });
+
+          // Mark it read only after a valid incoming challenge was found.
+          firebaseDB.ref('users/'+me+'/notifications/'+id+'/read').set(true).catch(()=>{});
+        }).catch(()=>{});
       });
     };
+
     firebaseDB.ref('users/'+getClientId()+'/notifications').on('value',notificationListener);
   }
 
@@ -6002,24 +6150,43 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     return all.slice(0,100);
   }
 
+  function registerExam(exam){
+    // Non-enumerable so Dashboard's Object.values(quizData) does NOT create
+    // another visible category card.
+    Object.defineProperty(window.quizData,'all_govt_exam',{
+      value:exam,writable:true,configurable:true,enumerable:false
+    });
+    window.allGovtExam=exam;
+  }
+
   function start(){
     const qs=collectQuestions();
     if(qs.length<100){
       toast('All Govt Exam needs at least 100 questions across all categories. Only '+qs.length+' are available.','error');
       return;
     }
-    const exam={id:'all_govt_exam',title:'All Govt Exam',icon:'🏛️',questions:qs};
-    window.allGovtExam=exam;
-    try{
-      if(typeof window.startQuiz==='function'){window.startQuiz(exam);return;}
-      if(typeof window.beginQuiz==='function'){window.beginQuiz(exam);return;}
-      if(typeof window.openQuiz==='function'){window.openQuiz(exam);return;}
-      if(typeof window.renderQuiz==='function'){window.renderQuiz(exam);return;}
-      if(typeof window.startQuizCategory==='function'){window.startQuizCategory(exam);return;}
-    }catch(e){console.error(e);}
-    toast('The All Govt Exam quiz launcher is not available in this version.','error');
-  }
 
+    const exam={
+      id:'all_govt_exam',
+      title:'All Govt Exam',
+      icon:'landmark',
+      color:'indigo',
+      questions:qs
+    };
+    registerExam(exam);
+
+    // The core quiz engine expects the category ID, not the category object.
+    // This enables normal progress, submit, review and re-attempt behavior.
+    try{
+      if(typeof window.startQuiz==='function'){
+        window.startQuiz('all_govt_exam');
+        return;
+      }
+    }catch(e){
+      console.error('All Govt Exam start failed:',e);
+    }
+    toast('Could not start All Govt Exam. Please try again.','error');
+  }
   async function click(){
     // If already purchased, never charge again.
     if(await owned()){start();return;}
@@ -6086,6 +6253,30 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       toast('Purchase failed. Your coins were not charged.','error');
     }
   }
+
+  const originalReattemptQuiz=window.reattemptQuiz;
+  if(typeof originalReattemptQuiz==='function'){
+    window.reattemptQuiz=function(categoryId){
+      if(categoryId==='all_govt_exam'){
+        const qs=collectQuestions();
+        if(qs.length<100){
+          toast('All Govt Exam needs at least 100 questions across all categories. Only '+qs.length+' are available.','error');
+          return;
+        }
+        const old=window.quizData.all_govt_exam||{};
+        registerExam({
+          ...old,
+          id:'all_govt_exam',
+          title:'All Govt Exam',
+          icon:'landmark',
+          color:'indigo',
+          questions:qs
+        });
+      }
+      return originalReattemptQuiz(categoryId);
+    };
+  }
+
   async function render(){
     const card=document.getElementById('all-govt-exam-category');
     if(!card)return;
@@ -6264,7 +6455,9 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     if(!best||acc>best.acc)best={title:cat.title||catId,acc:acc};
   });
   document.getElementById('pp-best').textContent=best?best.title+' • '+best.acc.toFixed(1)+'%':'No category yet';
-  document.getElementById('pp-bio').textContent=u.bio||'No bio added yet.';
+  const directBio=await firebaseDB.ref('users/'+id+'/bio').once('value').catch(()=>null);
+  if(directBio&&directBio.exists())u.bio=directBio.val();
+   document.getElementById('pp-bio').textContent=(u.bio!=null&&String(u.bio).trim()!=='')?String(u.bio).trim():'No bio added yet.';
 
   // Cosmetic purchases were removed, so the public profile does not show
   // cosmetic coin items.
@@ -6370,6 +6563,31 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 <script id="all-govt-purchase-sync-fix">
 (function(){
   window.__allGovtPurchaseInProgress=false;
+})();
+</script>
+
+
+<script id="public-bio-live-sync">
+(function(){
+  let activeId='';
+  const oldOpen=window.openPublicUserProfile;
+  if(typeof oldOpen!=='function')return;
+  window.openPublicUserProfile=async function(id){
+    activeId=String(id||'');
+    const result=await oldOpen.apply(this,arguments);
+    try{
+      if(activeId&&window.firebaseDB){
+        window.firebaseDB.ref('users/'+activeId+'/bio').on('value',function(snap){
+          const modal=document.getElementById('public-profile-overlay');
+          const el=document.getElementById('pp-bio');
+          if(!modal||!modal.classList.contains('open')||!el)return;
+          const bio=snap.exists()?String(snap.val()||'').trim():'';
+          el.textContent=bio||'No bio added yet.';
+        });
+      }
+    }catch(e){console.warn('Public bio listener failed',e)}
+    return result;
+  };
 })();
 </script>
 
