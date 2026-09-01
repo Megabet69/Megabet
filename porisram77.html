@@ -1280,6 +1280,45 @@ html.dark #withdrawal-status-meta{color:#94a3b8}
       }
     };
 
+    // ---------------- SUPER10 TEST ----------------
+    // Builds a fresh 10-question test from every existing category.
+    // The selected questions and their order are randomized for every new attempt.
+    function shuffleArray(arr) {
+      const a = Array.isArray(arr) ? arr.slice() : [];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function buildSuper10Questions() {
+      const pool = [];
+      Object.keys(quizData).forEach(catId => {
+        if (catId === 'super10') return;
+        const cat = quizData[catId];
+        if (!cat || !Array.isArray(cat.questions)) return;
+        cat.questions.forEach(q => {
+          if (!q) return;
+          pool.push({
+            ...q,
+            id: 'super10_' + catId + '_' + String(q.id || Math.random().toString(36).slice(2)),
+            super10SourceCategory: catId,
+            super10SourceQuestionId: q.id
+          });
+        });
+      });
+      return shuffleArray(pool).slice(0, 10);
+    }
+
+    quizData.super10 = {
+      id: 'super10',
+      title: 'Super10 Test',
+      icon: 'zap',
+      color: 'violet',
+      questions: buildSuper10Questions()
+    };
+
     const PERFORMANCE = {
       PASS_PERCENT: 40,
       WEAK_PASS_PERCENT: 60,
@@ -1770,6 +1809,16 @@ function scheduleFirebaseRetry() {
 
       state.activeCategory = categoryId;
       const progress = getProgress(categoryId);
+
+      // Super10 uses a saved 10-question set while resuming.
+      // A completed Super10 is opened in Review; Re-attempt creates a fresh random set.
+      if (categoryId === 'super10') {
+        if (progress?.questionSet && Array.isArray(progress.questionSet) && progress.questionSet.length === 10) {
+          quizData.super10.questions = progress.questionSet.map(q => ({...q}));
+        } else {
+          quizData.super10.questions = buildSuper10Questions();
+        }
+      }
       const cat = quizData[categoryId];
 
       state.quiz.answers = { ...(progress?.answers || {}) };
@@ -1792,6 +1841,12 @@ function scheduleFirebaseRetry() {
 
       state.currentScreen = 'quiz';
       startQuestionClock();
+      if (categoryId === 'super10') {
+        state.progressData[categoryId] = {
+          ...(state.progressData[categoryId] || {}),
+          questionSet: cat.questions.map(q => ({...q}))
+        };
+      }
       saveLocalCache();
       render();
 
@@ -1810,12 +1865,28 @@ function scheduleFirebaseRetry() {
       const previous = getProgress(categoryId) || {};
       const history = Array.isArray(previous.attemptHistory) ? previous.attemptHistory : [];
       state.activeCategory = categoryId;
+
+      // Every Super10 re-attempt gets a new random selection and order.
+      if (categoryId === 'super10') {
+        quizData.super10.questions = buildSuper10Questions();
+      }
+      const activeCat = quizData[categoryId];
       state.quiz.answers = {};
       state.quiz.timeSpent = 0;
       state.quiz.timeByQuestion = {};
       state.quiz.currentIndex = 0;
       state.quiz.questionStartedAt = null;
-      state.progressData[categoryId] = { ...previous, answers:{}, currentQuestionIndex:0, timeSpent:0, timeByQuestion:{}, attemptHistory:history, status:'in-progress', lastUpdated:new Date().toISOString() };
+      state.progressData[categoryId] = {
+        ...previous,
+        answers:{},
+        currentQuestionIndex:0,
+        timeSpent:0,
+        timeByQuestion:{},
+        attemptHistory:history,
+        status:'in-progress',
+        ...(categoryId === 'super10' ? {questionSet: activeCat.questions.map(q => ({...q}))} : {}),
+        lastUpdated:new Date().toISOString()
+      };
       saveLocalCache();
       state.currentScreen = 'quiz';
       startQuestionClock();
@@ -1833,16 +1904,11 @@ function scheduleFirebaseRetry() {
       flushQuestionTime();
       const q = getCurrentQuestion();
       if (!q) return;
-      // Coin economy: first selection on this question = attempt reward,
-      // then correct/wrong reward. Unique transaction keys prevent duplicates.
-      try {
-        if (window.coinSystem) {
-          window.coinSystem.attempt(q.id, state.activeCategory);
-          if (optionId === q.correct) window.coinSystem.correct(q.id, state.activeCategory);
-          else window.coinSystem.wrong(q.id, state.activeCategory);
-        }
-      } catch (e) { console.warn("Question coin reward failed:", e); }
+      // All categories: option tap only records the answer.
+// Coins are committed only when the user taps Next.
       state.quiz.answers[q.id] = optionId;
+      state.quiz.pendingCoinRewards = state.quiz.pendingCoinRewards || {};
+      state.quiz.pendingCoinRewards[q.id] = (optionId === q.correct) ? 10 : -3;
 
       // Save wrong answers immediately. Completing/submitting the test is NOT required.
       if (optionId !== q.correct && typeof window.saveWrongQuestionInstant === 'function') {
@@ -1867,6 +1933,73 @@ function scheduleFirebaseRetry() {
     };
 
     window.handleNext = () => {
+      // All categories: ONLY Next commits the pending +10 / -3 reward.
+      if (state.quiz.pendingCoinRewards) {
+        const currentQuestion = getCurrentQuestion();
+        const pending = state.quiz.pendingCoinRewards;
+        if (currentQuestion && Object.prototype.hasOwnProperty.call(pending, currentQuestion.id)) {
+          const delta = Number(pending[currentQuestion.id]);
+          const key = 'answer-next:' + String(state.activeCategory) + ':' +
+            String(currentQuestion.id) + ':' + String(state.quiz.currentIndex);
+          try {
+            if (window.coinSystem && Number.isFinite(delta) && delta !== 0) {
+              window.coinSystem.award(
+                delta,
+                delta > 0 ? 'Correct answer' : 'Wrong answer',
+                key
+              );
+            }
+          } catch (e) {
+            console.warn('Coin update failed:', e);
+          }
+          delete pending[currentQuestion.id];
+        }
+      }
+
+
+
+      if (state.activeCategory === 'super10') {
+        const currentQuestion = getCurrentQuestion();
+        const pending = state.quiz.super10PendingRewards || {};
+        if (currentQuestion && Object.prototype.hasOwnProperty.call(pending, currentQuestion.id)) {
+          const delta = Number(pending[currentQuestion.id]);
+          const key = 'super10-next:' + String(currentQuestion.id) + ':' + String(state.quiz.currentIndex);
+          try {
+            if (window.coinSystem && Number.isFinite(delta) && delta !== 0) {
+              window.coinSystem.award(
+                delta,
+                delta > 0 ? 'Super10 correct answer' : 'Super10 wrong answer',
+                key
+              );
+            }
+          } catch (e) {
+            console.warn('Super10 coin update failed:', e);
+          }
+          delete pending[currentQuestion.id];
+        }
+      }
+
+
+
+      if (state.activeCategory === 'super10') {
+        const currentQuestion = getCurrentQuestion();
+        const pending = state.quiz.super10PendingRewards || {};
+        if (currentQuestion && Object.prototype.hasOwnProperty.call(pending, currentQuestion.id)) {
+          const delta = Number(pending[currentQuestion.id]);
+          const key = 'super10-next:' + String(currentQuestion.id) + ':' + String(state.quiz.currentIndex);
+          try {
+            if (window.coinSystem && Number.isFinite(delta) && delta !== 0) {
+              window.coinSystem.award(
+                delta,
+                delta > 0 ? 'Super10 correct answer' : 'Super10 wrong answer',
+                key
+              );
+            }
+          } catch (e) { console.warn('Super10 coin update failed:', e); }
+          delete pending[currentQuestion.id];
+        }
+      }
+
       const total = quizData[state.activeCategory].questions.length;
       flushQuestionTime();
       if (state.quiz.currentIndex < total - 1) {
@@ -1906,7 +2039,19 @@ function scheduleFirebaseRetry() {
     };
 
     window.goDashboard = () => {
-      if (state.currentScreen === 'quiz') saveProgress('in-progress');
+      // Leaving a live test intentionally or accidentally always saves it
+      // as in-progress so the user can resume the exact same test later.
+      if (state.currentScreen === 'quiz') {
+        flushQuestionTime();
+        saveProgress('in-progress');
+        saveLocalCache();
+        if (state.timerInterval) clearInterval(state.timerInterval);
+        state.activeCategory = null;
+        state.currentScreen = 'dashboard';
+        render();
+        showToast('Test saved. You can resume later.', 'success');
+        return;
+      }
       state.activeCategory = null;
       state.currentScreen = 'dashboard';
       if (state.timerInterval) clearInterval(state.timerInterval);
@@ -1916,15 +2061,18 @@ function scheduleFirebaseRetry() {
     window.showExitModal = () => {
       openModal(
         'Pause and Exit Test?',
-        'Your answers, total time and time spent on every question will be saved. You can resume later.',
+        'Your answers, current question, total time and time spent on every question will be saved. You can resume later.',
         'Exit & Save',
         () => {
+          flushQuestionTime();
           saveProgress('in-progress');
+          saveLocalCache();
           closeModal();
           if (state.timerInterval) clearInterval(state.timerInterval);
           state.currentScreen = 'dashboard';
           state.activeCategory = null;
           render();
+          showToast('Test saved. You can resume later.', 'success');
         }
       );
     };
@@ -1953,6 +2101,30 @@ function scheduleFirebaseRetry() {
     function closeModal() {
       modalEl.classList.add('hidden');
     }
+
+    // Browser refresh/tab close protection:
+    // persist the exact in-progress state locally before the page disappears.
+    window.addEventListener('beforeunload', () => {
+      try {
+        if (state.currentScreen === 'quiz' && state.activeCategory) {
+          flushQuestionTime();
+          const live = state.progressData[state.activeCategory] || {};
+          state.progressData[state.activeCategory] = {
+            ...live,
+            answers: { ...state.quiz.answers },
+            currentQuestionIndex: state.quiz.currentIndex,
+            timeSpent: state.quiz.timeSpent,
+            timeByQuestion: { ...state.quiz.timeByQuestion },
+            status: 'in-progress',
+            lastUpdated: new Date().toISOString()
+          };
+          saveLocalCache();
+          saveProgress('in-progress');
+        }
+      } catch (e) {
+        console.warn('Could not save test before page close:', e);
+      }
+    });
 
     // ---------------- UI HELPERS ----------------
     function badgeClass(performance) {
@@ -2030,10 +2202,10 @@ function scheduleFirebaseRetry() {
             }
             return `<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative overflow-hidden">
               <div class="flex items-start justify-between mb-4"><div class="p-3 rounded-xl text-white bg-${cat.color}-600 shadow-sm"><i data-lucide="${cat.icon}" class="w-7 h-7"></i></div>${completed ? '<span class="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full">Completed</span>' : ''}</div>
-              <h3 class="text-xl font-bold text-gray-900 mb-2">${cat.title}</h3><p class="text-sm text-gray-500 mb-5">${total} curated questions</p>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">${cat.title}</h3><p class="text-sm text-gray-500 mb-5">${total} ${cat.id === 'super10' ? 'random questions from all categories' : 'curated questions'}</p>
               ${inProgress ? `<div class="mb-5"><div class="flex justify-between text-xs mb-1.5 font-medium"><span>Progress</span><span class="text-blue-600">${attempted} / ${total}</span></div><div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full bg-blue-500" style="width:${percent}%"></div></div></div>` : ''}
               ${mini}
-              ${completed ? `<div class="grid grid-cols-2 gap-2"><button onclick="reattemptQuiz('${cat.id}')" class="btn btn-primary w-full">🔄 Re-attempt</button><button onclick="startQuiz('${cat.id}')" class="btn btn-outline w-full">View Results</button></div>` : `<button onclick="startQuiz('${cat.id}')" class="btn btn-primary w-full">${inProgress ? 'Resume Test' : 'Start Test'}</button>`}
+              ${completed ? `<div class="grid grid-cols-2 gap-2"><button onclick="reattemptQuiz('${cat.id}')" class="btn btn-primary w-full">🔄 Re-attempt</button><button onclick="startQuiz('${cat.id}')" class="btn btn-outline w-full">View Results</button></div>` : `<button onclick="startQuiz('${cat.id}')" class="btn btn-primary w-full">${inProgress ? '▶ Resume Test' : 'Start Test'}</button>`}
             </div>`;
           }).join('')}
         </div>
