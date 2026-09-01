@@ -6131,25 +6131,34 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
   function collectQuestions(){
     const data=window.quizData||{};
+    // ONLY these existing app categories feed All Govt Exam.
+    const allowed=['adre','police','reasoning','history'];
     let all=[];
-    Object.keys(data).forEach(cid=>{
+
+    allowed.forEach(cid=>{
       const cat=data[cid];
-      if(!cat||!Array.isArray(cat.questions))return;
-      cat.questions.forEach(q=>all.push(Object.assign({},q,{sourceCategory:cid,sourceCategoryTitle:cat.title||cid})));
+      if(!cat || !Array.isArray(cat.questions)) return;
+      cat.questions.forEach((q,index)=>{
+        if(!q) return;
+        all.push(Object.assign({},q,{
+          // Make every question ID unique inside the combined 100-question
+          // exam so answers/progress/review cannot collide between categories.
+          id:cid+'__'+String(q.id||index),
+          sourceCategory:cid,
+          sourceQuestionId:q.id||index,
+          sourceCategoryTitle:cat.title||cid
+        }));
+      });
     });
-    const seen=new Set();
-    all=all.filter(q=>{
-      const k=q.sourceCategory+'::'+(q.id||q.text);
-      if(seen.has(k))return false;
-      seen.add(k);return true;
-    });
+
+    // Fisher-Yates shuffle.
     for(let i=all.length-1;i>0;i--){
       const j=Math.floor(Math.random()*(i+1));
       [all[i],all[j]]=[all[j],all[i]];
     }
+
     return all.slice(0,100);
   }
-
   function registerExam(exam){
     // Non-enumerable so Dashboard's Object.values(quizData) does NOT create
     // another visible category card.
@@ -6188,95 +6197,99 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     toast('Could not start All Govt Exam. Please try again.','error');
   }
   async function click(){
-    // If already purchased, never charge again.
     if(await owned()){start();return;}
 
     const id=uid(),d=db();
-    if(!id||!d||!d.ref){
-      toast('Please wait for Firebase to connect, then try again.','error');
+    if(!id||!d||typeof d.ref!=='function'){
+      toast('Firebase is not ready. Please wait a moment and try again.','error');
       return;
     }
 
     try{
-      // IMPORTANT: use the authoritative Firebase coin balance, not a stale
-      // localStorage balance. This fixes purchases failing even when the user
-      // visibly has 1000+ coins.
       const coinRef=d.ref('users/'+id+'/coins');
-      const coinSnap=await coinRef.once('value');
-      const firebaseBalance=Math.max(0,Number(coinSnap.val())||0);
+      const featureRef=d.ref('users/'+id+'/features/'+FEATURE);
 
-      if(firebaseBalance<PRICE){
-        toast('You need '+(PRICE-firebaseBalance)+' more 🪙 to buy All Govt Exam.','error');
+      // Read Firebase first: this is the real balance used for purchasing.
+      const snap=await coinRef.once('value');
+      const balance=Math.max(0,Number(snap.val())||0);
+      if(balance<PRICE){
+        toast('You need '+(PRICE-balance)+' more 🪙 to buy All Govt Exam.','error');
         return;
       }
 
-      // Atomically reserve/deduct exactly 1000 coins. If another tab/device
-      // spends coins at the same time, the transaction re-checks the balance.
-      const tx=await coinRef.transaction(function(current){
-        const balance=Math.max(0,Number(current)||0);
-        if(balance<PRICE)return; // abort transaction
-        return balance-PRICE;
+      // Atomic deduction prevents double-spending across devices/tabs.
+      const tx=await coinRef.transaction(current=>{
+        const n=Math.max(0,Number(current)||0);
+        return n>=PRICE ? n-PRICE : undefined;
       });
 
       if(!tx.committed){
-        const latest=Math.max(0,Number(tx.snapshot&&tx.snapshot.val())||0);
-        toast('Your coin balance changed. You now have '+latest+' 🪙. Please try again.','error');
-        if(window.coinSystem&&typeof window.coinSystem.refresh==='function')
-          window.coinSystem.refresh(latest);
+        const latest=Math.max(0,Number(tx.snapshot?.val())||0);
+        toast('Purchase could not be completed. Current balance: '+latest+' 🪙.','error');
+        setCoins(latest);
         return;
       }
 
-      const newBalance=Math.max(0,Number(tx.snapshot.val())||0);
+      const remaining=Math.max(0,Number(tx.snapshot.val())||0);
 
-      // Unlock only after the coin transaction succeeds.
       try{
-        await d.ref('users/'+id+'/features/'+FEATURE).set(true);
+        await featureRef.set(true);
         await d.ref('users/'+id+'/features/allGovtExamPurchasedAt').set(Date.now());
-      }catch(featureError){
-        // Refund the exact 1000 coins if unlocking failed.
-        await coinRef.transaction(function(current){
-          return Math.max(0,Number(current)||0)+PRICE;
-        });
-        throw featureError;
+      }catch(unlockError){
+        // Never keep the user's coins if the feature cannot be unlocked.
+        await coinRef.transaction(current=>Math.max(0,Number(current)||0)+PRICE);
+        throw unlockError;
       }
 
-      // Keep every coin display in sync with Firebase.
-      setCoins(newBalance);
-      if(window.coinSystem&&typeof window.coinSystem.refresh==='function')
-        window.coinSystem.refresh(newBalance);
+      setCoins(remaining);
+      if(window.coinSystem && typeof window.coinSystem.refresh==='function'){
+        window.coinSystem.refresh(remaining);
+      }
 
-      toast('All Govt Exam unlocked for 1000 🪙!','success');
+      toast('All Govt Exam purchased successfully for 1000 🪙!','success');
       await render();
       start();
     }catch(e){
-      console.error('All Govt Exam purchase failed:',e);
-      toast('Purchase failed. Your coins were not charged.','error');
+      console.error('All Govt Exam purchase error:',e);
+      toast('Purchase failed. No coins were charged. Please try again.','error');
     }
   }
-
   const originalReattemptQuiz=window.reattemptQuiz;
   if(typeof originalReattemptQuiz==='function'){
     window.reattemptQuiz=function(categoryId){
       if(categoryId==='all_govt_exam'){
         const qs=collectQuestions();
         if(qs.length<100){
-          toast('All Govt Exam needs at least 100 questions across all categories. Only '+qs.length+' are available.','error');
+          toast('All Govt Exam requires at least 100 questions across ADRE, Assam Police, Reasoning & Aptitude, and Assam & Indian History. Only '+qs.length+' are available.','error');
           return;
         }
-        const old=window.quizData.all_govt_exam||{};
+
+        // Every re-attempt receives a newly shuffled set of 100.
         registerExam({
-          ...old,
           id:'all_govt_exam',
           title:'All Govt Exam',
           icon:'landmark',
           color:'indigo',
           questions:qs
         });
+
+        // Clear the previous saved question set so startQuiz cannot restore
+        // the old 100-question selection.
+        try{
+          const p=getProgress('all_govt_exam')||{};
+          delete p.questionSet;
+          p.answers={};
+          p.currentQuestionIndex=0;
+          p.timeSpent=0;
+          p.timeByQuestion={};
+          p.status='in-progress';
+          state.progressData.all_govt_exam=p;
+          saveLocalCache();
+        }catch(e){}
       }
       return originalReattemptQuiz(categoryId);
     };
   }
-
   async function render(){
     const card=document.getElementById('all-govt-exam-category');
     if(!card)return;
