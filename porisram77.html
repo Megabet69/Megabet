@@ -3671,7 +3671,54 @@ function scheduleFirebaseRetry() {
       </div>`;
     }
 
+
+    // Always calculate accuracy from the saved answers and question set.
+    // Never rely on a cached percentage, so refresh/resume cannot show stale accuracy.
+    function calculateAccurateStats(categoryId) {
+      const cat = quizData && quizData[categoryId];
+      const p = (typeof getProgress === 'function' && getProgress(categoryId)) || {};
+      const questions = Array.isArray(p.questionSet) && p.questionSet.length
+        ? p.questionSet
+        : (cat && Array.isArray(cat.questions) ? cat.questions : []);
+      const answers = (p.answers && typeof p.answers === 'object') ? p.answers : {};
+      let answered = 0, correct = 0;
+      questions.forEach(q => {
+        const a = answers[q.id];
+        if (a !== undefined && a !== null && a !== '') {
+          answered++;
+          if (a === q.correct) correct++;
+        }
+      });
+      return {
+        answered,
+        correct,
+        wrong: Math.max(0, answered - correct),
+        total: questions.length,
+        accuracy: answered ? Math.round((correct / answered) * 1000) / 10 : 0
+      };
+    }
+
+    function refreshSavedAccuracy(categoryId) {
+      try {
+        const p = getProgress(categoryId);
+        if (!p) return;
+        const st = calculateAccurateStats(categoryId);
+        p.accuracy = st.accuracy;
+        p.correct = st.correct;
+        p.wrong = st.wrong;
+        p.attempted = st.answered;
+        state.progressData[categoryId] = p;
+      } catch (e) {}
+    }
+
     function renderDashboard() {
+      try {
+        Object.keys(quizData || {}).forEach(id => {
+          if (id !== 'special30' && id !== 'super10') refreshSavedAccuracy(id);
+        });
+        if (typeof saveLocalCache === 'function') saveLocalCache();
+      } catch (e) {}
+
       return `<div class="fade-in">
         <div class="mb-8"><h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Hello, ${escapeHtml(state.profile.name)}! 👋</h2><p class="text-gray-600 mt-1">Select a category to start or resume your test.</p></div>
 
