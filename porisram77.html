@@ -2080,7 +2080,8 @@ body.quiz-active{overflow-x:hidden}
         timeSpent: 0,
         timeByQuestion: {},
         questionStartedAt: null,
-        isSaving: false
+        isSaving: false,
+        submitLock: false
       },
       timerInterval: null,
       leaderboard: [],
@@ -2126,6 +2127,15 @@ body.quiz-active{overflow-x:hidden}
 
     let clientId = null;
     let firebaseRetryTimer = null;
+    // Serialize progress writes per category so an older in-progress save can
+    // never finish after a completed result and overwrite it in Firebase.
+    const progressWriteQueues = Object.create(null);
+    const progressWriteSnapshots = Object.create(null);
+
+    function progressTimestamp(data) {
+      const t = Date.parse(data?.lastUpdated || data?.updatedAt || '') || 0;
+      return Number.isFinite(t) ? t : 0;
+    }
 
     function getClientId() {
       if (clientId) return clientId;
@@ -2276,9 +2286,11 @@ body.quiz-active{overflow-x:hidden}
           mergedProgress[catId] = local;
           return;
         }
-        const localTime = Date.parse(local?.lastUpdated || local?.updatedAt || '') || 0;
-        const remoteTime = Date.parse(remote?.lastUpdated || remote?.updatedAt || '') || 0;
-        if (localTime > remoteTime) mergedProgress[catId] = local;
+        const localTime = progressTimestamp(local);
+        const remoteTime = progressTimestamp(remote);
+        if (localTime >= remoteTime || (local?.status === 'completed' && remote?.status !== 'completed')) {
+          mergedProgress[catId] = local;
+        }
       });
       state.progressData = mergedProgress;
 
@@ -2291,9 +2303,11 @@ body.quiz-active{overflow-x:hidden}
       Object.keys(localProgress).forEach(catId => {
         const local = localProgress[catId];
         const remote = remoteProgress[catId];
-        const localTime = Date.parse(local?.lastUpdated || local?.updatedAt || '') || 0;
-        const remoteTime = Date.parse(remote?.lastUpdated || remote?.updatedAt || '') || 0;
-        if (local && localTime > remoteTime) syncTasks.push(saveFirebaseProgress(catId, local));
+        const localTime = progressTimestamp(local);
+        const remoteTime = progressTimestamp(remote);
+        if (local && (localTime >= remoteTime || (local.status === 'completed' && remote?.status !== 'completed'))) {
+          syncTasks.push(saveFirebaseProgress(catId, local));
+        }
       });
       if (syncTasks.length) Promise.allSettled(syncTasks).catch(() => {});
       return true;
@@ -2340,28 +2354,48 @@ body.quiz-active{overflow-x:hidden}
     }
 
     async function saveFirebaseProgress(catId, data) {
-      if (!catId) return false;
+      if (!catId || !data) return false;
 
-      state.progressData[catId] = data;
-      // Protect progress even if the device sleeps before Firebase finishes.
+      const snapshot = {
+        ...data,
+        lastUpdated: data.lastUpdated || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      state.progressData[catId] = snapshot;
+      progressWriteSnapshots[catId] = snapshot;
       saveLocalCache();
 
-      try {
-        await userRoot().child("progress").child(catId).set({
-          ...data,
-          updatedAt: new Date().toISOString()
-        });
-
+      const previous = progressWriteQueues[catId] || Promise.resolve();
+      const write = previous.catch(() => {}).then(async () => {
+        const latest = progressWriteSnapshots[catId] || snapshot;
+        await userRoot().child("progress").child(catId).set(latest);
+        const check = await userRoot().child("progress").child(catId).once("value");
+        const saved = check.val() || null;
+        const savedHistory = Array.isArray(saved?.attemptHistory) ? saved.attemptHistory : [];
+        const latestHistory = Array.isArray(latest?.attemptHistory) ? latest.attemptHistory : [];
+        const completedMatches = latest?.status !== 'completed' || (
+          saved?.status === 'completed' &&
+          Number(saved?.attemptNo || 0) === Number(latest?.attemptNo || 0) &&
+          savedHistory.length >= latestHistory.length
+        );
+        if (!saved || progressTimestamp(saved) < progressTimestamp(latest) || !completedMatches) {
+          throw new Error("Firebase progress verification failed");
+        }
         setFirebaseStatus("online");
         return true;
-      } catch (error) {
+      }).catch(error => {
         console.error("PROGRESS SAVE ERROR:", error);
         setFirebaseStatus("offline");
         scheduleFirebaseRetry();
-        return false;
-      }
+        throw error;
+      });
+
+      progressWriteQueues[catId] = write.finally(() => {
+        if (progressWriteQueues[catId] === write) delete progressWriteQueues[catId];
+      });
+      return write;
     }
-function scheduleFirebaseRetry() {
+    function scheduleFirebaseRetry() {
       if (firebaseRetryTimer) return;
 
       firebaseRetryTimer = setTimeout(async () => {
@@ -2572,17 +2606,19 @@ function scheduleFirebaseRetry() {
     }
 
     async function saveProgress(forceStatus = null) {
-      if (!state.activeCategory) return;
+      if (!state.activeCategory) return false;
 
       state.quiz.isSaving = true;
 
       try {
         const data = buildSavedData(forceStatus);
         await saveFirebaseProgress(state.activeCategory, data);
+        return true;
       } catch (error) {
         console.error("Firebase progress save failed:", error);
         setFirebaseStatus('offline');
         scheduleFirebaseRetry();
+        return false;
       } finally {
         state.quiz.isSaving = false;
       }
@@ -2827,9 +2863,26 @@ function scheduleFirebaseRetry() {
     }
 
     function beginSpecial30Attempt(categoryIds, timeLimitMinutes, questions, chargeReattempt) {
-      // Special 30 has a one-time 150 🪙 unlock; re-attempts do not charge the unlock again.
+      // Special 30 has a one-time 150 🪙 unlock. A re-attempt costs the same
+      // 20 🪙 re-attempt fee shown on the dashboard/result button.
       if (chargeReattempt) {
-        return beginSpecial30Attempt(categoryIds, timeLimitMinutes, questions, false);
+        const COST = 20;
+        if (!window.coinSystem || typeof window.coinSystem.balance !== 'function' || typeof window.coinSystem.award !== 'function') {
+          showToast('Coin system is not available right now.', 'error');
+          return;
+        }
+        if (Number(window.coinSystem.balance()) < COST) {
+          showToast('You need 20 🪙 to re-attempt Special 30.', 'error');
+          return;
+        }
+        let charged = false;
+        try {
+          charged = Number(window.coinSystem.award(-COST, 'Re-attempt fee', 'reattempt:special30:' + Date.now() + ':' + Math.random().toString(36).slice(2))) === -COST;
+        } catch (e) { console.error('Special30 re-attempt charge failed:', e); }
+        if (!charged) {
+          showToast('Re-attempt charge could not be completed.', 'error');
+          return;
+        }
       }
       if (state.timerInterval) clearInterval(state.timerInterval);
       const previous = getProgress('special30') || {};
@@ -3224,8 +3277,10 @@ function scheduleFirebaseRetry() {
       }
     };
 
-    window.handleFinalSubmit = () => {
+    window.handleFinalSubmit = async () => {
       closeModal();
+      if (state.quiz.submitLock) return;
+      state.quiz.submitLock = true;
       flushQuestionTime();
       if (state.timerInterval) clearInterval(state.timerInterval);
       state.timerInterval = null;
@@ -3328,8 +3383,15 @@ function scheduleFirebaseRetry() {
         attemptHistory: [...previousHistory, attemptRecord],
         lastUpdated: new Date().toISOString()
       };
+      // Do not show the completed result until the completed snapshot has
+      // finished writing to Firebase. This removes the refresh race.
       saveLocalCache();
-      saveProgress('completed');
+      let firebaseSaved = false;
+      firebaseSaved = await saveProgress('completed');
+      if (!firebaseSaved) {
+        console.warn('Completed result cached locally; Firebase retry scheduled.');
+      }
+      state.quiz.submitLock = false;
       state.currentScreen = 'review';
       render();
       const answeredForToast = Array.isArray(state.quiz.questionSet)
@@ -3341,6 +3403,9 @@ function scheduleFirebaseRetry() {
           : 'Test completed. No completion coins: more than 5 questions must be attempted.',
         answeredForToast > 5 ? 'success' : 'error'
       );
+      if (!firebaseSaved) {
+        showToast('Result saved locally. Firebase is syncing automatically.', 'error');
+      }
     };
     window.goDashboard = () => {
       // Leaving a live test intentionally or accidentally always saves it
@@ -3908,17 +3973,20 @@ function scheduleFirebaseRetry() {
           </div>
           ${Object.values(quizData).map(cat => {
             const prog = getProgress(cat.id);
-            const dashboardQuestions = (cat.id === 'special30' && Array.isArray(prog?.questionSet) && prog.questionSet.length) ? prog.questionSet : cat.questions;
+            const history = Array.isArray(prog?.attemptHistory) ? prog.attemptHistory : [];
+            const latestAttempt = history.length ? history[history.length - 1] : null;
+            const dashboardQuestions = Array.isArray(latestAttempt?.questionSet) && latestAttempt.questionSet.length
+              ? latestAttempt.questionSet
+              : ((Array.isArray(prog?.questionSet) && prog.questionSet.length) ? prog.questionSet : cat.questions);
             const attempted = prog?.answers ? Object.keys(prog.answers).length : 0;
-            const total = cat.id === 'special30' ? 30 : dashboardQuestions.length;
+            const total = dashboardQuestions.length;
             const percent = Math.round((attempted / total) * 100) || 0;
             const completed = prog?.status === 'completed';
             const inProgress = attempted > 0 && !completed;
-            const history = Array.isArray(prog?.attemptHistory) ? prog.attemptHistory : [];
             const bestAttempt = history.length ? history.reduce((best, a) => Number(a.score || 0) > Number(best.score || 0) ? a : best, history[0]) : null;
             let mini = '';
             if (completed) {
-              const resultCat = cat.id === 'special30' ? { ...cat, questions: dashboardQuestions } : cat;
+              const resultCat = { ...cat, questions: dashboardQuestions };
               const r = calculateResult(resultCat, prog.answers || {}, prog.timeByQuestion || {}, prog.timeSpent || 0);
               const bestScore = bestAttempt ? Number(bestAttempt.score || 0) : r.overallPercentage;
               mini = `<div class="grid grid-cols-3 gap-2 mb-4">
@@ -3973,11 +4041,18 @@ function scheduleFirebaseRetry() {
     function renderResults() {
       const cat = quizData[state.activeCategory];
       const prog = getProgress(state.activeCategory) || buildSavedData('completed');
-      const result = calculateResult(cat, prog.answers || {}, prog.timeByQuestion || {}, prog.timeSpent || 0);
+      const history = Array.isArray(prog.attemptHistory) ? prog.attemptHistory : [];
+      const latestAttempt = history.length ? history[history.length - 1] : null;
+      // Use the exact question set that belongs to the completed attempt.
+      // This is critical for random Super10/Special30 tests after refresh.
+      const savedQuestions = Array.isArray(latestAttempt?.questionSet) && latestAttempt.questionSet.length
+        ? latestAttempt.questionSet
+        : (Array.isArray(prog.questionSet) && prog.questionSet.length ? prog.questionSet : cat.questions);
+      const resultCat = { ...cat, questions: savedQuestions.map(q => ({...q})) };
+      const result = calculateResult(resultCat, prog.answers || {}, prog.timeByQuestion || {}, prog.timeSpent || 0);
       const pct = Math.round(result.overallPercentage * 10) / 10;
       const accuracy = Math.round(result.accuracy * 10) / 10;
       const progress = Math.min(100, Math.max(0, pct));
-      const history = Array.isArray(prog.attemptHistory) ? prog.attemptHistory : [];
       const previousScores = history.slice(0, -1).map(a => Number(a.score || 0));
       const previousBest = previousScores.length ? Math.max(...previousScores) : null;
       const improvement = previousBest == null ? null : result.overallPercentage - previousBest;
@@ -3988,7 +4063,7 @@ function scheduleFirebaseRetry() {
       return `<div class="max-w-5xl mx-auto fade-in">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8 mb-6">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div><p class="text-sm font-semibold text-gray-500">Test Result</p><h2 class="text-3xl font-extrabold text-gray-900 mt-1">${cat.title}</h2><p class="text-gray-500 mt-1">Completed • ${formatTime(result.totalTime)}</p></div>
+            <div><p class="text-sm font-semibold text-gray-500">Test Result • Attempt ${Number(latestAttempt?.attemptNo || history.length || 1)}</p><h2 class="text-3xl font-extrabold text-gray-900 mt-1">${cat.title}</h2><p class="text-gray-500 mt-1">Completed • ${formatTime(result.totalTime)}</p></div>
             <div class="text-center"><div class="inline-flex px-4 py-2 rounded-full text-sm font-extrabold ${badgeClass(result.performance)}">${result.performance}</div><div class="text-4xl font-black text-gray-900 mt-2">${pct}%</div><div class="text-xs text-gray-500">score</div></div>
           </div>
           <div class="mt-6 bg-gray-100 rounded-full h-3 overflow-hidden"><div class="h-3 rounded-full bg-blue-600" style="width:${progress}%"></div></div>
@@ -4007,18 +4082,18 @@ function scheduleFirebaseRetry() {
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h3 class="text-lg font-bold text-gray-900 mb-1">Weak Questions</h3><p class="text-sm text-gray-500 mb-4">Questions answered incorrectly, ranked by time spent.</p>
-            ${weak.length ? `<div class="space-y-3">${weak.map((q,i)=>`<div class="p-3 rounded-lg bg-red-50 border border-red-100"><div class="flex justify-between gap-3"><b class="text-sm text-red-800">Q${cat.questions.indexOf(q)+1}. ${escapeHtml(q.text)}</b><span class="text-xs font-bold text-red-600 whitespace-nowrap">${formatSeconds(prog.timeByQuestion?.[q.id] || 0)}</span></div><div class="text-xs text-gray-600 mt-1">Your answer: <b>${escapeHtml(q.options.find(o=>o.id===prog.answers[q.id])?.text || '—')}</b> • Correct: <b>${escapeHtml(q.options.find(o=>o.id===q.correct)?.text || q.correct)}</b></div></div>`).join('')}</div>` : '<div class="p-4 rounded-lg bg-green-50 text-green-700 text-sm font-medium">No incorrect answers. Excellent accuracy!</div>'}
+            ${weak.length ? `<div class="space-y-3">${weak.map((q,i)=>`<div class="p-3 rounded-lg bg-red-50 border border-red-100"><div class="flex justify-between gap-3"><b class="text-sm text-red-800">Q${resultCat.questions.indexOf(q)+1}. ${escapeHtml(q.text)}</b><span class="text-xs font-bold text-red-600 whitespace-nowrap">${formatSeconds(prog.timeByQuestion?.[q.id] || 0)}</span></div><div class="text-xs text-gray-600 mt-1">Your answer: <b>${escapeHtml(q.options.find(o=>o.id===prog.answers[q.id])?.text || '—')}</b> • Correct: <b>${escapeHtml(q.options.find(o=>o.id===q.correct)?.text || q.correct)}</b></div></div>`).join('')}</div>` : '<div class="p-4 rounded-lg bg-green-50 text-green-700 text-sm font-medium">No incorrect answers. Excellent accuracy!</div>'}
           </div>
           <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h3 class="text-lg font-bold text-gray-900 mb-1">Time Analysis</h3><p class="text-sm text-gray-500 mb-4">Your slowest questions. These are useful for speed practice.</p>
-            ${slow.length ? `<div class="space-y-3">${slow.map(q=>{const t=prog.timeByQuestion?.[q.id]||0; const slow=t>=PERFORMANCE.SLOW_QUESTION_SECONDS; return `<div class="p-3 rounded-lg ${slow?'bg-amber-50 border border-amber-100':'bg-gray-50 border border-gray-100'}"><div class="flex justify-between gap-3"><b class="text-sm text-gray-800">Q${cat.questions.indexOf(q)+1}. ${escapeHtml(q.text)}</b><span class="text-xs font-bold ${slow?'text-amber-700':'text-gray-600'}">${formatSeconds(t)}</span></div><div class="text-xs text-gray-500 mt-1">${slow ? 'Slow question — practise faster solving.' : 'Within the normal time range.'}</div></div>`}).join('')}</div>` : '<p class="text-sm text-gray-500 profile-section-subtitle">No question timing data available.</p>'}
+            ${slow.length ? `<div class="space-y-3">${slow.map(q=>{const t=prog.timeByQuestion?.[q.id]||0; const slow=t>=PERFORMANCE.SLOW_QUESTION_SECONDS; return `<div class="p-3 rounded-lg ${slow?'bg-amber-50 border border-amber-100':'bg-gray-50 border border-gray-100'}"><div class="flex justify-between gap-3"><b class="text-sm text-gray-800">Q${resultCat.questions.indexOf(q)+1}. ${escapeHtml(q.text)}</b><span class="text-xs font-bold ${slow?'text-amber-700':'text-gray-600'}">${formatSeconds(t)}</span></div><div class="text-xs text-gray-500 mt-1">${slow ? 'Slow question — practise faster solving.' : 'Within the normal time range.'}</div></div>`}).join('')}</div>` : '<p class="text-sm text-gray-500 profile-section-subtitle">No question timing data available.</p>'}
           </div>
         </div>
 
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
           <div class="p-6 border-b border-gray-200"><h3 class="text-lg font-bold text-gray-900">Question-wise Performance</h3><p class="text-sm text-gray-500 profile-section-subtitle">Time spent, answer status and correctness for every question.</p></div>
           <div class="profile-table-wrap"><table class="w-full text-sm profile-table"><thead class="bg-gray-50"><tr><th class="text-left p-3">Q</th><th class="text-left p-3 min-w-[280px]">Question</th><th class="text-left p-3">Time</th><th class="text-left p-3">Your Answer</th><th class="text-left p-3">Correct</th><th class="text-left p-3">Status</th></tr></thead><tbody>
-          ${cat.questions.map((q,i)=>{
+          ${resultCat.questions.map((q,i)=>{
             const ans=prog.answers?.[q.id]; const t=prog.timeByQuestion?.[q.id]||0; const attempted=!!ans; const correct=attempted && ans===q.correct;
             const status=correct?'Correct':attempted?'Wrong':'Skipped';
             const cls=correct?'text-green-700 bg-green-50':attempted?'text-red-700 bg-red-50':'text-gray-600 bg-gray-100';
@@ -4037,7 +4112,10 @@ function scheduleFirebaseRetry() {
             <li>Current performance bands: <b>${PERFORMANCE.STRONG_PERCENT}%+ Excellent</b>, <b>${PERFORMANCE.WEAK_PASS_PERCENT}%+ Good</b>, <b>${PERFORMANCE.PASS_PERCENT}%+ Weak Pass</b>, below ${PERFORMANCE.PASS_PERCENT}% Fail.</li>
           </ul>
         </div>
-        <div class="text-center"><button class="btn btn-primary" onclick="goDashboard()">Back to Dashboard</button></div>
+        <div class="flex flex-col sm:flex-row justify-center gap-3">
+          <button class="btn btn-primary" onclick="reattemptQuiz('${state.activeCategory}')">🔄 Re-attempt <span class="reattempt-fee-badge">−20 🪙</span></button>
+          <button class="btn btn-outline" onclick="goDashboard()">Back to Dashboard</button>
+        </div>
       </div>`;
     }
 
@@ -8727,189 +8805,6 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 </script>
 
 
-
-<!-- Permanent 2x Coin Booster -->
-<style id="coin-2x-booster-style">
-  .coin-2x-card{margin:14px 0 18px;padding:16px;border:1px solid #ddd6fe;border-radius:16px;background:linear-gradient(135deg,#f5f3ff,#ffffff);box-shadow:0 6px 18px rgba(79,70,229,.08)}
-  .coin-2x-head{display:flex;align-items:center;gap:12px}
-  .coin-2x-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#ede9fe;font-size:26px;flex:0 0 auto}
-  .coin-2x-title{font-size:17px;font-weight:900;color:#111827}
-  .coin-2x-desc{font-size:12px;line-height:1.45;color:#64748b;margin-top:3px}
-  .coin-2x-examples{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
-  .coin-2x-example{padding:9px 8px;border-radius:10px;background:#fff;border:1px solid #e5e7eb;text-align:center;font-size:11px;font-weight:800;color:#475569}
-  .coin-2x-example b{display:block;font-size:14px;color:#4f46e5;margin-top:2px}
-  .coin-2x-buy{width:100%;margin-top:12px;min-height:44px;border:0;border-radius:11px;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;font-weight:900;cursor:pointer}
-  .coin-2x-buy:disabled{opacity:.55;cursor:not-allowed}
-  .coin-2x-status{font-size:11px;font-weight:800;margin-top:8px;text-align:center;min-height:16px;color:#15803d}
-  html.dark .coin-2x-card{background:linear-gradient(135deg,#1e1b4b,#111827);border-color:#4338ca}
-  html.dark .coin-2x-title{color:#f8fafc}
-  html.dark .coin-2x-desc{color:#94a3b8}
-  html.dark .coin-2x-example{background:#1f2937;border-color:#374151;color:#cbd5e1}
-  @media(max-width:640px){.coin-2x-examples{grid-template-columns:1fr 1fr}.coin-2x-example:last-child{grid-column:1/-1}}
-</style>
-<script id="coin-2x-booster-system">
-(function(){
-  'use strict';
-  const COST=1500;
-  function flagKey(){ return 'coin2xBoosterActive:'+(uid()||'guest'); }
-  const PURCHASE_KEY='coin2xBoosterPurchased';
-
-  function uid(){
-    try{
-      if(typeof window.getClientId==='function') return String(window.getClientId()||'');
-      if(window.currentUser&&window.currentUser.uid) return String(window.currentUser.uid);
-      return String(localStorage.getItem('porisram_firebase_user_id')||localStorage.getItem('userId')||'');
-    }catch(e){return '';}
-  }
-  function db(){return window.firebaseDB||window.db||null;}
-  function active(){
-    try{return localStorage.getItem(flagKey())==='1';}catch(e){return false;}
-  }
-  function setActive(v){
-    try{localStorage.setItem(flagKey(),v?'1':'0');}catch(e){}
-  }
-  function balance(){
-    try{
-      if(window.coinSystem&&typeof window.coinSystem.balance==='function') return Math.max(0,Math.floor(Number(window.coinSystem.balance())||0));
-    }catch(e){}
-    try{return Math.max(0,Math.floor(Number(localStorage.getItem('rewardCoins')||0)));}catch(e){return 0;}
-  }
-  function updateBalance(n){
-    n=Math.max(0,Math.floor(Number(n)||0));
-    try{localStorage.setItem('rewardCoins',String(n));}catch(e){}
-    try{if(window.coinSystem&&typeof window.coinSystem.refresh==='function') window.coinSystem.refresh(n);}catch(e){}
-    document.querySelectorAll('#coin-balance,#header-coin-balance,.coin-balance,.coins,[data-coins]').forEach(function(el){
-      el.textContent=n.toLocaleString()+' 🪙';
-    });
-  }
-  function render(){
-    const host=document.getElementById('coin-2x-booster-host');
-    if(!host)return;
-    const on=active(), n=balance();
-    host.innerHTML='';
-    const card=document.createElement('div'); card.className='coin-2x-card';
-    card.innerHTML='<div class="coin-2x-head"><div class="coin-2x-icon">⚡</div><div><div class="coin-2x-title">Coin 2x</div><div class="coin-2x-desc">Buy once for 1,500 🪙. After purchase, every coin you earn is doubled permanently. Wrong-answer deductions remain −3 🪙.</div></div></div>'+
-      '<div class="coin-2x-examples">'+
-      '<div class="coin-2x-example">Correct reward<b>10 → 20 🪙</b></div>'+
-      '<div class="coin-2x-example">Test pass<b>300 → 600 🪙</b></div>'+
-      '<div class="coin-2x-example">Test fail<b>150 → 300 🪙</b></div>'+
-      '</div>';
-    const btn=document.createElement('button'); btn.type='button'; btn.className='coin-2x-buy';
-    btn.textContent=on?'✓ Coin 2x Active':('Buy Coin 2x — '+COST.toLocaleString()+' 🪙');
-    btn.disabled=on||n<COST;
-    const status=document.createElement('div'); status.className='coin-2x-status';
-    status.textContent=on?'All future earned coins are 2x; deductions stay unchanged.':(n<COST?'Need '+(COST-n).toLocaleString()+' more 🪙':'Ready to activate.');
-    btn.onclick=buy; card.appendChild(btn); card.appendChild(status); host.appendChild(card);
-  }
-  async function buy(){
-    if(active())return;
-    const id=uid(), d=db();
-    if(!id||!d||!d.ref){
-      alert('Please wait for your account to connect, then try again.');
-      return;
-    }
-    const btn=document.querySelector('.coin-2x-buy'); if(btn){btn.disabled=true;btn.textContent='Purchasing...';}
-    let charged=false;
-    try{
-      const ref=d.ref('users/'+id+'/coins');
-      const tx=await ref.transaction(function(current){
-        const n=Math.max(0,Math.floor(Number(current)||0));
-        if(n<COST)return;
-        charged=true;
-        return n-COST;
-      });
-      if(!tx.committed){
-        render();
-        alert('You need 1,500 🪙 to buy Coin 2x.');
-        return;
-      }
-      const remaining=Math.max(0,Math.floor(Number(tx.snapshot.val())||0));
-      updateBalance(remaining);
-      setActive(true);
-      try{localStorage.setItem(PURCHASE_KEY,'1');}catch(e){}
-      await d.ref('users/'+id+'/coin2xBooster').set({active:true,cost:COST,purchasedAt:firebase.database.ServerValue.TIMESTAMP}).catch(function(){});
-      await d.ref('users/'+id+'/coinHistory').push({amount:-COST,reason:'Purchased Coin 2x',at:Date.now()}).catch(function(){});
-      render();
-    }catch(e){
-      console.error('Coin 2x purchase failed:',e);
-      if(charged){
-        try{await d.ref('users/'+id+'/coins').transaction(function(current){return Math.max(0,Math.floor(Number(current)||0))+COST;});}catch(ignore){}
-      }
-      render();
-      alert('Coin 2x purchase failed. No coins were permanently charged.');
-    }
-  }
-
-  // Load persistent activation state from Firebase when available.
-  async function loadRemote(){
-    const id=uid(), d=db();
-    if(!id||!d||!d.ref)return;
-    try{
-      const snap=await d.ref('users/'+id+'/coin2xBooster').once('value');
-      if(snap.exists()&&snap.val()&&snap.val().active===true)setActive(true);
-      render();
-    }catch(e){}
-  }
-
-  // Patch the single public coin-award API. Only positive rewards are doubled;
-  // deductions such as wrong-answer penalties are not doubled.
-  function patch(){
-    if(!window.coinSystem||typeof window.coinSystem.award!=='function')return false;
-    if(window.coinSystem.award.__coin2xWrapped)return true;
-    const original=window.coinSystem.award;
-    function wrapped(amount,reason,uniqueKey){
-      const n=Number(amount)||0;
-      return original.call(this,active()&&n>0?n*2:n,reason,uniqueKey);
-    }
-    wrapped.__coin2xWrapped=true;
-    wrapped.__original=original;
-    window.coinSystem.award=wrapped;
-
-    // IMPORTANT: the helper methods (correct/wrong/attempt/follow/battleWin/profileComplete)
-    // were originally closed over the internal award() function, so simply wrapping
-    // window.coinSystem.award would not affect those methods. Rebind every earning
-    // API through the wrapped public award so the 2x booster applies to ALL positive
-    // coin earnings, while penalties remain unchanged.
-    window.coinSystem.follow=function(targetUid){
-      return window.coinSystem.award(50,'Followed a user',targetUid?'follow:'+targetUid+':'+(uid()||'user'):null);
-    };
-    window.coinSystem.attempt=function(questionId,quizId){
-      return window.coinSystem.award(10,'Question attempted',questionId?'attempt:'+(quizId||'quiz')+':'+questionId:null);
-    };
-    window.coinSystem.correct=function(questionId,quizId){
-      return window.coinSystem.award(10,'Correct answer',questionId?'correct:'+(quizId||'quiz')+':'+questionId:null);
-    };
-    window.coinSystem.wrong=function(questionId,quizId){
-      return window.coinSystem.award(-3,'Wrong answer',questionId?'wrong:'+(quizId||'quiz')+':'+questionId:null);
-    };
-    window.coinSystem.battleWin=function(battleId){
-      return window.coinSystem.award(100,'Quiz Battle victory',battleId?'battleWin:'+battleId:null);
-    };
-    window.coinSystem.profileComplete=function(){
-      return window.coinSystem.award(100,'Profile completed','profileComplete');
-    };
-    return true;
-  }
-
-  function ensureCard(){
-    const panel=document.getElementById('rewards-panel');
-    if(!panel)return;
-    let host=document.getElementById('coin-2x-booster-host');
-    if(!host){
-      host=document.createElement('div'); host.id='coin-2x-booster-host';
-      const balance=panel.querySelector('#coin-balance');
-      if(balance)balance.insertAdjacentElement('afterend',host); else panel.prepend(host);
-    }
-    render();
-  }
-
-  function init(){
-    patch(); ensureCard(); loadRemote();
-    setInterval(function(){patch();ensureCard();},500);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
-})();
-</script>
 
 <script id="mystery-reward-system-v1">
 (function(){
