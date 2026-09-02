@@ -2220,6 +2220,8 @@ body.quiz-active{overflow-x:hidden}
             answers: state.quiz.answers || {},
             timeSpent: state.quiz.timeSpent || 0,
             timeByQuestion: state.quiz.timeByQuestion || {},
+            questionSet: Array.isArray(state.quiz.questionSet) ? state.quiz.questionSet.map(q => ({...q})) : [],
+            attemptNo: Number(state.quiz.attemptNo || 1),
             questionStartedAt: state.quiz.questionStartedAt || null
           },
           savedAt: Date.now()
@@ -2249,7 +2251,18 @@ body.quiz-active{overflow-x:hidden}
           state.quiz.answers = { ...(cache.quiz.answers || {}) };
           state.quiz.timeSpent = Number(cache.quiz.timeSpent || 0);
           state.quiz.timeByQuestion = { ...(cache.quiz.timeByQuestion || {}) };
+          state.quiz.questionSet = Array.isArray(cache.quiz.questionSet) ? cache.quiz.questionSet.map(q => ({...q})) : [];
+          state.quiz.attemptNo = Number(cache.quiz.attemptNo || 1);
           state.quiz.questionStartedAt = cache.quiz.questionStartedAt || null;
+
+          // Always restore the exact question set belonging to this attempt.
+          // Never regenerate a random set after a manual refresh.
+          const restoredProgress = cache.activeCategory && cache.progressData
+            ? cache.progressData[cache.activeCategory] : null;
+          if (restoredProgress && Array.isArray(restoredProgress.questionSet) && restoredProgress.questionSet.length) {
+            state.quiz.questionSet = restoredProgress.questionSet.map(q => ({...q}));
+            state.quiz.attemptNo = Number(restoredProgress.attemptNo || state.quiz.attemptNo || 1);
+          };
         }
 
         // Do not restore a stale quiz screen as an active timer. Restore the
@@ -2390,10 +2403,11 @@ body.quiz-active{overflow-x:hidden}
         throw error;
       });
 
-      progressWriteQueues[catId] = write.finally(() => {
-        if (progressWriteQueues[catId] === write) delete progressWriteQueues[catId];
+      const queued = write.finally(() => {
+        if (progressWriteQueues[catId] === queued) delete progressWriteQueues[catId];
       });
-      return write;
+      progressWriteQueues[catId] = queued;
+      return queued;
     }
     function scheduleFirebaseRetry() {
       if (firebaseRetryTimer) return;
@@ -2540,12 +2554,17 @@ body.quiz-active{overflow-x:hidden}
       }
     };
 
-    function calculateResult(cat, answers, timeByQuestion = {}, totalTime = 0) {
-      const total = cat.questions.length;
-      const attemptedQuestions = cat.questions.filter(q => answers[q.id]);
+    function calculateResult(cat, answers, timeByQuestion = {}, totalTime = 0, questionSet = null) {
+      // Results must always use the exact questions from the attempt. This is
+      // critical for randomised tests after a manual refresh.
+      const questions = Array.isArray(questionSet) && questionSet.length
+        ? questionSet
+        : cat.questions;
+      const total = questions.length;
+      const attemptedQuestions = questions.filter(q => answers[q.id]);
       const correctQuestions = attemptedQuestions.filter(q => q.correct === answers[q.id]);
       const wrongQuestions = attemptedQuestions.filter(q => q.correct !== answers[q.id]);
-      const skippedQuestions = cat.questions.filter(q => !answers[q.id]);
+      const skippedQuestions = questions.filter(q => !answers[q.id]);
       const attempted = attemptedQuestions.length;
       const correct = correctQuestions.length;
       const wrong = wrongQuestions.length;
@@ -2569,7 +2588,7 @@ body.quiz-active{overflow-x:hidden}
       const weakQuestions = wrongQuestions.slice().sort((a,b) =>
         (timeByQuestion[b.id] || 0) - (timeByQuestion[a.id] || 0)
       );
-      const slowQuestions = cat.questions
+      const slowQuestions = questions
         .filter(q => (timeByQuestion[q.id] || 0) > 0)
         .sort((a,b) => (timeByQuestion[b.id] || 0) - (timeByQuestion[a.id] || 0));
 
@@ -3278,133 +3297,149 @@ body.quiz-active{overflow-x:hidden}
     };
 
     window.handleFinalSubmit = async () => {
-      closeModal();
+      if (!state.quiz) return;
       if (state.quiz.submitLock) return;
       state.quiz.submitLock = true;
-      flushQuestionTime();
-      if (state.timerInterval) clearInterval(state.timerInterval);
-      state.timerInterval = null;
+      closeModal();
 
-      const categoryId = state.activeCategory;
-      const cat = quizData[categoryId];
-      if (!cat || !Array.isArray(cat.questions)) return;
-
-      const result = calculateResult(cat, state.quiz.answers, state.quiz.timeByQuestion, state.quiz.timeSpent);
-      const passed = result.overallPercentage >= PERFORMANCE.PASS_PERCENT;
-      // Category completion reward:
-      // IMPORTANT: fewer than 5 answered questions = NO completion reward.
-      // 5 or more answered questions: PASS = +300 coins, FAIL = +150 coins.
       try {
-        const rewardQuestions = Array.isArray(state.quiz.questionSet)
-          ? state.quiz.questionSet
-          : [];
+        flushQuestionTime();
+        if (state.timerInterval) clearInterval(state.timerInterval);
+        state.timerInterval = null;
 
-        const answeredCount = rewardQuestions.reduce((count, q) => {
-          return count + (
-            state.quiz.answers &&
-            Object.prototype.hasOwnProperty.call(state.quiz.answers, q.id)
-              ? 1 : 0
-          );
-        }, 0);
+        const categoryId = state.activeCategory;
+        const cat = quizData[categoryId];
+        if (!categoryId || !cat || !Array.isArray(cat.questions) || !cat.questions.length) {
+          showToast('Unable to submit this test. Please try again.', 'error');
+          return;
+        }
 
-        if (answeredCount > 5) {
-          const correctCount = rewardQuestions.reduce((count, q) => {
+        const exactQuestionSet = (Array.isArray(state.quiz.questionSet) && state.quiz.questionSet.length)
+          ? state.quiz.questionSet.map(q => ({...q}))
+          : ((getProgress(categoryId)?.questionSet || cat.questions || []).map(q => ({...q})));
+        if (!exactQuestionSet.length) throw new Error('No question set found for this attempt.');
+        state.quiz.questionSet = exactQuestionSet;
+        const result = calculateResult(cat, state.quiz.answers, state.quiz.timeByQuestion, state.quiz.timeSpent, exactQuestionSet);
+        const passed = result.overallPercentage >= PERFORMANCE.PASS_PERCENT;
+        // Category completion reward:
+        // IMPORTANT: fewer than 5 answered questions = NO completion reward.
+        // 5 or more answered questions: PASS = +300 coins, FAIL = +150 coins.
+        try {
+          const rewardQuestions = Array.isArray(state.quiz.questionSet)
+            ? state.quiz.questionSet
+            : [];
+
+          const answeredCount = rewardQuestions.reduce((count, q) => {
             return count + (
               state.quiz.answers &&
-              state.quiz.answers[q.id] === q.correct ? 1 : 0
+              Object.prototype.hasOwnProperty.call(state.quiz.answers, q.id)
+                ? 1 : 0
             );
           }, 0);
 
-          const percent = (correctCount / (rewardQuestions.length || 1)) * 100;
-          const passMark = Number(
-            (quizData[state.activeCategory] &&
-              quizData[state.activeCategory].passMark) ||
-            state.quiz.passMark || 40
-          );
+          if (answeredCount > 5) {
+            const correctCount = rewardQuestions.reduce((count, q) => {
+              return count + (
+                state.quiz.answers &&
+                state.quiz.answers[q.id] === q.correct ? 1 : 0
+              );
+            }, 0);
 
-          const rewardAmount = passed ? 300 : 150;
-          const rewardKey =
-            'category-complete:' +
-            String(state.activeCategory) + ':' +
-            String(state.quiz.attemptNo || Date.now());
+            const percent = (correctCount / (rewardQuestions.length || 1)) * 100;
+            const passMark = Number(
+              (quizData[state.activeCategory] &&
+                quizData[state.activeCategory].passMark) ||
+              state.quiz.passMark || 40
+            );
 
-          if (window.coinSystem &&
-              typeof window.coinSystem.award === 'function') {
-            window.coinSystem.award(
-              rewardAmount,
-              passed
-                ? 'Category test passed'
-                : 'Category test failed',
-              rewardKey
+            const rewardAmount = passed ? 300 : 150;
+            const rewardKey =
+              'category-complete:' +
+              String(state.activeCategory) + ':' +
+              String(state.quiz.attemptNo || Date.now());
+
+            if (window.coinSystem &&
+                typeof window.coinSystem.award === 'function') {
+              window.coinSystem.award(
+                rewardAmount,
+                passed
+                  ? 'Category test passed'
+                  : 'Category test failed',
+                rewardKey
+              );
+            }
+          } else {
+            console.log(
+              'Completion reward skipped: only ' + answeredCount +
+              ' question(s) attempted; more than 5 questions are required.'
             );
           }
-        } else {
-          console.log(
-            'Completion reward skipped: only ' + answeredCount +
-            ' question(s) attempted; more than 5 questions are required.'
-          );
+        } catch (e) {
+          console.warn('Category completion reward failed:', e);
         }
-      } catch (e) {
-        console.warn('Category completion reward failed:', e);
-      }
 
 
-      // Persist a permanent attempt record. Previously the completed result
-      // was saved without appending to attemptHistory, so Super10/Special30
-      // history disappeared after refresh or was always empty.
-      const previousProgress = getProgress(categoryId) || {};
-      const previousHistory = Array.isArray(previousProgress.attemptHistory) ? previousProgress.attemptHistory : [];
-      const attemptRecord = {
-        attemptNo: Number(state.quiz.attemptNo || previousHistory.length + 1),
-        score: Number(result.overallPercentage) || 0,
-        accuracy: Number(result.accuracy) || 0,
-        correct: Number(result.correct) || 0,
-        wrong: Number(result.wrong) || 0,
-        skipped: Number(result.skipped) || 0,
-        attempted: Number(result.attempted) || 0,
-        total: Number(result.total) || 0,
-        totalTime: Number(result.totalTime) || 0,
-        answers: { ...(state.quiz.answers || {}) },
-        timeByQuestion: { ...(state.quiz.timeByQuestion || {}) },
-        questionSet: (Array.isArray(state.quiz.questionSet) && state.quiz.questionSet.length
-          ? state.quiz.questionSet
-          : cat.questions).map(q => ({...q})),
-        completedAt: Date.now()
-      };
-      state.progressData[categoryId] = {
-        ...previousProgress,
-        status: 'completed',
-        answers: { ...(state.quiz.answers || {}) },
-        currentQuestionIndex: state.quiz.currentIndex,
-        timeSpent: state.quiz.timeSpent,
-        timeByQuestion: { ...(state.quiz.timeByQuestion || {}) },
-        questionSet: attemptRecord.questionSet,
-        attemptNo: attemptRecord.attemptNo,
-        attemptHistory: [...previousHistory, attemptRecord],
-        lastUpdated: new Date().toISOString()
-      };
-      // Do not show the completed result until the completed snapshot has
-      // finished writing to Firebase. This removes the refresh race.
-      saveLocalCache();
-      let firebaseSaved = false;
-      firebaseSaved = await saveProgress('completed');
-      if (!firebaseSaved) {
-        console.warn('Completed result cached locally; Firebase retry scheduled.');
-      }
-      state.quiz.submitLock = false;
-      state.currentScreen = 'review';
-      render();
-      const answeredForToast = Array.isArray(state.quiz.questionSet)
-        ? state.quiz.questionSet.reduce((count, q) => count + (state.quiz.answers && Object.prototype.hasOwnProperty.call(state.quiz.answers, q.id) ? 1 : 0), 0)
-        : 0;
-      showToast(
-        answeredForToast > 5
-          ? (passed ? 'Test passed! +300 🪙 added.' : 'Test failed. +150 🪙 added.')
-          : 'Test completed. No completion coins: more than 5 questions must be attempted.',
-        answeredForToast > 5 ? 'success' : 'error'
-      );
-      if (!firebaseSaved) {
-        showToast('Result saved locally. Firebase is syncing automatically.', 'error');
+        // Persist a permanent attempt record. Previously the completed result
+        // was saved without appending to attemptHistory, so Super10/Special30
+        // history disappeared after refresh or was always empty.
+        const previousProgress = getProgress(categoryId) || {};
+        const previousHistory = Array.isArray(previousProgress.attemptHistory) ? previousProgress.attemptHistory : [];
+        const attemptRecord = {
+          attemptNo: Number(state.quiz.attemptNo || previousHistory.length + 1),
+          score: Number(result.overallPercentage) || 0,
+          accuracy: Number(result.accuracy) || 0,
+          correct: Number(result.correct) || 0,
+          wrong: Number(result.wrong) || 0,
+          skipped: Number(result.skipped) || 0,
+          attempted: Number(result.attempted) || 0,
+          total: Number(result.total) || 0,
+          totalTime: Number(result.totalTime) || 0,
+          answers: { ...(state.quiz.answers || {}) },
+          timeByQuestion: { ...(state.quiz.timeByQuestion || {}) },
+          questionSet: (Array.isArray(state.quiz.questionSet) && state.quiz.questionSet.length
+            ? state.quiz.questionSet
+            : cat.questions).map(q => ({...q})),
+          completedAt: Date.now()
+        };
+        state.progressData[categoryId] = {
+          ...previousProgress,
+          status: 'completed',
+          answers: { ...(state.quiz.answers || {}) },
+          currentQuestionIndex: state.quiz.currentIndex,
+          timeSpent: state.quiz.timeSpent,
+          timeByQuestion: { ...(state.quiz.timeByQuestion || {}) },
+          questionSet: attemptRecord.questionSet,
+          attemptNo: attemptRecord.attemptNo,
+          attemptHistory: [...previousHistory, attemptRecord],
+          lastUpdated: new Date().toISOString()
+        };
+        // Do not show the completed result until the completed snapshot has
+        // finished writing to Firebase. This removes the refresh race.
+        saveLocalCache();
+        let firebaseSaved = false;
+        firebaseSaved = await saveProgress('completed');
+        if (!firebaseSaved) {
+          console.warn('Completed result cached locally; Firebase retry scheduled.');
+        }
+        state.currentScreen = 'review';
+        render();
+        const answeredForToast = Array.isArray(state.quiz.questionSet)
+          ? state.quiz.questionSet.reduce((count, q) => count + (state.quiz.answers && Object.prototype.hasOwnProperty.call(state.quiz.answers, q.id) ? 1 : 0), 0)
+          : 0;
+        showToast(
+          answeredForToast > 5
+            ? (passed ? 'Test passed! +300 🪙 added.' : 'Test failed. +150 🪙 added.')
+            : 'Test completed. No completion coins: more than 5 questions must be attempted.',
+          answeredForToast > 5 ? 'success' : 'error'
+        );
+        if (!firebaseSaved) {
+          showToast('Result saved locally. Firebase is syncing automatically.', 'error');
+        }
+      } catch (error) {
+        console.error('TEST SUBMIT ERROR:', error);
+        showToast('Submit failed. Your answers are saved. Please try again.', 'error');
+      } finally {
+        state.quiz.submitLock = false;
       }
     };
     window.goDashboard = () => {
