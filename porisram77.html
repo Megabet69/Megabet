@@ -4089,10 +4089,11 @@ function scheduleFirebaseRetry() {
 
     function getProfileStats() {
       let totalTests=0, totalQuestions=0, attempted=0, correct=0, wrong=0, skipped=0, totalTime=0;
-      const performanceExcluded = new Set(['super10','special30']);
 
       Object.values(quizData).forEach(cat => {
-        if (performanceExcluded.has(cat.id)) return;
+        // Super 10 and Special 30 are standalone challenge tests.
+        // They must NOT affect profile overall accuracy/performance.
+        if (cat.id === 'super10' || cat.id === 'special30') return;
         const prog = state.progressData?.[cat.id];
         if (!prog) return;
 
@@ -4126,8 +4127,9 @@ function scheduleFirebaseRetry() {
     }
 
     function getCategoryPerformance() {
-      const performanceExcluded = new Set(['super10','special30']);
-      return Object.values(quizData).filter(cat => !performanceExcluded.has(cat.id)).map(cat => {
+      return Object.values(quizData)
+        .filter(cat => cat.id !== 'super10' && cat.id !== 'special30')
+        .map(cat => {
         const prog = state.progressData?.[cat.id] || {};
         const answers = prog.answers || {};
         const times = prog.timeByQuestion || {};
@@ -4466,6 +4468,9 @@ function scheduleFirebaseRetry() {
         let bestCategory = null;
 
         Object.entries(progress).forEach(([catId, p]) => {
+          // Keep leaderboard accuracy identical to Profile accuracy:
+          // Super 10 and Special 30 are excluded from the overall metric.
+          if (catId === 'super10' || catId === 'special30') return;
           if (!p || typeof p !== "object") return;
           const cat = quizData[catId];
           const answers = p.answers || {};
