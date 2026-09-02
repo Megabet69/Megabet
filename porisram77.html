@@ -1531,9 +1531,354 @@ body.quiz-active{overflow-x:hidden}
           { id: 'q99', text: 'Find the missing term: 1, 8, 27, 64, ?', options: [{ id: 'a', text: '125' }, { id: 'b', text: '100' }, { id: 'c', text: '216' }, { id: 'd', text: '144' }], correct: 'a', explanation: 'The numbers are consecutive cubes: 1^3, 2^3, 3^3, 4^3. Next is 5^3 = 125.' },
           { id: 'q100', text: 'There are 5 houses A, B, C, D, E. A is right of B and left of C. O is right of A. B is right of D. Which house is in the middle?', options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }, { id: 'c', text: 'C' }, { id: 'd', text: 'D' }], correct: 'a', explanation: 'From the given positions, the arrangement from left to right is D, B, A, C, O. House A is perfectly in the middle.' }
         ]
-      }
-    };
+      },
+      rrb_je: {
+        id: 'rrb_je',
+        title: 'RRB JE CBT-1 (Complete)',
+        icon: 'train-front',
+        color: 'orange',
+        questions: [
+          // MATHEMATICS (30 Questions)
+          { id: 'q1', text: 'If a train 150m long crosses a pole in 15 seconds, what is its speed in km/h?', options: [{ id: 'a', text: '24 km/h' }, { id: 'b', text: '36 km/h' }, { id: 'c', text: '45 km/h' }, { id: 'd', text: '54 km/h' }], correct: 'b', explanation: 'Speed = Distance/Time = 150/15 = 10 m/s. Convert to km/h: 10 * (18/5) = 36 km/h.' },
+          { id: 'q2', text: 'Evaluate: 12 + 12 × 12 ÷ 12 - 12', options: [{ id: 'a', text: '0' }, { id: 'b', text: '12' }, { id: 'c', text: '24' }, { id: 'd', text: '144' }], correct: 'b', explanation: 'Using BODMAS: 12 + (12 × (12 ÷ 12)) - 12 = 12 + (12 × 1) - 12 = 12 + 12 - 12 = 12.' },
+          { id: 'q3', text: 'The LCM of two numbers is 864 and their HCF is 144. If one of the numbers is 288, the other number is:', options: [{ id: 'a', text: '432' }, { id: 'b', text: '576' }, { id: 'c', text: '144' }, { id: 'd', text: '864' }], correct: 'a', explanation: 'Product of two numbers = LCM × HCF. So, 288 × x = 864 × 144. x = (864 × 144) / 288 = 432.' },
+          { id: 'q4', text: 'A and B together can do a piece of work in 12 days, while A alone can do it in 30 days. In how many days can B alone do it?', options: [{ id: 'a', text: '18 days' }, { id: 'b', text: '20 days' }, { id: 'c', text: '24 days' }, { id: 'd', text: '25 days' }], correct: 'b', explanation: 'Work of B in 1 day = (1/12) - (1/30) = (5-2)/60 = 3/60 = 1/20. B takes 20 days.' },
+          { id: 'q5', text: 'What will be the compound interest on ₹5000 at 10% per annum for 2 years?', options: [{ id: 'a', text: '₹1000' }, { id: 'b', text: '₹1050' }, { id: 'c', text: '₹1100' }, { id: 'd', text: '₹1200' }], correct: 'b', explanation: 'Amount = P(1+R/100)^t = 5000(1.1)^2 = 5000 × 1.21 = ₹6050. CI = Amount - Principal = 6050 - 5000 = ₹1050.' },
+          { id: 'q6', text: 'If 15% of a number is 45, what is 40% of that number?', options: [{ id: 'a', text: '90' }, { id: 'b', text: '100' }, { id: 'c', text: '120' }, { id: 'd', text: '150' }], correct: 'c', explanation: '15% = 45 => 1% = 3. Therefore, 40% = 40 × 3 = 120.' },
+          { id: 'q7', text: 'A man sells an article for ₹540, making a profit of 20%. What is the cost price?', options: [{ id: 'a', text: '₹400' }, { id: 'b', text: '₹450' }, { id: 'c', text: '₹480' }, { id: 'd', text: '₹500' }], correct: 'b', explanation: 'CP × 1.20 = 540 => CP = 540 / 1.20 = 450.' },
+          { id: 'q8', text: 'Find the value of sin 30° + cos 60°.', options: [{ id: 'a', text: '0' }, { id: 'b', text: '1' }, { id: 'c', text: '√3' }, { id: 'd', text: '2' }], correct: 'b', explanation: 'sin 30° = 1/2. cos 60° = 1/2. 1/2 + 1/2 = 1.' },
+          { id: 'q9', text: 'If x + (1/x) = 5, find the value of x² + (1/x²).', options: [{ id: 'a', text: '23' }, { id: 'b', text: '25' }, { id: 'c', text: '27' }, { id: 'd', text: '21' }], correct: 'a', explanation: 'Squaring both sides: x² + (1/x²) + 2 = 25 => x² + (1/x²) = 23.' },
+          { id: 'q10', text: 'The ratio of present ages of A and B is 3:4. Five years ago, the ratio was 5:7. Find A\'s present age.', options: [{ id: 'a', text: '20' }, { id: 'b', text: '24' }, { id: 'c', text: '30' }, { id: 'd', text: '36' }], correct: 'c', explanation: 'Let ages be 3x, 4x. (3x-5)/(4x-5) = 5/7 => 21x - 35 = 20x - 25 => x = 10. A\'s age = 3x = 30.' },
+          { id: 'q11', text: 'A sphere and a cylinder have the same radius and same volume. Find the ratio of the radius to the height of the cylinder.', options: [{ id: 'a', text: '3:4' }, { id: 'b', text: '4:3' }, { id: 'c', text: '1:2' }, { id: 'd', text: '2:1' }], correct: 'a', explanation: '(4/3)πr³ = πr²h => (4/3)r = h => r/h = 3/4.' },
+          { id: 'q12', text: 'Find the simple interest on ₹8000 at 12.5% per annum for 3 years.', options: [{ id: 'a', text: '₹2500' }, { id: 'b', text: '₹3000' }, { id: 'c', text: '₹3500' }, { id: 'd', text: '₹4000' }], correct: 'b', explanation: 'SI = (P × R × T) / 100 = (8000 × 12.5 × 3) / 100 = 80 × 37.5 = ₹3000.' },
+          { id: 'q13', text: 'Which of the following numbers is completely divisible by 9?', options: [{ id: 'a', text: '45678' }, { id: 'b', text: '78546' }, { id: 'c', text: '13579' }, { id: 'd', text: '98765' }], correct: 'b', explanation: 'A number is divisible by 9 if the sum of its digits is divisible by 9. Sum of 78546 = 7+8+5+4+6 = 30 (No). Wait, let me recheck option b: 7+8+5+4+6=30. Let me recalculate: Option a: 4+5+6+7+8 = 30. Option c: 1+3+5+7+9 = 25. Option d: 9+8+7+6+5 = 35. None are divisible by 9? Let me correct the math: let\'s provide a correct option. Let\'s change B to 78543. Sum = 27.', options: [{ id: 'a', text: '45678' }, { id: 'b', text: '78543' }, { id: 'c', text: '13579' }, { id: 'd', text: '98765' }], correct: 'b', explanation: 'Sum of digits of 78543 = 7+8+5+4+3 = 27. Since 27 is divisible by 9, 78543 is divisible by 9.' },
+          { id: 'q14', text: 'The mean of 10 observations is 25. If one observation 35 is removed, what is the new mean?', options: [{ id: 'a', text: '23.8' }, { id: 'b', text: '24' }, { id: 'c', text: '24.5' }, { id: 'd', text: '25' }], correct: 'a', explanation: 'Total sum = 10 × 25 = 250. New sum = 250 - 35 = 215. New mean = 215 / 9 = 23.88. Rounded to one decimal, 23.9. Wait, 215/9 = 23.88. Option A should be 23.88 or 215/9.', options: [{ id: 'a', text: '23.88' }, { id: 'b', text: '24' }, { id: 'c', text: '24.5' }, { id: 'd', text: '25' }], correct: 'a', explanation: 'Total sum = 250. New sum = 215. New mean = 215/9 ≈ 23.88.' },
+          { id: 'q15', text: 'Pipe A can fill a tank in 10 hours and Pipe B can fill it in 15 hours. How long will it take if both are opened together?', options: [{ id: 'a', text: '5 hours' }, { id: 'b', text: '6 hours' }, { id: 'c', text: '8 hours' }, { id: 'd', text: '12 hours' }], correct: 'b', explanation: 'Work together = (1/10) + (1/15) = 5/30 = 1/6. It takes 6 hours.' },
+          { id: 'q16', text: 'The perimeter of a rectangular field is 120m and its breadth is 20m. Find its area.', options: [{ id: 'a', text: '600 sq.m' }, { id: 'b', text: '800 sq.m' }, { id: 'c', text: '1000 sq.m' }, { id: 'd', text: '1200 sq.m' }], correct: 'b', explanation: 'Perimeter = 2(l+b) => 120 = 2(l+20) => 60 = l+20 => l = 40. Area = l × b = 40 × 20 = 800 sq.m.' },
+          { id: 'q17', text: 'Find the square root of 2025.', options: [{ id: 'a', text: '35' }, { id: 'b', text: '45' }, { id: 'c', text: '55' }, { id: 'd', text: '65' }], correct: 'b', explanation: '45² = (40+5)² = 1600 + 400 + 25 = 2025.' },
+          { id: 'q18', text: 'If a/b = 2/3 and b/c = 4/5, find a:b:c.', options: [{ id: 'a', text: '8:12:15' }, { id: 'b', text: '2:3:5' }, { id: 'c', text: '6:12:15' }, { id: 'd', text: '8:10:15' }], correct: 'a', explanation: 'Multiply a/b by 4/4 to get 8/12, and b/c by 3/3 to get 12/15. Thus, a:b:c = 8:12:15.' },
+          { id: 'q19', text: 'What is the sum of the first 20 natural numbers?', options: [{ id: 'a', text: '200' }, { id: 'b', text: '210' }, { id: 'c', text: '400' }, { id: 'd', text: '420' }], correct: 'b', explanation: 'Sum = n(n+1)/2 = 20(21)/2 = 210.' },
+          { id: 'q20', text: 'A boat covers 24 km upstream in 4 hours and covers the same distance downstream in 3 hours. Speed of the boat in still water is:', options: [{ id: 'a', text: '5 km/h' }, { id: 'b', text: '6 km/h' }, { id: 'c', text: '7 km/h' }, { id: 'd', text: '8 km/h' }], correct: 'c', explanation: 'Upstream speed (U) = 24/4 = 6 km/h. Downstream (D) = 24/3 = 8 km/h. Boat speed = (U+D)/2 = (6+8)/2 = 7 km/h.' },
+          { id: 'q21', text: 'By selling a watch for ₹1440, a man loses 10%. At what price should he sell it to gain 10%?', options: [{ id: 'a', text: '₹1600' }, { id: 'b', text: '₹1700' }, { id: 'c', text: '₹1760' }, { id: 'd', text: '₹1800' }], correct: 'c', explanation: '0.90 × CP = 1440 => CP = 1600. For 10% gain, SP = 1600 × 1.10 = ₹1760.' },
+          { id: 'q22', text: 'If the radius of a circle is increased by 20%, its area increases by:', options: [{ id: 'a', text: '20%' }, { id: 'b', text: '40%' }, { id: 'c', text: '44%' }, { id: 'd', text: '400%' }], correct: 'c', explanation: 'Successive percentage formula: a + b + (ab/100) = 20 + 20 + (400/100) = 44%.' },
+          { id: 'q23', text: 'Evaluate: (1 - 1/3)(1 - 1/4)(1 - 1/5)...(1 - 1/10)', options: [{ id: 'a', text: '1/10' }, { id: 'b', text: '1/5' }, { id: 'c', text: '2/10' }, { id: 'd', text: '2/9' }], correct: 'b', explanation: '(2/3) × (3/4) × (4/5) ... × (9/10). All intermediate terms cancel out leaving 2/10 = 1/5.' },
+          { id: 'q24', text: 'The angle of elevation of a ladder leaning against a wall is 60°, and the foot of the ladder is 4.6 m away from the wall. The length of the ladder is:', options: [{ id: 'a', text: '2.3 m' }, { id: 'b', text: '4.6 m' }, { id: 'c', text: '9.2 m' }, { id: 'd', text: '7.8 m' }], correct: 'c', explanation: 'cos 60° = Base/Hypotenuse => 1/2 = 4.6 / L => L = 4.6 × 2 = 9.2 m.' },
+          { id: 'q25', text: 'Find the volume of a cube whose diagonal is 6√3 cm.', options: [{ id: 'a', text: '125 cm³' }, { id: 'b', text: '216 cm³' }, { id: 'c', text: '343 cm³' }, { id: 'd', text: '512 cm³' }], correct: 'b', explanation: 'Diagonal of a cube = a√3. Thus, a = 6 cm. Volume = a³ = 6³ = 216 cm³.' },
+          { id: 'q26', text: 'What is the probability of getting a prime number when a standard six-sided die is rolled?', options: [{ id: 'a', text: '1/6' }, { id: 'b', text: '1/3' }, { id: 'c', text: '1/2' }, { id: 'd', text: '2/3' }], correct: 'c', explanation: 'Prime numbers on a die are 2, 3, and 5 (Three outcomes). Probability = 3/6 = 1/2.' },
+          { id: 'q27', text: 'Find the HCF of 24, 36, and 40.', options: [{ id: 'a', text: '2' }, { id: 'b', text: '4' }, { id: 'c', text: '6' }, { id: 'd', text: '8' }], correct: 'b', explanation: 'Factors: 24 = 2³×3, 36 = 2²×3², 40 = 2³×5. The lowest power of common factors is 2² = 4.' },
+          { id: 'q28', text: 'If 3x - y = 12 and x + 2y = 11, find x.', options: [{ id: 'a', text: '2' }, { id: 'b', text: '3' }, { id: 'c', text: '4' }, { id: 'd', text: '5' }], correct: 'd', explanation: 'Multiply first by 2: 6x - 2y = 24. Add to second: 7x = 35 => x = 5.' },
+          { id: 'q29', text: 'Convert 45° to radians.', options: [{ id: 'a', text: 'π/2' }, { id: 'b', text: 'π/3' }, { id: 'c', text: 'π/4' }, { id: 'd', text: 'π/6' }], correct: 'c', explanation: 'Radians = Degrees × (π/180) = 45 × (π/180) = π/4.' },
+          { id: 'q30', text: 'The difference between the place value and face value of 7 in the number 297543 is:', options: [{ id: 'a', text: '6993' }, { id: 'b', text: '7000' }, { id: 'c', text: '6990' }, { id: 'd', text: '0' }], correct: 'a', explanation: 'Place value of 7 = 7000. Face value of 7 = 7. Difference = 7000 - 7 = 6993.' },
 
+          // GENERAL INTELLIGENCE & REASONING (25 Questions)
+          { id: 'q31', text: 'Complete the series: 2, 6, 12, 20, 30, ?', options: [{ id: 'a', text: '40' }, { id: 'b', text: '42' }, { id: 'c', text: '44' }, { id: 'd', text: '48' }], correct: 'b', explanation: 'The differences are +4, +6, +8, +10. The next difference is +12. So, 30 + 12 = 42.' },
+          { id: 'q32', text: 'If CAT is coded as 24 and DOG is coded as 26, how is BIRD coded?', options: [{ id: 'a', text: '38' }, { id: 'b', text: '40' }, { id: 'c', text: '43' }, { id: 'd', text: '50' }], correct: 'c', explanation: 'Sum of alphabetical positions: B(2)+I(9)+R(18)+D(4) = 33. Wait, CAT = 3+1+20 = 24. DOG = 4+15+7 = 26. BIRD = 2+9+18+4 = 33.', options: [{ id: 'a', text: '33' }, { id: 'b', text: '35' }, { id: 'c', text: '42' }, { id: 'd', text: '45' }], correct: 'a', explanation: 'Summing alphabetical values: B(2)+I(9)+R(18)+D(4) = 33.' },
+          { id: 'q33', text: 'Pointing to a photograph, a man said, "I have no brother or sister, but that man\'s father is my father\'s son." Whose photograph was it?', options: [{ id: 'a', text: 'His own' }, { id: 'b', text: 'His son\'s' }, { id: 'c', text: 'His father\'s' }, { id: 'd', text: 'His nephew\'s' }], correct: 'b', explanation: '"My father\'s son" is the man himself (since he has no siblings). So, "that man\'s father is ME". Thus, the photograph is of his son.' },
+          { id: 'q34', text: 'Select the odd one out:', options: [{ id: 'a', text: 'Iron' }, { id: 'b', text: 'Copper' }, { id: 'c', text: 'Zinc' }, { id: 'd', text: 'Brass' }], correct: 'd', explanation: 'Iron, Copper, and Zinc are chemical elements (metals), while Brass is an alloy.' },
+          { id: 'q35', text: 'A starts walking towards North, walks 10m, turns right, walks 15m, turns right again and walks 10m. How far and in which direction is he from the starting point?', options: [{ id: 'a', text: '15m East' }, { id: 'b', text: '15m West' }, { id: 'c', text: '20m East' }, { id: 'd', text: '10m North' }], correct: 'a', explanation: 'He moved 10m North, then 15m East, then 10m South. He is exactly 15m East of his starting position.' },
+          { id: 'q36', text: 'Syllogism: Statements: Some cats are dogs. All dogs are birds. Conclusions: I. Some cats are birds. II. No dog is a cat.', options: [{ id: 'a', text: 'Only I follows' }, { id: 'b', text: 'Only II follows' }, { id: 'c', text: 'Both I and II follow' }, { id: 'd', text: 'Neither I nor II follows' }], correct: 'a', explanation: 'Since some cats are dogs and all dogs are birds, the intersection means some cats are birds. Conclusion II contradicts the first statement.' },
+          { id: 'q37', text: 'Find the missing character: A, C, F, J, O, ?', options: [{ id: 'a', text: 'S' }, { id: 'b', text: 'T' }, { id: 'c', text: 'U' }, { id: 'd', text: 'V' }], correct: 'c', explanation: 'The skip between letters increases: +2, +3, +4, +5. Next is +6. O(15) + 6 = 21(U).' },
+          { id: 'q38', text: 'If + means ×, - means +, × means ÷, and ÷ means -, evaluate: 8 + 4 × 2 - 6 ÷ 3', options: [{ id: 'a', text: '19' }, { id: 'b', text: '21' }, { id: 'c', text: '14' }, { id: 'd', text: '15' }], correct: 'a', explanation: 'Apply substitutions: 8 × 4 ÷ 2 + 6 - 3. By BODMAS: 8 × 2 + 6 - 3 = 16 + 6 - 3 = 19.' },
+          { id: 'q39', text: 'Choose the correct alternative: Ocean : Water :: Glacier : ?', options: [{ id: 'a', text: 'Ice' }, { id: 'b', text: 'Mountain' }, { id: 'c', text: 'Cave' }, { id: 'd', text: 'Cold' }], correct: 'a', explanation: 'An ocean is primarily composed of water. A glacier is primarily composed of ice.' },
+          { id: 'q40', text: 'Find the odd number pair:', options: [{ id: 'a', text: '14 - 49' }, { id: 'b', text: '16 - 64' }, { id: 'c', text: '20 - 100' }, { id: 'd', text: '24 - 121' }], correct: 'd', explanation: 'The pattern is x - (x/2)². 14 -> 7² = 49. 16 -> 8² = 64. 20 -> 10² = 100. 24 -> 12² = 144, not 121.' },
+          { id: 'q41', text: 'If a day before yesterday was Thursday, what day will it be on the day after tomorrow?', options: [{ id: 'a', text: 'Sunday' }, { id: 'b', text: 'Monday' }, { id: 'c', text: 'Tuesday' }, { id: 'd', text: 'Wednesday' }], correct: 'b', explanation: 'If day before yesterday was Thursday, today is Saturday. The day after tomorrow is Monday.' },
+          { id: 'q42', text: 'Six people are sitting in a circle facing the center. A is between B and C. D is between E and F. C is to the immediate right of E. Who is to the immediate left of B?', options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'C' }, { id: 'c', text: 'F' }, { id: 'd', text: 'E' }], correct: 'c', explanation: 'Arrangement clockwise: B, A, C, E, D, F. B\'s immediate left is F.' },
+          { id: 'q43', text: 'Arrange in logical order: 1. Probation, 2. Interview, 3. Selection, 4. Appointment, 5. Advertisement.', options: [{ id: 'a', text: '5, 2, 3, 4, 1' }, { id: 'b', text: '5, 3, 2, 4, 1' }, { id: 'c', text: '5, 2, 4, 3, 1' }, { id: 'd', text: '5, 4, 2, 3, 1' }], correct: 'a', explanation: 'The chronological order is Advertisement -> Interview -> Selection -> Appointment -> Probation.' },
+          { id: 'q44', text: 'Find the wrong term in the series: 3, 8, 15, 24, 34, 48', options: [{ id: 'a', text: '15' }, { id: 'b', text: '24' }, { id: 'c', text: '34' }, { id: 'd', text: '48' }], correct: 'c', explanation: 'The pattern is n² - 1. (2²-1=3, 3²-1=8, 4²-1=15, 5²-1=24). Next should be 6²-1 = 35, not 34.' },
+          { id: 'q45', text: 'A clock shows 3:15. What is the angle between the hour and minute hands?', options: [{ id: 'a', text: '0°' }, { id: 'b', text: '7.5°' }, { id: 'c', text: '15°' }, { id: 'd', text: '22.5°' }], correct: 'b', explanation: 'Angle = |30H - 5.5M| = |30(3) - 5.5(15)| = |90 - 82.5| = 7.5°.' },
+          { id: 'q46', text: 'In a row of 40 students, Rakesh is 12th from the left. What is his position from the right?', options: [{ id: 'a', text: '28th' }, { id: 'b', text: '29th' }, { id: 'c', text: '30th' }, { id: 'd', text: '27th' }], correct: 'b', explanation: 'Position from right = Total - Left + 1 = 40 - 12 + 1 = 29th.' },
+          { id: 'q47', text: 'Which word cannot be formed from the letters of "RECREATION"?', options: [{ id: 'a', text: 'RATION' }, { id: 'b', text: 'CREATE' }, { id: 'c', text: 'TORN' }, { id: 'd', text: 'ACTION' }], correct: 'd', explanation: 'The word RECREATION does not contain the letter "C" more than once? Wait, it has one C. It does not contain the letter "M". Wait, ACTION has no M. But "ACTION" requires a \'C\' (yes), an \'A\' (yes), a \'T\' (yes), an \'I\' (yes), an \'O\' (yes), an \'N\' (yes). It can be formed. Let\'s recheck CREATE - requires 2 \'E\'s, 1 \'R\', 1 \'C\', 1 \'A\', 1 \'T\'. Yes. Wait. TORN - yes. Let\'s change Option D to "NATION" (needs two Ns, RECREATION only has one).', options: [{ id: 'a', text: 'RATION' }, { id: 'b', text: 'CREATE' }, { id: 'c', text: 'TORN' }, { id: 'd', text: 'NATION' }], correct: 'd', explanation: '"NATION" requires two \'N\'s, but the word "RECREATION" only has one \'N\'.' },
+          { id: 'q48', text: 'Identify the next figure in the pattern: \u25B2, \u25C0, \u25BC, ?', options: [{ id: 'a', text: '\u25B2' }, { id: 'b', text: '\u25B6' }, { id: 'c', text: '\u25BC' }, { id: 'd', text: '\u25C0' }], correct: 'b', explanation: 'The triangle rotates 90 degrees counter-clockwise in each step. Up, Left, Down, so the next is Right (\u25B6).' },
+          { id: 'q49', text: 'How many triangles are there in a square with both diagonals drawn?', options: [{ id: 'a', text: '4' }, { id: 'b', text: '6' }, { id: 'c', text: '8' }, { id: 'd', text: '10' }], correct: 'c', explanation: 'A square with both diagonals drawn forms 4 small triangles and 4 larger triangles (formed by pairs of small ones), totaling 8.' },
+          { id: 'q50', text: 'If DELHI is coded as 73541 and CALCUTTA as 82589662, how is CALICUT coded?', options: [{ id: 'a', text: '8251896' }, { id: 'b', text: '8251866' }, { id: 'c', text: '8254896' }, { id: 'd', text: '8251899' }], correct: 'a', explanation: 'Direct letter coding: C=8, A=2, L=5, I=1, C=8, U=9, T=6. Result: 8251896.' },
+          { id: 'q51', text: 'Find the missing number in the matrix:\n8  3  21\n6  5  25\n12 2  ?', options: [{ id: 'a', text: '22' }, { id: 'b', text: '24' }, { id: 'c', text: '26' }, { id: 'd', text: '20' }], correct: 'd', explanation: 'The logic for each row is (Col 1 × Col 2) - 3 = Col 3. (8×3)-3=21; (6×5)-5=25 (wait, logic is different: Col 1 × Col 2 - Col 2 = Col 3? 8x3 -3 = 21, 6x5 -5 = 25, 12x2 -2 = 22. Okay, let\'s set option to 22.', options: [{ id: 'a', text: '22' }, { id: 'b', text: '24' }, { id: 'c', text: '26' }, { id: 'd', text: '20' }], correct: 'a', explanation: 'Pattern: (Number1 × Number2) - Number2 = Number3. (12 × 2) - 2 = 22.' },
+          { id: 'q52', text: 'Statement: "Smoking is injurious to health." Assumption 1: People read warnings. Assumption 2: People might quit smoking after reading.', options: [{ id: 'a', text: 'Only 1 is implicit' }, { id: 'b', text: 'Only 2 is implicit' }, { id: 'c', text: 'Both 1 and 2 are implicit' }, { id: 'd', text: 'Neither is implicit' }], correct: 'c', explanation: 'Warnings are printed with the assumption that people will read them and alter their behavior accordingly.' },
+          { id: 'q53', text: 'Select the related word: Bacteria : Illness :: Calcium : ?', options: [{ id: 'a', text: 'Bone' }, { id: 'b', text: 'Teeth' }, { id: 'c', text: 'Health' }, { id: 'd', text: 'Strength' }], correct: 'a', explanation: 'Bacteria causes illness (negative relation) - wait, this analogy is flawed. Let\'s change the question: Bacteria : Microscope :: Stars : ? Telescope.', options: [{ id: 'a', text: 'Binoculars' }, { id: 'b', text: 'Telescope' }, { id: 'c', text: 'Planetarium' }, { id: 'd', text: 'Lens' }], correct: 'b', explanation: 'Bacteria are viewed through a microscope, while stars are viewed through a telescope.' },
+          { id: 'q54', text: 'P is the brother of Q and R. S is R\'s mother. T is P\'s father. Which of the following statements cannot be definitely true?', options: [{ id: 'a', text: 'T is Q\'s father' }, { id: 'b', text: 'S is P\'s mother' }, { id: 'c', text: 'P is S\'s son' }, { id: 'd', text: 'Q is T\'s son' }], correct: 'd', explanation: 'P, Q, and R are siblings. We know P is a male (brother). We do not know Q\'s gender, so we cannot definitely say Q is T\'s son (could be a daughter).' },
+          { id: 'q55', text: 'Select the Venn diagram representing: Doctors, Men, Indians.', options: [{ id: 'a', text: 'Three disjoint circles' }, { id: 'b', text: 'Three intersecting circles' }, { id: 'c', text: 'One circle inside another, third intersecting both' }, { id: 'd', text: 'Two disjoint circles inside one large circle' }], correct: 'b', explanation: 'Some men are doctors, some doctors are Indians, and some men are Indians. The three sets intersect each other.' },
+
+          // GENERAL AWARENESS (15 Questions)
+          { id: 'q56', text: 'Who was the first Governor-General of independent India?', options: [{ id: 'a', text: 'C. Rajagopalachari' }, { id: 'b', text: 'Lord Mountbatten' }, { id: 'c', text: 'Rajendra Prasad' }, { id: 'd', text: 'Jawaharlal Nehru' }], correct: 'b', explanation: 'Lord Mountbatten was the first Governor-General of independent India. C. Rajagopalachari was the first *Indian* Governor-General.' },
+          { id: 'q57', text: 'Which Article of the Indian Constitution is called the "Heart and Soul of the Constitution"?', options: [{ id: 'a', text: 'Article 14' }, { id: 'b', text: 'Article 19' }, { id: 'c', text: 'Article 32' }, { id: 'd', text: 'Article 370' }], correct: 'c', explanation: 'Dr. B.R. Ambedkar referred to Article 32 (Right to Constitutional Remedies) as the heart and soul of the Constitution.' },
+          { id: 'q58', text: 'The longest river in Peninsular India is:', options: [{ id: 'a', text: 'Narmada' }, { id: 'b', text: 'Godavari' }, { id: 'c', text: 'Krishna' }, { id: 'd', text: 'Mahanadi' }], correct: 'b', explanation: 'The Godavari is the longest river in Peninsular India and the second longest in India after the Ganga.' },
+          { id: 'q59', text: 'Where is the headquarters of ISRO located?', options: [{ id: 'a', text: 'Sriharikota' }, { id: 'b', text: 'New Delhi' }, { id: 'c', text: 'Bengaluru' }, { id: 'd', text: 'Thiruvananthapuram' }], correct: 'c', explanation: 'The Indian Space Research Organisation (ISRO) is headquartered in Bengaluru, Karnataka.' },
+          { id: 'q60', text: 'Which planet is known as the "Red Planet"?', options: [{ id: 'a', text: 'Venus' }, { id: 'b', text: 'Mars' }, { id: 'c', text: 'Jupiter' }, { id: 'd', text: 'Saturn' }], correct: 'b', explanation: 'Mars is known as the Red Planet due to the high presence of iron oxide on its surface.' },
+          { id: 'q61', text: 'The Battle of Plassey was fought in the year:', options: [{ id: 'a', text: '1526' }, { id: 'b', text: '1757' }, { id: 'c', text: '1764' }, { id: 'd', text: '1857' }], correct: 'b', explanation: 'The Battle of Plassey was fought on June 23, 1757, establishing British East India Company rule in Bengal.' },
+          { id: 'q62', text: 'What is the currency of Japan?', options: [{ id: 'a', text: 'Yuan' }, { id: 'b', text: 'Yen' }, { id: 'c', text: 'Won' }, { id: 'd', text: 'Ringgit' }], correct: 'b', explanation: 'The Japanese Yen is the official currency of Japan.' },
+          { id: 'q63', text: 'Who wrote the Indian National Anthem "Jana Gana Mana"?', options: [{ id: 'a', text: 'Bankim Chandra Chatterjee' }, { id: 'b', text: 'Rabindranath Tagore' }, { id: 'c', text: 'Sarojini Naidu' }, { id: 'd', text: 'Subhas Chandra Bose' }], correct: 'b', explanation: 'Rabindranath Tagore composed "Jana Gana Mana", originally in Bengali.' },
+          { id: 'q64', text: 'The Great Barrier Reef is located in:', options: [{ id: 'a', text: 'Australia' }, { id: 'b', text: 'South Africa' }, { id: 'c', text: 'Brazil' }, { id: 'd', text: 'India' }], correct: 'a', explanation: 'The Great Barrier Reef is the world\'s largest coral reef system, located off the coast of Queensland, Australia.' },
+          { id: 'q65', text: 'In Economics, GDP stands for:', options: [{ id: 'a', text: 'Gross Domestic Product' }, { id: 'b', text: 'Global Development Product' }, { id: 'c', text: 'Gross Developmental Progress' }, { id: 'd', text: 'General Domestic Policy' }], correct: 'a', explanation: 'GDP stands for Gross Domestic Product, a monetary measure of the market value of all final goods and services produced in a country.' },
+          { id: 'q66', text: 'Which vitamin is produced in the human body by exposure to sunlight?', options: [{ id: 'a', text: 'Vitamin A' }, { id: 'b', text: 'Vitamin C' }, { id: 'c', text: 'Vitamin D' }, { id: 'd', text: 'Vitamin K' }], correct: 'c', explanation: 'Vitamin D is synthesized in the skin in response to sunlight (specifically UVB radiation).' },
+          { id: 'q67', text: 'The term "Bulls and Bears" is associated with:', options: [{ id: 'a', text: 'Wildlife Conservation' }, { id: 'b', text: 'Agriculture' }, { id: 'c', text: 'Stock Market' }, { id: 'd', text: 'International Trade' }], correct: 'c', explanation: 'In stock markets, a bull represents an upward market trend, while a bear represents a downward trend.' },
+          { id: 'q68', text: 'Which state has the longest coastline in India?', options: [{ id: 'a', text: 'Andhra Pradesh' }, { id: 'b', text: 'Maharashtra' }, { id: 'c', text: 'Gujarat' }, { id: 'd', text: 'Tamil Nadu' }], correct: 'c', explanation: 'Gujarat has the longest mainland coastline in India, extending over 1,600 km.' },
+          { id: 'q69', text: 'Who was the founder of the Maurya Empire?', options: [{ id: 'a', text: 'Ashoka' }, { id: 'b', text: 'Bindusara' }, { id: 'c', text: 'Chandragupta Maurya' }, { id: 'd', text: 'Harsha' }], correct: 'c', explanation: 'Chandragupta Maurya founded the Maurya Empire in ancient India, aided by Chanakya.' },
+          { id: 'q70', text: 'The Nobel Prize is NOT awarded in which of the following fields?', options: [{ id: 'a', text: 'Physics' }, { id: 'b', text: 'Mathematics' }, { id: 'c', text: 'Literature' }, { id: 'd', text: 'Economics' }], correct: 'b', explanation: 'The Nobel Prize does not have a Mathematics category (the Fields Medal is often considered its equivalent).' },
+
+          // GENERAL SCIENCE (30 Questions - Physics, Chemistry, Biology)
+          { id: 'q71', text: 'What is the SI unit of electric current?', options: [{ id: 'a', text: 'Volt' }, { id: 'b', text: 'Ohm' }, { id: 'c', text: 'Ampere' }, { id: 'd', text: 'Watt' }], correct: 'c', explanation: 'The Ampere (A) is the SI base unit of electric current.' },
+          { id: 'q72', text: 'Newton\'s First Law of Motion is also known as the Law of:', options: [{ id: 'a', text: 'Momentum' }, { id: 'b', text: 'Inertia' }, { id: 'c', text: 'Conservation of Energy' }, { id: 'd', text: 'Gravitation' }], correct: 'b', explanation: 'It is called the Law of Inertia because it states an object resists changes in its state of motion.' },
+          { id: 'q73', text: 'Which phenomenon causes the blue color of the sky?', options: [{ id: 'a', text: 'Diffraction' }, { id: 'b', text: 'Scattering' }, { id: 'c', text: 'Refraction' }, { id: 'd', text: 'Reflection' }], correct: 'b', explanation: 'Rayleigh scattering causes shorter (blue) wavelengths of sunlight to scatter more in the atmosphere.' },
+          { id: 'q74', text: 'The device used to measure atmospheric pressure is called a:', options: [{ id: 'a', text: 'Thermometer' }, { id: 'b', text: 'Hygrometer' }, { id: 'c', text: 'Barometer' }, { id: 'd', text: 'Anemometer' }], correct: 'c', explanation: 'A barometer is a scientific instrument used to measure atmospheric pressure.' },
+          { id: 'q75', text: 'If a body is taken from the Earth to the Moon, its mass will:', options: [{ id: 'a', text: 'Increase' }, { id: 'b', text: 'Decrease' }, { id: 'c', text: 'Become zero' }, { id: 'd', text: 'Remain the same' }], correct: 'd', explanation: 'Mass is a measure of the amount of matter and is constant everywhere. Only weight changes due to gravity.' },
+          { id: 'q76', text: 'Which acid is found in the sting of an ant?', options: [{ id: 'a', text: 'Acetic acid' }, { id: 'b', text: 'Formic acid' }, { id: 'c', text: 'Lactic acid' }, { id: 'd', text: 'Citric acid' }], correct: 'b', explanation: 'Ant stings contain formic acid (methanoic acid), which causes the burning sensation.' },
+          { id: 'q77', text: 'The chemical formula of Sulfuric Acid is:', options: [{ id: 'a', text: 'HCl' }, { id: 'b', text: 'HNO3' }, { id: 'c', text: 'H2SO4' }, { id: 'd', text: 'H2CO3' }], correct: 'c', explanation: 'H2SO4 is the chemical formula for sulfuric acid, a strong mineral acid.' },
+          { id: 'q78', text: 'Which gas is mostly responsible for the greenhouse effect?', options: [{ id: 'a', text: 'Oxygen' }, { id: 'b', text: 'Nitrogen' }, { id: 'c', text: 'Carbon Dioxide' }, { id: 'd', text: 'Hydrogen' }], correct: 'c', explanation: 'Carbon Dioxide (CO2) is the primary greenhouse gas emitted through human activities.' },
+          { id: 'q79', text: 'The nucleus of an atom consists of:', options: [{ id: 'a', text: 'Protons and Electrons' }, { id: 'b', text: 'Neutrons and Electrons' }, { id: 'c', text: 'Protons and Neutrons' }, { id: 'd', text: 'Only Protons' }], correct: 'c', explanation: 'The atomic nucleus is composed of protons and neutrons (collectively known as nucleons).' },
+          { id: 'q80', text: 'Which of the following metals is a liquid at room temperature?', options: [{ id: 'a', text: 'Sodium' }, { id: 'b', text: 'Mercury' }, { id: 'c', text: 'Lead' }, { id: 'd', text: 'Zinc' }], correct: 'b', explanation: 'Mercury is the only metallic element that is liquid at standard conditions for temperature and pressure.' },
+          { id: 'q81', text: 'The powerhouse of the cell is the:', options: [{ id: 'a', text: 'Nucleus' }, { id: 'b', text: 'Ribosome' }, { id: 'c', text: 'Mitochondria' }, { id: 'd', text: 'Lysosome' }], correct: 'c', explanation: 'Mitochondria generate most of the chemical energy needed to power the cell\'s biochemical reactions.' },
+          { id: 'q82', text: 'Which blood group is known as the universal acceptor?', options: [{ id: 'a', text: 'O' }, { id: 'b', text: 'A' }, { id: 'c', text: 'B' }, { id: 'd', text: 'AB' }], correct: 'd', explanation: 'Type AB+ blood is known as the universal recipient because patients with this type can receive any blood type.' },
+          { id: 'q83', text: 'Deficiency of Vitamin C causes:', options: [{ id: 'a', text: 'Scurvy' }, { id: 'b', text: 'Rickets' }, { id: 'c', text: 'Night Blindness' }, { id: 'd', text: 'Beri-Beri' }], correct: 'a', explanation: 'Scurvy is a disease resulting from a lack of vitamin C (ascorbic acid).' },
+          { id: 'q84', text: 'The green pigment present in leaves that helps in photosynthesis is:', options: [{ id: 'a', text: 'Carotene' }, { id: 'b', text: 'Xanthophyll' }, { id: 'c', text: 'Chlorophyll' }, { id: 'd', text: 'Anthocyanin' }], correct: 'c', explanation: 'Chlorophyll is the green pigment in plants that absorbs light energy for photosynthesis.' },
+          { id: 'q85', text: 'Which organ in the human body filters the blood?', options: [{ id: 'a', text: 'Heart' }, { id: 'b', text: 'Liver' }, { id: 'c', text: 'Lungs' }, { id: 'd', text: 'Kidneys' }], correct: 'd', explanation: 'The kidneys filter waste products, excess water, and other impurities from the blood.' },
+          { id: 'q86', text: 'Sound travels fastest in:', options: [{ id: 'a', text: 'Vacuum' }, { id: 'b', text: 'Gases' }, { id: 'c', text: 'Liquids' }, { id: 'd', text: 'Solids' }], correct: 'd', explanation: 'Sound is a mechanical wave and travels fastest in solids due to the high density and close arrangement of particles.' },
+          { id: 'q87', text: 'A convex lens is also known as a:', options: [{ id: 'a', text: 'Diverging lens' }, { id: 'b', text: 'Converging lens' }, { id: 'c', text: 'Bifocal lens' }, { id: 'd', text: 'Cylindrical lens' }], correct: 'b', explanation: 'A convex lens converges light rays that are traveling parallel to its principal axis.' },
+          { id: 'q88', text: 'What is the frequency range of human hearing?', options: [{ id: 'a', text: '20 Hz to 20,000 Hz' }, { id: 'b', text: '10 Hz to 10,000 Hz' }, { id: 'c', text: '200 Hz to 2,000 Hz' }, { id: 'd', text: '0 Hz to 20 Hz' }], correct: 'a', explanation: 'The generally accepted standard hearing range for humans is 20 to 20,000 Hertz (Hz).' },
+          { id: 'q89', text: 'An electric generator converts:', options: [{ id: 'a', text: 'Electrical energy into mechanical energy' }, { id: 'b', text: 'Mechanical energy into electrical energy' }, { id: 'c', text: 'Chemical energy into electrical energy' }, { id: 'd', text: 'Light energy into electrical energy' }], correct: 'b', explanation: 'Generators work on the principle of electromagnetic induction to convert mechanical motion into electricity.' },
+          { id: 'q90', text: 'The property by which metals can be drawn into thin wires is called:', options: [{ id: 'a', text: 'Malleability' }, { id: 'b', text: 'Ductility' }, { id: 'c', text: 'Conductivity' }, { id: 'd', text: 'Sonority' }], correct: 'b', explanation: 'Ductility is the physical property of a material associated with its ability to be hammered thin or stretched into wire.' },
+          { id: 'q91', text: 'What is the pH value of pure water?', options: [{ id: 'a', text: '5' }, { id: 'b', text: '6' }, { id: 'c', text: '7' }, { id: 'd', text: '8' }], correct: 'c', explanation: 'Pure water is neutral, meaning it has a pH of exactly 7.' },
+          { id: 'q92', text: 'The purest form of carbon in nature is:', options: [{ id: 'a', text: 'Coal' }, { id: 'b', text: 'Graphite' }, { id: 'c', text: 'Diamond' }, { id: 'd', text: 'Charcoal' }], correct: 'c', explanation: 'Diamond is considered the purest crystalline form of carbon.' },
+          { id: 'q93', text: 'Bronze is an alloy of:', options: [{ id: 'a', text: 'Copper and Zinc' }, { id: 'b', text: 'Copper and Tin' }, { id: 'c', text: 'Iron and Carbon' }, { id: 'd', text: 'Lead and Tin' }], correct: 'b', explanation: 'Bronze is primarily an alloy of copper and tin.' },
+          { id: 'q94', text: 'Which part of the brain controls voluntary muscle movements and balance?', options: [{ id: 'a', text: 'Cerebrum' }, { id: 'b', text: 'Cerebellum' }, { id: 'c', text: 'Medulla Oblongata' }, { id: 'd', text: 'Hypothalamus' }], correct: 'b', explanation: 'The cerebellum coordinates voluntary movements, posture, and balance.' },
+          { id: 'q95', text: 'Insulin regulates the level of which substance in the blood?', options: [{ id: 'a', text: 'Proteins' }, { id: 'b', text: 'Oxygen' }, { id: 'c', text: 'Glucose' }, { id: 'd', text: 'Calcium' }], correct: 'c', explanation: 'Insulin is a hormone created by your pancreas that controls the amount of glucose in your bloodstream.' },
+          { id: 'q96', text: 'The basic functional unit of the human kidney is the:', options: [{ id: 'a', text: 'Neuron' }, { id: 'b', text: 'Nephron' }, { id: 'c', text: 'Alveolus' }, { id: 'd', text: 'Villus' }], correct: 'b', explanation: 'The nephron is the microscopic structural and functional unit of the kidney.' },
+          { id: 'q97', text: 'Digestion of food in humans begins in the:', options: [{ id: 'a', text: 'Stomach' }, { id: 'b', text: 'Small Intestine' }, { id: 'c', text: 'Mouth' }, { id: 'd', text: 'Large Intestine' }], correct: 'c', explanation: 'Digestion begins in the mouth where saliva containing enzymes (like amylase) starts breaking down carbohydrates.' },
+          { id: 'q98', text: 'Which law states that for every action, there is an equal and opposite reaction?', options: [{ id: 'a', text: 'Newton\'s First Law' }, { id: 'b', text: 'Newton\'s Second Law' }, { id: 'c', text: 'Newton\'s Third Law' }, { id: 'd', text: 'Law of Gravitation' }], correct: 'c', explanation: 'Newton\'s Third Law of Motion states that all forces between two objects exist in equal magnitude and opposite direction.' },
+          { id: 'q99', text: 'The most abundant element in the Earth\'s crust is:', options: [{ id: 'a', text: 'Iron' }, { id: 'b', text: 'Aluminum' }, { id: 'c', text: 'Silicon' }, { id: 'd', text: 'Oxygen' }], correct: 'd', explanation: 'Oxygen is the most abundant element in the Earth\'s crust, comprising about 46% of its mass.' },
+          { id: 'q100', text: 'A disease caused by a virus is:', options: [{ id: 'a', text: 'Tuberculosis' }, { id: 'b', text: 'Typhoid' }, { id: 'c', text: 'Cholera' }, { id: 'd', text: 'Common Cold' }], correct: 'd', explanation: 'The common cold is a viral infectious disease of the upper respiratory tract. The others are bacterial.' }
+        ]
+      }
+    ,
+      vfa: {
+        id: 'vfa',
+        title: 'Veterinary Field Assistant (VFA) - 100 Qs',
+        icon: 'stethoscope',
+        color: 'teal',
+        questions: [
+          // BIOLOGY (Class 12 Standard & Animal Physiology / Diseases)
+          { id: 'v1', text: 'What is the normal body temperature of a healthy adult cow?', options: [{ id: 'a', text: '98.6°F' }, { id: 'b', text: '101.5°F' }, { id: 'c', text: '104.0°F' }, { id: 'd', text: '99.5°F' }], correct: 'b', explanation: 'Normal body temperature for healthy cattle is approximately 101.5°F (38.6°C).' },
+          { id: 'v2', text: 'Which cell organelle is known as the "Powerhouse of the Cell"?', options: [{ id: 'a', text: 'Ribosome' }, { id: 'b', text: 'Nucleus' }, { id: 'c', text: 'Mitochondria' }, { id: 'd', text: 'Golgi apparatus' }], correct: 'c', explanation: 'Mitochondria generate chemical energy needed for cellular biochemical reactions.' },
+          { id: 'v3', text: 'Anthrax in livestock is caused by which type of pathogen?', options: [{ id: 'a', text: 'Virus' }, { id: 'b', text: 'Fungus' }, { id: 'c', text: 'Bacteria' }, { id: 'd', text: 'Protozoa' }], correct: 'c', explanation: 'Anthrax is a serious infectious disease caused by the bacterium Bacillus anthracis.' },
+          { id: 'v4', text: 'What is the average gestation period in cattle (cows)?', options: [{ id: 'a', text: '150 days' }, { id: 'b', text: '210 days' }, { id: 'c', text: '283 days' }, { id: 'd', text: '340 days' }], correct: 'c', explanation: 'The average gestation period in cattle is approximately 283 days.' },
+          { id: 'v5', text: 'Which compartment of the ruminant stomach is considered the "true stomach"?', options: [{ id: 'a', text: 'Rumen' }, { id: 'b', text: 'Reticulum' }, { id: 'c', text: 'Omasum' }, { id: 'd', text: 'Abomasum' }], correct: 'd', explanation: 'The abomasum is the fourth compartment and acts as the true glandular stomach.' },
+          { id: 'v6', text: 'Foot and Mouth Disease (FMD) in animals is caused by a:', options: [{ id: 'a', text: 'Bacterium' }, { id: 'b', text: 'Virus' }, { id: 'c', text: 'Parasite' }, { id: 'd', text: 'Fungus' }], correct: 'b', explanation: 'FMD is a highly contagious viral disease affecting cloven-hoofed animals.' },
+          { id: 'v7', text: 'Black Quarter (BQ) in cattle is caused by:', options: [{ id: 'a', text: 'Clostridium chauvoei' }, { id: 'b', text: 'Bacillus anthracis' }, { id: 'c', text: 'Pasteurella multocida' }, { id: 'd', text: 'Brucella abortus' }], correct: 'a', explanation: 'Black Quarter is an acute, fatal bacterial disease caused by Clostridium chauvoei.' },
+          { id: 'v8', text: 'What is the incubation period of an egg in poultry (hens)?', options: [{ id: 'a', text: '14 days' }, { id: 'b', text: '21 days' }, { id: 'c', text: '28 days' }, { id: 'd', text: '35 days' }], correct: 'b', explanation: 'Chicken eggs typically require an incubation period of 21 days.' },
+          { id: 'v9', text: 'Brucellosis in cattle is primarily characterized by which symptom?', options: [{ id: 'a', text: 'Respiratory failure' }, { id: 'b', text: 'Blindness' }, { id: 'c', text: 'Infectious abortion' }, { id: 'd', text: 'Excessive salivation' }], correct: 'c', explanation: 'Brucellosis commonly causes late-term abortions and reproductive failure in cattle.' },
+          { id: 'v10', text: 'What is the largest compartment of the ruminant stomach?', options: [{ id: 'a', text: 'Rumen' }, { id: 'b', text: 'Reticulum' }, { id: 'c', text: 'Omasum' }, { id: 'd', text: 'Abomasum' }], correct: 'a', explanation: 'The rumen is the largest fermentation vat in ruminants.' },
+          { id: 'v11', text: 'Which vitamin is essential for normal blood clotting in animals?', options: [{ id: 'a', text: 'Vitamin A' }, { id: 'b', text: 'Vitamin C' }, { id: 'c', text: 'Vitamin K' }, { id: 'd', text: 'Vitamin E' }], correct: 'c', explanation: 'Vitamin K plays a vital role in blood coagulation.' },
+          { id: 'v12', text: 'Murrah is a world-famous dairy breed of which animal?', options: [{ id: 'a', text: 'Cow' }, { id: 'b', text: 'Buffalo' }, { id: 'c', text: 'Goat' }, { id: 'd', text: 'Sheep' }], correct: 'b', explanation: 'Murrah is a premier dairy buffalo breed originating from Haryana.' },
+          { id: 'v13', text: 'What is the term used for the act of giving birth in sheep?', options: [{ id: 'a', text: 'Calving' }, { id: 'b', text: 'Farrowing' }, { id: 'c', text: 'Lambing' }, { id: 'd', text: 'Kidding' }], correct: 'c', explanation: 'Lambing is the term specifically used for giving birth in sheep.' },
+          { id: 'v14', text: 'Mastitis is an inflammation or infection of which part of a dairy animal?', options: [{ id: 'a', text: 'Liver' }, { id: 'b', text: 'Uterus' }, { id: 'c', text: 'Udder / Mammary gland' }, { id: 'd', text: 'Hooves' }], correct: 'c', explanation: 'Mastitis is an inflammatory reaction of the udder tissue.' },
+          { id: 'v15', text: 'What is the normal pulse rate of a healthy adult cattle?', options: [{ id: 'a', text: '20-30 beats/min' }, { id: 'b', text: '40-80 beats/min' }, { id: 'c', text: '90-110 beats/min' }, { id: 'd', text: '120-140 beats/min' }], correct: 'b', explanation: 'Normal resting heart rate for adult cattle ranges between 40 to 80 beats per minute.' },
+          { id: 'v16', text: 'Colostrum is crucial for newborn calves because it provides:', options: [{ id: 'a', text: 'High carbohydrates' }, { id: 'b', text: 'Passive immunity / antibodies' }, { id: 'c', text: 'Iron supplements' }, { id: 'd', text: 'Direct red blood cells' }], correct: 'b', explanation: 'Colostrum is rich in immunoglobulins providing vital passive immunity.' },
+          { id: 'v17', text: 'Raniket disease is a major viral disease affecting which livestock species?', options: [{ id: 'a', text: 'Cattle' }, { id: 'b', text: 'Pigs' }, { id: 'c', text: 'Poultry (Chickens)' }, { id: 'd', text: 'Equines' }], correct: 'c', explanation: 'Raniket disease (Newcastle disease) is a highly contagious viral infection in poultry.' },
+          { id: 'v18', text: 'The instrument used for performing castration in male calves without open surgery is:', options: [{ id: 'a', text: 'Burdizzo castrator' }, { id: 'b', text: 'Trocar and cannula' }, { id: 'c', text: 'Stethoscope' }, { id: 'd', text: 'Suture needle' }], correct: 'a', explanation: 'A Burdizzo castrator crushes the spermatic cord subcutaneously.' },
+          { id: 'v19', text: 'Bloat (Tympanites) in ruminants is characterized by excessive gas accumulation in the:', options: [{ id: 'a', text: 'Abomasum' }, { id: 'b', text: 'Rumen' }, { id: 'c', text: 'Intestine' }, { id: 'd', text: 'Esophagus' }], correct: 'b', explanation: 'Bloat is caused by over-accumulation of fermentation gases in the rumen.' },
+          { id: 'v20', text: 'What is the duration of the estrus cycle in cows under normal conditions?', options: [{ id: 'a', text: '7 days' }, { id: 'b', text: '14 days' }, { id: 'c', text: '21 days' }, { id: 'd', text: '30 days' }], correct: 'c', explanation: 'The normal estrus cycle in non-pregnant cows averages about 21 days.' },
+          { id: 'v21', text: 'Which zoonotic disease is transmitted through infected milk or urine, causing undulant fever?', options: [{ id: 'a', text: 'Rinderpest' }, { id: 'b', text: 'Brucellosis' }, { id: 'c', text: 'Foot and Mouth Disease' }, { id: 'd', text: 'Raniket' }], correct: 'b', explanation: 'Brucellosis is a prominent zoonotic bacterial disease transmissible to humans.' },
+          { id: 'v22', text: 'The rearing and management of honey bees is known as:', options: [{ id: 'a', text: 'Sericulture' }, { id: 'b', text: 'Apiculture' }, { id: 'c', text: 'Pisciculture' }, { id: 'd', text: 'Aviculture' }], correct: 'b', explanation: 'Apiculture is the scientific method of rearing honey bees.' },
+          { id: 'v23', text: 'What is the normal respiration rate of a healthy adult cow?', options: [{ id: 'a', text: '5-10 breaths/min' }, { id: 'b', text: '10-30 breaths/min' }, { id: 'c', text: '40-60 breaths/min' }, { id: 'd', text: '70-90 breaths/min' }], correct: 'b', explanation: 'Normal respiratory rate for adult cattle at rest is between 10 and 30 breaths per minute.' },
+          { id: 'v24', text: 'Which exotic dairy cattle breed is famous for high butterfat milk?', options: [{ id: 'a', text: 'Holstein-Friesian' }, { id: 'b', text: 'Jersey' }, { id: 'c', text: 'Brown Swiss' }, { id: 'd', text: 'Ayrshire' }], correct: 'b', explanation: 'Jersey cattle are renowned for producing rich milk with high fat percentage.' },
+          { id: 'v25', text: 'Rinderpest was globally declared eradicated in:', options: [{ id: 'a', text: '1995' }, { id: 'b', text: '2005' }, { id: 'c', text: '2011' }, { id: 'd', text: '2020' }], correct: 'c', explanation: 'Rinderpest was declared globally eradicated by the FAO and OIE in 2011.' },
+          { id: 'v26', text: 'What is the term used for the act of giving birth in pigs?', options: [{ id: 'a', text: 'Farrowing' }, { id: 'b', text: 'Queening' }, { id: 'c', text: 'Whelping' }, { id: 'd', text: 'Foaling' }], correct: 'a', explanation: 'Farrowing is the specific term for parturition in sows.' },
+          { id: 'v27', text: 'Which parasitic infection is commonly known as "Liver Fluke" infection?', options: [{ id: 'a', text: 'Ascariasis' }, { id: 'b', text: 'Fascioliasis' }, { id: 'c', text: 'Coccidiosis' }, { id: 'd', text: 'Babesiosis' }], correct: 'b', explanation: 'Fascioliasis is caused by Fasciola hepatica affecting the liver.' },
+          { id: 'v28', text: 'What is the primary function of the omasum in ruminants?', options: [{ id: 'a', text: 'Enzymatic protein digestion' }, { id: 'b', text: 'Water absorption and particle size reduction' }, { id: 'c', text: 'Bile secretion' }, { id: 'd', text: 'Urine formation' }], correct: 'b', explanation: 'The omasum absorbs water and volatile fatty acids from ingesta.' },
+          { id: 'v29', text: 'Which vaccine strain is commonly used for Newcastle disease in young chicks?', options: [{ id: 'a', text: 'F-strain / Lasota' }, { id: 'b', text: 'Bovine strain 19' }, { id: 'c', text: 'Anthrax spore vaccine' }, { id: 'd', text: 'HS alum precipitated' }], correct: 'a', explanation: 'F-strain or Lasota strain vaccines are administered to poultry.' },
+          { id: 'v30', text: 'What is the ideal specific gravity range of normal cow milk at 15°C?', options: [{ id: 'a', text: '1.010 to 1.020' }, { id: 'b', text: '1.028 to 1.032' }, { id: 'c', text: '1.040 to 1.050' }, { id: 'd', text: '1.055 to 1.065' }], correct: 'b', explanation: 'Specific gravity of normal cow milk generally falls between 1.028 and 1.032.' },
+          { id: 'v31', text: 'Which constituents are measured in milk Solids-Not-Fat (SNF)?', options: [{ id: 'a', text: 'Casein, lactose, and minerals' }, { id: 'b', text: 'Sodium chloride only' }, { id: 'c', text: 'Uric acid and urea' }, { id: 'd', text: 'Cholesterol and fats' }], correct: 'a', explanation: 'SNF comprises proteins (casein), lactose, and minerals.' },
+          { id: 'v32', text: 'What is the term for a female breeding pig that has not produced a litter?', options: [{ id: 'a', text: 'Gilt' }, { id: 'b', text: 'Ewe' }, { id: 'c', text: 'Heifer' }, { id: 'd', text: 'Doe' }], correct: 'a', explanation: 'A gilt is a young female pig up to her first farrowing.' },
+          { id: 'v33', text: 'Rabies virus primarily attacks which system in animals and humans?', options: [{ id: 'a', text: 'Central Nervous System' }, { id: 'b', text: 'Digestive System' }, { id: 'c', text: 'Respiratory System' }, { id: 'd', text: 'Circulatory System' }], correct: 'a', explanation: 'Rabies targets the central nervous system leading to fatal encephalitis.' },
+          { id: 'v34', text: 'Which instrument relieves acute frothy bloat in cattle in emergencies?', options: [{ id: 'a', text: 'Trocar and cannula' }, { id: 'b', text: 'Burdizzo' }, { id: 'c', text: 'Emasculator' }, { id: 'd', text: 'Clinical thermometer' }], correct: 'a', explanation: 'A trocar and cannula punctures the rumen to release trapped gas.' },
+          { id: 'v35', text: 'Hemorrhagic Septicemia (HS) in cattle is caused by:', options: [{ id: 'a', text: 'Pasteurella multocida' }, { id: 'b', text: 'Bacillus anthracis' }, { id: 'c', text: 'Clostridium tetani' }, { id: 'd', text: 'Salmonella abortus' }], correct: 'a', explanation: 'HS is an acute fatal bacterial disease caused by Pasteurella multocida.' },
+
+          // CLASS 12 PHYSICS & CHEMISTRY STANDARD
+          { id: 'v36', text: 'What is the SI unit of electric flux?', options: [{ id: 'a', text: 'Coulomb' }, { id: 'b', text: 'Newton meter squared per coulomb' }, { id: 'c', text: 'Volt per meter' }, { id: 'd', text: 'Joule per coulomb' }], correct: 'b', explanation: 'Electric flux is measured in N⋅m²/C or V⋅m.' },
+          { id: 'v37', text: 'Which law states that the induced emf is equal to the rate of change of magnetic flux?', options: [{ id: 'a', text: 'Coulomb\'s Law' }, { id: 'b', text: 'Faraday\'s Law of Induction' }, { id: 'c', text: 'Ampere\'s Circuital Law' }, { id: 'd', text: 'Lenz\'s Law' }], correct: 'b', explanation: 'Faraday\'s law governs electromagnetic induction.' },
+          { id: 'v38', text: 'What type of lens is used to correct myopia (nearsightedness)?', options: [{ id: 'a', text: 'Convex lens' }, { id: 'b', text: 'Concave lens' }, { id: 'c', text: 'Cylindrical lens' }, { id: 'd', text: 'Bifocal lens' }], correct: 'b', explanation: 'Concave diverging lenses correct myopia.' },
+          { id: 'v39', text: 'What is the hybridization of carbon in diamond?', options: [{ id: 'a', text: 'sp' }, { id: 'b', text: 'sp²' }, { id: 'c', text: 'sp³' }, { id: 'd', text: 'sp³d' }], correct: 'c', explanation: 'Carbon atoms in diamond are sp³ hybridized forming a tetrahedral network.' },
+          { id: 'v40', text: 'Which chemical compound is commonly known as "Oil of Vitriol"?', options: [{ id: 'a', text: 'Hydrochloric acid' }, { id: 'b', text: 'Sulfuric acid (H₂SO₄)' }, { id: 'c', text: 'Nitric acid' }, { id: 'd', text: 'Phosphoric acid' }], correct: 'b', explanation: 'Sulfuric acid was historically known as oil of vitriol.' },
+          { id: 'v41', text: 'What is the oxidation state of Chromium in K₂Cr₂O₇?', options: [{ id: 'a', text: '+3' }, { id: 'b', text: '+6' }, { id: 'c', text: '+7' }, { id: 'd', text: '+2' }], correct: 'b', explanation: 'In potassium dichromate, chromium has an oxidation state of +6.' },
+          { id: 'v42', text: 'Which noble gas is most abundant in Earth\'s atmosphere by volume?', options: [{ id: 'a', text: 'Helium' }, { id: 'b', text: 'Neon' }, { id: 'c', text: 'Argon' }, { id: 'd', text: 'Krypton' }], correct: 'c', explanation: 'Argon makes up about 0.93% of the Earth\'s atmosphere.' },
+          { id: 'v43', text: 'Which vitamin is water-soluble and also known as ascorbic acid?', options: [{ id: 'a', text: 'Vitamin A' }, { id: 'b', text: 'Vitamin B₁' }, { id: 'c', text: 'Vitamin C' }, { id: 'd', text: 'Vitamin D' }], correct: 'c', explanation: 'Vitamin C is ascorbic acid, which is water-soluble.' },
+          { id: 'v44', text: 'The pH of a neutral aqueous solution at 298 K is:', options: [{ id: 'a', text: '0' }, { id: 'b', text: '7' }, { id: 'c', text: '14' }, { id: 'd', text: '10' }], correct: 'b', explanation: 'Neutral solutions have a pH of 7 at standard temperature.' },
+          { id: 'v45', text: 'Which particles are responsible for electrical conduction in metallic conductors?', options: [{ id: 'a', text: 'Protons' }, { id: 'b', text: 'Free electrons' }, { id: 'c', text: 'Positive ions' }, { id: 'd', text: 'Neutrons' }], correct: 'b', explanation: 'Free electrons carry electric current in metals.' },
+          { id: 'v46', text: 'What is the unit of magnetic dipole moment?', options: [{ id: 'a', text: 'Ampere-meter² (A·m²)' }, { id: 'b', text: 'Tesla' }, { id: 'c', text: 'Weber' }, { id: 'd', text: 'Henry' }], correct: 'a', explanation: 'Magnetic dipole moment is expressed in A·m².' },
+          { id: 'v47', text: 'Which phenomenon confirms the wave nature of electrons?', options: [{ id: 'a', text: 'Photoelectric effect' }, { id: 'b', text: 'Davisson-Germer experiment' }, { id: 'c', text: 'Compton scattering' }, { id: 'd', text: 'Rutherford scattering' }], correct: 'b', explanation: 'Davisson and Germer demonstrated electron diffraction.' },
+          { id: 'v48', text: 'What is the monomer unit of natural rubber (polyisoprene)?', options: [{ id: 'a', text: 'Ethylene' }, { id: 'b', text: 'Isoprene (2-methylbut-1,3-diene)' }, { id: 'c', text: 'Chloroprene' }, { id: 'd', text: 'Styrene' }], correct: 'b', explanation: 'Natural rubber is a polymer of isoprene units.' },
+          { id: 'v49', text: 'Which functional group characterizes primary aliphatic amines?', options: [{ id: 'a', text: '-OH' }, { id: 'b', text: '-NH₂' }, { id: 'c', text: '-COOH' }, { id: 'd', text: '-CHO' }], correct: 'b', explanation: 'Primary amines contain the amino group -NH₂.' },
+          { id: 'v50', text: 'What is the coordination number of Fe in [Fe(CN)₆]³⁻?', options: [{ id: 'a', text: '2' }, { id: 'b', text: '4' }, { id: 'c', text: '6' }, { id: 'd', text: '8' }], correct: 'c', explanation: 'There are six cyanide ligands attached, giving a coordination number of 6.' },
+
+          // CLASS 12 BIOLOGY & GENETICS / REPRODUCTION
+          { id: 'v51', text: 'Who is known as the Father of Modern Genetics?', options: [{ id: 'a', text: 'Charles Darwin' }, { id: 'b', text: 'Gregor Mendel' }, { id: 'c', text: 'Watson and Crick' }, { id: 'd', text: 'Hugo de Vries' }], correct: 'b', explanation: 'Gregor Mendel formulated the fundamental laws of inheritance.' },
+          { id: 'v52', text: 'The transfer of pollen grains from the anther to the stigma of another flower of the same plant is:', options: [{ id: 'a', text: 'Autogamy' }, { id: 'b', text: 'Geitonogamy' }, { id: 'c', text: 'Xenogamy' }, { id: 'd', text: 'Cleistogamy' }], correct: 'b', explanation: 'Geitonogamy is functionally cross-pollination but genetically self-pollination.' },
+          { id: 'v53', text: 'What is the chromosomal constitution of Turner syndrome in humans?', options: [{ id: 'a', text: '47, XXY' }, { id: 'b', text: '45, XO' }, { id: 'c', text: '47, trisomy 21' }, { id: 'd', text: '46, XX' }], correct: 'b', explanation: 'Turner syndrome results from the absence of one X chromosome (45, XO).' },
+          { id: 'v54', text: 'Okazaki fragments are synthesized during the replication of:', options: [{ id: 'a', text: 'Leading strand' }, { id: 'b', text: 'Lagging strand' }, { id: 'c', text: 'mRNA' }, { id: 'd', text: 'tRNA' }], correct: 'b', explanation: 'Okazaki fragments form discontinuously on the lagging DNA strand.' },
+          { id: 'v55', text: 'Which enzyme is used to join DNA fragments together during recombinant DNA technology?', options: [{ id: 'a', text: 'DNA polymerase' }, { id: 'b', text: 'DNA ligase' }, { id: 'c', text: 'Restriction endonuclease' }, { id: 'd', text: 'RNA polymerase' }], correct: 'b', explanation: 'DNA ligase seals nicks and joins DNA strands.' },
+          { id: 'v56', text: 'PCR (Polymerase Chain Reaction) requires which thermostable DNA polymerase?', options: [{ id: 'a', text: 'Taq polymerase' }, { id: 'b', text: 'E. coli polymerase I' }, { id: 'c', text: 'RNA transcriptase' }, { id: 'd', text: 'Exonuclease' }], correct: 'a', explanation: 'Taq polymerase from Thermus aquaticus withstands high temperatures.' },
+          { id: 'v57', text: 'Which symbiotic bacterium fixes atmospheric nitrogen in legume root nodules?', options: [{ id: 'a', text: 'Azotobacter' }, { id: 'b', text: 'Rhizobium' }, { id: 'c', text: 'Clostridium' }, { id: 'd', text: 'Nitrosomonas' }], correct: 'b', explanation: 'Rhizobium forms symbiotic nodules in legume roots.' },
+          { id: 'v58', text: 'What is the full form of AIDS?', options: [{ id: 'a', text: 'Acquired Immune Deficiency Syndrome' }, { id: 'b', text: 'Auto Immune Deficiency System' }, { id: 'c', text: 'Acute Infection Disease Syndrome' }, { id: 'd', text: 'Allergy Immune Deficiency Source' }], correct: 'a', explanation: 'AIDS stands for Acquired Immune Deficiency Syndrome caused by HIV.' },
+          { id: 'v59', text: 'Which antibody is secreted in colostrum to protect newborn infants?', options: [{ id: 'a', text: 'IgG' }, { id: 'b', text: 'IgM' }, { id: 'c', text: 'IgA' }, { id: 'd', text: 'IgE' }], correct: 'c', explanation: 'Secretory IgA is abundant in breast milk and colostrum.' },
+          { id: 'v60', text: 'What type of ecological interaction exists between mycorrhizae and higher plant roots?', options: [{ id: 'a', text: 'Parasitism' }, { id: 'b', text: 'Mutualism' }, { id: 'c', text: 'Amensalism' }, { id: 'd', text: 'Commensalism' }], correct: 'b', explanation: 'Mycorrhizae represent a classic mutualistic association.' },
+
+          // ASSAM GENERAL AWARENESS & VETERINARY / AGRICULTURE IN ASSAM
+          { id: 'v61', text: 'Where is the College of Veterinary Science (Assam Agricultural University) located?', options: [{ id: 'a', text: 'Jorhat' }, { id: 'b', text: 'Khanapara, Guwahati' }, { id: 'c', text: 'Dibrugarh' }, { id: 'd', text: 'Silchar' }], correct: 'b', explanation: 'The premier College of Veterinary Science in Assam is situated at Khanapara, Guwahati.' },
+          { id: 'v62', text: 'Which famous wildlife sanctuary in Assam is renowned for the Golden Langur?', options: [{ id: 'a', text: 'Kaziranga National Park' }, { id: 'b', text: 'Manas National Park' }, { id: 'c', text: 'Chakrashila Wildlife Sanctuary' }, { id: 'd', text: 'Dibru-Saikhowa' }], correct: 'c', explanation: 'Chakrashila Wildlife Sanctuary in western Assam is famous for the golden langur.' },
+          { id: 'v63', text: 'What is the state bird of Assam?', options: [{ id: 'a', text: 'Great Hornbill' }, { id: 'b', text: 'White-winged Duck (Deh Hans)' }, { id: 'c', text: 'Peacock' }, { id: 'd', text: 'Hill Myna' }], correct: 'b', explanation: 'The White-winged Wood Duck (Deh Hans) is the state bird of Assam.' },
+          { id: 'v64', text: 'Which river forms the largest river island in the world (Majuli) in Assam?', options: [{ id: 'a', text: 'Barak' }, { id: 'b', text: 'Brahmaputra' }, { id: 'c', text: 'Kopili' }, { id: 'd', text: 'Subansiri' }], correct: 'b', explanation: 'The Brahmaputra River surrounds Majuli, the world\'s largest river island.' },
+          { id: 'v65', text: 'Which breed of pig is indigenous or widely reared in the North-Eastern region including Assam?', options: [{ id: 'a', text: 'Large White Yorkshire' }, { id: 'b', text: 'Ghungroo / Niang Megha / Local Assam Pig' }, { id: 'c', text: 'Landrace' }, { id: 'd', text: 'Hampshire' }], correct: 'b', explanation: 'Local indigenous pigs of Assam and NE India are well-adapted to local climatic conditions.' },
+          { id: 'v66', text: 'Assam produces what percentage of India\'s total tea production approximately?', options: [{ id: 'a', text: 'About 10%' }, { id: 'b', text: 'About 25%' }, { id: 'c', text: 'More than 50%' }, { id: 'd', text: 'About 90%' }], correct: 'c', explanation: 'Assam accounts for over half of India\'s total tea production.' },
+          { id: 'v67', text: 'In which district of Assam is the Kaziranga National Park primarily located?', options: [{ id: 'a', text: 'Golaghat and Nagaon' }, { id: 'b', text: 'Tinsukia' }, { id: 'c', text: 'Cachar' }, { id: 'd', text: 'Kokrajhar' }], correct: 'a', explanation: 'Kaziranga spans across Golaghat, Nagaon, and Sonitpur districts.' },
+          { id: 'v68', text: 'What is the traditional Assamese New Year festival called?', options: [{ id: 'a', text: 'Bihu (Rongali Bihu)' }, { id: 'b', text: 'Bhogali Bihu' }, { id: 'c', text: 'Kati Bihu' }, { id: 'd', text: 'Ambubachi' }], correct: 'a', explanation: 'Rongali Bihu (Bohag Bihu) marks the Assamese New Year in April.' },
+          { id: 'v69', text: 'Which district in Assam is known for oil refinery and petroleum industry pioneer status?', options: [{ id: 'a', text: 'Digboi (Tinsukia district)' }, { id: 'b', text: 'Guwahati' }, { id: 'c', text: 'Bongaigaon' }, { id: 'd', text: 'Numaligarh' }], correct: 'a', explanation: 'Digboi is home to Asia\'s oldest operating oil refinery.' },
+          { id: 'v70', text: 'Who was the last king of the Ahom kingdom before British annexation in 1826?', options: [{ id: 'a', text: 'Swargadeo Rudra Singha' }, { id: 'b', text: 'Purandra Singha' }, { id: 'c', text: 'Chandra Kanta Singha' }, { id: 'd', text: 'Gadai Singha' }], correct: 'b', explanation: 'Purandra Singha was the last Ahom ruler before the Treaty of Yandaboo.' },
+
+          // ADDITIONAL VFA & SCIENCE TECHNICAL QUESTIONS
+          { id: 'v71', text: 'What is the normal blood glucose level in fasting cattle?', options: [{ id: 'a', text: '20-40 mg/dL' }, { id: 'b', text: '40-60 mg/dL' }, { id: 'c', text: '80-120 mg/dL' }, { id: 'd', text: '140-180 mg/dL' }], correct: 'b', explanation: 'Ruminants typically have lower blood glucose levels (40-60 mg/dL) due to microbial fermentation.' },
+          { id: 'v72', text: 'Which enzyme is responsible for converting starch into maltose in animal saliva?', options: [{ id: 'a', text: 'Pepsin' }, { id: 'b', text: 'Salivary amylase (Ptyalin)' }, { id: 'c', text: 'Lipase' }, { id: 'd', text: 'Trypsin' }], correct: 'b', explanation: 'Salivary amylase breaks down complex starches into maltose.' },
+          { id: 'v73', text: 'What is the standard pH of fresh cow milk?', options: [{ id: 'a', text: '4.5 to 5.0' }, { id: 'b', text: '6.4 to 6.8' }, { id: 'c', text: '7.5 to 8.0' }, { id: 'd', text: '8.5 to 9.0' }], correct: 'b', explanation: 'Fresh cow milk is slightly acidic with a pH ranging from 6.4 to 6.8.' },
+          { id: 'v74', text: 'Which disease in poultry is caused by a protozoan parasite affecting the intestine?', options: [{ id: 'a', text: 'Coccidiosis' }, { id: 'b', text: 'Raniket disease' }, { id: 'c', text: 'Fowl pox' }, { id: 'd', text: 'Marek\'s disease' }], correct: 'a', explanation: 'Coccidiosis in poultry is caused by Eimeria protozoan species.' },
+          { id: 'v75', text: 'What is the main carrier or vector of Japanese Encephalitis in Assam?', options: [{ id: 'a', text: 'Housefly' }, { id: 'b', text: 'Culex mosquitoes' }, { id: 'c', text: 'Ticks' }, { id: 'd', text: 'Fleas' }], correct: 'b', explanation: 'Culex mosquitoes transmit Japanese Encephalitis, often amplified via pigs and waterbirds.' },
+          { id: 'v76', text: 'What is the chemical formula of common washing soda?', options: [{ id: 'a', text: 'NaHCO₃' }, { id: 'b', text: 'Na₂CO₃·10H₂O' }, { id: 'c', text: 'NaOH' }, { id: 'd', text: 'NaCl' }], correct: 'b', explanation: 'Washing soda is sodium carbonate decahydrate (Na₂CO₃·10H₂O).' },
+          { id: 'v77', text: 'Which gas is evolved when dilute hydrochloric acid reacts with zinc granules?', options: [{ id: 'a', text: 'Oxygen' }, { id: 'b', text: 'Hydrogen' }, { id: 'c', text: 'Nitrogen' }, { id: 'd', text: 'Carbon dioxide' }], correct: 'b', explanation: 'Metals reactive with acids evolve hydrogen gas.' },
+          { id: 'v78', text: 'What is the SI unit of magnetic flux density (Magnetic Field)?', options: [{ id: 'a', text: 'Weber' }, { id: 'b', text: 'Tesla' }, { id: 'c', text: 'Henry' }, { id: 'd', text: 'Farad' }], correct: 'b', explanation: 'Magnetic field magnitude is measured in Tesla (T).' },
+          { id: 'v79', text: 'Which plant hormone promotes apical dominance and cell elongation?', options: [{ id: 'a', text: 'Cytokinin' }, { id: 'b', text: 'Auxin (IAA)' }, { id: 'c', text: 'Ethylene' }, { id: 'd', text: 'Abscisic acid' }], correct: 'b', explanation: 'Auxins regulate stem elongation and apical dominance.' },
+          { id: 'v80', text: 'What is the process of direct conversion of solid directly into gas called?', options: [{ id: 'a', text: 'Melting' }, { id: 'b', text: 'Sublimation' }, { id: 'c', text: 'Condensation' }, { id: 'd', text: 'Evaporation' }], correct: 'b', explanation: 'Sublimation is the transition directly from solid to gas.' },
+          { id: 'v81', text: 'Which animal is the primary host for the Fasciola hepatica liver fluke?', options: [{ id: 'a', text: 'Snail (Lymnaea species)' }, { id: 'b', text: 'House fly' }, { id: 'c', text: 'Dog flea' }, { id: 'd', text: 'Mosquito' }], correct: 'a', explanation: 'Freshwater snails serve as the obligatory intermediate host for liver flukes.' },
+          { id: 'v82', text: 'What is the normal body temperature of poultry birds (hens)?', options: [{ id: 'a', text: '98.6°F' }, { id: 'b', text: '101.5°F' }, { id: 'c', text: '105.0°F to 107.0°F' }, { id: 'd', text: '110.5°F' }], correct: 'c', explanation: 'Birds have a higher normal body temperature, typically around 105°F - 107°F.' },
+          { id: 'v83', text: 'What is the primary objective of deworming (anthelmintic treatment) in livestock?', options: [{ id: 'a', text: 'To increase milk fat percentage instantly' }, { id: 'b', text: 'To eliminate internal parasitic worms and improve feed conversion' }, { id: 'c', text: 'To prevent viral infections' }, { id: 'd', text: 'To cure rabies' }], correct: 'b', explanation: 'Deworming eliminates gastrointestinal parasites, boosting growth and productivity.' },
+          { id: 'v84', text: 'Which vitamin deficiency causes rickets in young animals and growing calves?', options: [{ id: 'a', text: 'Vitamin A' }, { id: 'b', text: 'Vitamin C' }, { id: 'c', text: 'Vitamin D' }, { id: 'd', text: 'Vitamin K' }], correct: 'c', explanation: 'Vitamin D is essential for calcium and phosphorus absorption, preventing rickets.' },
+          { id: 'v85', text: 'What is the term for animal semen preservation at ultra-low temperatures using liquid nitrogen?', options: [{ id: 'a', text: 'Cryopreservation' }, { id: 'b', text: 'Lyophilization' }, { id: 'c', text: 'Pasteurization' }, { id: 'd', text: 'Sterilization' }], correct: 'a', explanation: 'Cryopreservation preserves semen at -196°C in liquid nitrogen containers.' },
+          { id: 'v86', text: 'Which organ in birds is responsible for grinding food mechanically as they lack teeth?', options: [{ id: 'a', text: 'Crop' }, { id: 'b', text: 'Gizzard (Ventriculus)' }, { id: 'c', text: 'Proventriculus' }, { id: 'd', text: 'Cloaca' }], correct: 'b', explanation: 'The gizzard uses ingested grit and powerful muscles to grind food.' },
+          { id: 'v87', text: 'What is the common name for sodium chloride?', options: [{ id: 'a', text: 'Baking soda' }, { id: 'b', text: 'Common salt / Table salt' }, { id: 'c', text: 'Caustic soda' }, { id: 'd', text: 'Bleaching powder' }], correct: 'b', explanation: 'Sodium chloride is table salt.' },
+          { id: 'v88', text: 'Which wave is electromagnetic in nature among sound, water, and light waves?', options: [{ id: 'a', text: 'Sound wave' }, { id: 'b', text: 'Light wave' }, { id: 'c', text: 'Water wave' }, { id: 'd', text: 'Seismic wave' }], correct: 'b', explanation: 'Light waves are transverse electromagnetic waves.' },
+          { id: 'v89', text: 'What is the chemical formula of ozone?', options: [{ id: 'a', text: 'O₂' }, { id: 'b', text: 'O₃' }, { id: 'c', text: 'O' }, { id: 'd', text: 'HO₂' }], correct: 'b', explanation: 'Ozone is an allotrope of oxygen consisting of three oxygen atoms.' },
+          { id: 'v90', text: 'Which wildlife reserve in Assam is famous as the last refuge of the endangered Pygmy Hog?', options: [{ id: 'a', text: 'Manas National Park' }, { id: 'b', text: 'Kaziranga National Park' }, { id: 'c', text: 'Orang National Park' }, { id: 'd', text: 'Nameri National Park' }], correct: 'a', explanation: 'Manas National Park successfully hosts conservation breeding programs for the pygmy hog.' },
+          { id: 'v91', text: 'What is the function of corpus luteum in the ovary after ovulation?', options: [{ id: 'a', text: 'To produce estrogen only' }, { id: 'b', text: 'To secrete progesterone hormone maintaining pregnancy' }, { id: 'c', text: 'To destroy unfertilized eggs' }, { id: 'd', text: 'To produce sperm cells' }], correct: 'b', explanation: 'Corpus luteum secretes progesterone essential for the maintenance of pregnancy.' },
+          { id: 'v92', text: 'Which blood group is known as the universal donor in humans and animals with similar grouping?', options: [{ id: 'a', text: 'Group A' }, { id: 'b', text: 'Group B' }, { id: 'c', text: 'Group AB' }, { id: 'd', text: 'Group O' }], correct: 'd', explanation: 'Group O red blood cells lack major agglutinogens acting as universal donors.' },
+          { id: 'v93', text: 'What is the process of fermentation of glucose by yeast called?', options: [{ id: 'a', text: 'Glycolysis' }, { id: 'b', text: 'Anaerobic respiration / Zymase action' }, { id: 'c', text: 'Krebs cycle' }, { id: 'd', text: 'Photophosphorylation' }], correct: 'b', explanation: 'Yeast converts glucose into ethanol and carbon dioxide anaerobically.' },
+          { id: 'v94', text: 'Which metal is liquid at room temperature?', options: [{ id: 'a', text: 'Iron' }, { id: 'b', text: 'Mercury' }, { id: 'c', text: 'Gallium' }, { id: 'd', text: 'Sodium' }], correct: 'b', explanation: 'Mercury is the only metallic element liquid at standard conditions.' },
+          { id: 'v95', text: 'What is the primary vector for rabies transmission to livestock and humans?', options: [{ id: 'a', text: 'Bite of rabid dogs, jackals, or carnivores' }, { id: 'b', text: 'Mosquito bite' }, { id: 'c', text: 'Contaminated water' }, { id: 'd', text: 'Airborne droplet inhalation' }], correct: 'a', explanation: 'Rabies is transmitted via saliva from infected animal bites.' },
+          { id: 'v96', text: 'What is the normal specific heat capacity of pure water?', options: [{ id: 'a', text: '4184 J/(kg·K)' }, { id: 'b', text: '1000 J/(kg·K)' }, { id: 'c', text: '500 J/(kg·K)' }, { id: 'd', text: '200 J/(kg·K)' }], correct: 'a', explanation: 'Water has a very high specific heat capacity of approx 4.184 kJ/kg·°C.' },
+          { id: 'v97', text: 'Which structure connects bone to bone in mammalian skeletal anatomy?', options: [{ id: 'a', text: 'Tendon' }, { id: 'b', text: 'Ligament' }, { id: 'c', text: 'Cartilage' }, { id: 'd', text: 'Muscle fiber' }], correct: 'b', explanation: 'Ligaments connect bone to bone, whereas tendons connect muscle to bone.' },
+          { id: 'v98', text: 'What is the capital city of Assam?', options: [{ id: 'a', text: 'Guwahati' }, { id: 'b', text: 'Dispur' }, { id: 'c', text: 'Dibrugarh' }, { id: 'd', text: 'Jorhat' }], correct: 'b', explanation: 'Dispur is the official capital of Assam.' },
+          { id: 'v99', text: 'Which enzyme is responsible for DNA replication along templates?', options: [{ id: 'a', text: 'DNA Polymerase' }, { id: 'b', text: 'Amylase' }, { id: 'c', text: 'Pepsin' }, { id: 'd', text: 'Lipase' }], correct: 'a', explanation: 'DNA polymerase synthesizes new DNA strands complementary to the template.' },
+          { id: 'v100', text: 'What is the ultimate goal of the Veterinary Field Assistant (VFA) frontline service in Assam?', options: [{ id: 'a', text: 'Providing primary animal healthcare, artificial insemination, and disease control at grassroots level' }, { id: 'b', text: 'Exporting tea and silk' }, { id: 'c', text: 'Managing heavy industries' }, { id: 'd', text: 'Building national highways' }], correct: 'a', explanation: 'VFAs provide crucial grassroots veterinary healthcare, vaccination, and breeding support to farmers across Assam.' }
+        ]
+      },
+      ibps_rrb: {
+        id: 'ibps_rrb',
+        title: 'IBPS RRB Office Assistant (Assam Gramin Bank) - 100 Qs',
+        icon: 'landmark',
+        color: 'indigo',
+        questions: [
+          // QUANTITATIVE APTITUDE (Q1 - Q30)
+          { id: 'b1', text: 'What is the value of square root of 441 + square root of 625 - square root of 196?', options: [{ id: 'a', text: '28' }, { id: 'b', text: '30' }, { id: 'c', text: '32' }, { id: 'd', text: '35' }], correct: 'b', explanation: 'sqrt(441) = 21, sqrt(625) = 25, sqrt(196) = 14. Thus, 21 + 25 - 14 = 32' },
+          { id: 'b2', text: 'Evaluate: 35% of 400 + 60% of 350 - ? = 200', options: [{ id: 'a', text: '130' }, { id: 'b', text: '150' }, { id: 'c', text: '170' }, { id: 'd', text: '190' }], correct: 'b', explanation: '140 + 210 - 200 = 150.' },
+          { id: 'b3', text: 'What is the next number in the series: 2, 6, 12, 20, 30, 42, ?', options: [{ id: 'a', text: '52' }, { id: 'b', text: '56' }, { id: 'c', text: '60' }, { id: 'd', text: '64' }], correct: 'b', explanation: 'Differences are +4, +6, +8, +10, +12, +14. Next is 42 + 14 = 56.' },
+          { id: 'b4', text: 'Find the missing number in the series: 5, 11, 23, 47, 95, ?', options: [{ id: 'a', text: '185' }, { id: 'b', text: '190' }, { id: 'c', text: '191' }, { id: 'd', text: '195' }], correct: 'c', explanation: 'Pattern is multiplied by 2 + 1. 95 x 2 + 1 = 191.' },
+          { id: 'b5', text: 'A shopkeeper marks an article 40% above cost price and offers a 20% discount. What is his profit percentage?', options: [{ id: 'a', text: '10%' }, { id: 'b', text: '12%' }, { id: 'c', text: '15%' }, { id: 'd', text: '20%' }], correct: 'b', explanation: 'Let CP = 100, MP = 140, SP = 140 x 0.8 = 112. Profit = 12%.' },
+          { id: 'b6', text: 'If A : B = 3 : 4 and B : C = 8 : 9, find A : C.', options: [{ id: 'a', text: '1:2' }, { id: 'b', text: '2:3' }, { id: 'c', text: '3:4' }, { id: 'd', text: '4:5' }], correct: 'b', explanation: 'A/C = (A/B) x (B/C) = (3/4) x (8/9) = 2/3.' },
+          { id: 'b7', text: 'A sum of money invested at simple interest amounts to Rs. 800 in 3 years and Rs. 920 in 4 years. Find the principal.', options: [{ id: 'a', text: 'Rs. 400' }, { id: 'b', text: 'Rs. 440' }, { id: 'c', text: 'Rs. 500' }, { id: 'd', text: 'Rs. 540' }], correct: 'b', explanation: 'SI for 1 year = 920 - 800 = 120. SI for 3 years = 360. Principal = 800 - 360 = 440.' },
+          { id: 'b8', text: 'Pipe A can fill a tank in 12 hours and Pipe B can empty it in 18 hours. If both are opened together, how long will it take to fill the tank?', options: [{ id: 'a', text: '24 hours' }, { id: 'b', text: '30 hours' }, { id: 'c', text: '36 hours' }, { id: 'd', text: '42 hours' }], correct: 'c', explanation: 'Net work per hour = 1/12 - 1/18 = 1/36. Total time = 36 hours.' },
+          { id: 'b9', text: 'The average of 5 numbers is 27. If one number is excluded, the average becomes 25. Find the excluded number.', options: [{ id: 'a', text: '25' }, { id: 'b', text: '30' }, { id: 'c', text: '35' }, { id: 'd', text: '40' }], correct: 'c', explanation: 'Sum of 5 = 135. Sum of 4 = 100. Excluded number = 135 - 100 = 35.' },
+          { id: 'b10', text: 'A train 120 meters long is running at a speed of 60 km/h. In what time will it pass a pole?', options: [{ id: 'a', text: '6.2 seconds' }, { id: 'b', text: '7.2 seconds' }, { id: 'c', text: '8.0 seconds' }, { id: 'd', text: '9.0 seconds' }], correct: 'b', explanation: 'Speed = 50/3 m/s. Time = 120 / (50/3) = 7.2 seconds.' },
+          { id: 'b11', text: 'Simplify: (15 squared + 20 squared) / 5', options: [{ id: 'a', text: '105' }, { id: 'b', text: '115' }, { id: 'c', text: '125' }, { id: 'd', text: '135' }], correct: 'c', explanation: '225 + 400 = 625. 625 / 5 = 125.' },
+          { id: 'b12', text: 'What is 45% of 800 + 35% of 600?', options: [{ id: 'a', text: '540' }, { id: 'b', text: '570' }, { id: 'c', text: '600' }, { id: 'd', text: '630' }], correct: 'b', explanation: '360 + 210 = 570.' },
+          { id: 'b13', text: 'Find the compound interest on Rs. 5000 at 10% per annum for 2 years compounded annually.', options: [{ id: 'a', text: 'Rs. 1000' }, { id: 'b', text: 'Rs. 1050' }, { id: 'c', text: 'Rs. 1100' }, { id: 'd', text: 'Rs. 1150' }], correct: 'b', explanation: 'A = 5000 x 1.21 = 6050. CI = 6050 - 5000 = 1050.' },
+          { id: 'b14', text: 'The ratio of ages of A and B is 4:5. After 5 years, the ratio becomes 5:6. Find A\'s present age.', options: [{ id: 'a', text: '15 years' }, { id: 'b', text: '20 years' }, { id: 'c', text: '25 years' }, { id: 'd', text: '30 years' }], correct: 'b', explanation: 'Let ages be 4x and 5x. x = 5. A\'s age = 20.' },
+          { id: 'b15', text: 'A boat travels 24 km downstream in 4 hours and 16 km upstream in 4 hours. Find the speed of the stream.', options: [{ id: 'a', text: '1 km/h' }, { id: 'b', text: '1.5 km/h' }, { id: 'c', text: '2 km/h' }, { id: 'd', text: '2.5 km/h' }], correct: 'a', explanation: 'Downstream speed = 6 km/h. Upstream speed = 4 km/h. Stream speed = (6 - 4)/2 = 1 km/h.' },
+          { id: 'b16', text: 'Find the wrong number in the series: 3, 7, 15, 31, 64, 127', options: [{ id: 'a', text: '7' }, { id: 'b', text: '15' }, { id: 'c', text: '64' }, { id: 'd', text: '127' }], correct: 'c', explanation: 'Pattern is multiplied by 2 + 1. 31 x 2 + 1 = 63 (not 64).' },
+          { id: 'b17', text: 'Evaluate: 17 squared - 13 squared', options: [{ id: 'a', text: '100' }, { id: 'b', text: '120' }, { id: 'c', text: '140' }, { id: 'd', text: '160' }], correct: 'b', explanation: '(17-13)(17+13) = 4 x 30 = 120.' },
+          { id: 'b18', text: 'If 12 men can complete a work in 10 days, how many days will 15 men take to complete the same work?', options: [{ id: 'a', text: '6 days' }, { id: 'b', text: '8 days' }, { id: 'c', text: '10 days' }, { id: 'd', text: '12 days' }], correct: 'b', explanation: '12 x 10 = 15 x D2 => D2 = 8 days.' },
+          { id: 'b19', text: 'The LCM of two numbers is 180 and their HCF is 6. If one number is 30, find the other.', options: [{ id: 'a', text: '24' }, { id: 'b', text: '36' }, { id: 'c', text: '42' }, { id: 'd', text: '48' }], correct: 'b', explanation: 'Product = LCM x HCF = 1080. Other number = 1080 / 30 = 36.' },
+          { id: 'b20', text: 'What is the simple interest on Rs. 2500 at 8% per annum for 3 years?', options: [{ id: 'a', text: 'Rs. 500' }, { id: 'b', text: 'Rs. 550' }, { id: 'c', text: 'Rs. 600' }, { id: 'd', text: 'Rs. 650' }], correct: 'c', explanation: 'SI = (2500 x 8 x 3) / 100 = 600.' },
+          { id: 'b21', text: 'Evaluate: square root of (?) x 12 = 180', options: [{ id: 'a', text: '144' }, { id: 'b', text: '225' }, { id: 'c', text: '256' }, { id: 'd', text: '400' }], correct: 'b', explanation: 'sqrt(?) = 15 => ? = 225.' },
+          { id: 'b22', text: 'A person sells an article for Rs. 540 at a loss of 10%. At what price should he sell it to gain 10%?', options: [{ id: 'a', text: 'Rs. 600' }, { id: 'b', text: 'Rs. 620' }, { id: 'c', text: 'Rs. 660' }, { id: 'd', text: 'Rs. 700' }], correct: 'c', explanation: 'CP = 600. SP for 10% gain = 600 x 1.1 = 660.' },
+          { id: 'b23', text: 'Find the average of first 50 natural numbers.', options: [{ id: 'a', text: '25.0' }, { id: 'b', text: '25.5' }, { id: 'c', text: '26.0' }, { id: 'd', text: '26.5' }], correct: 'b', explanation: 'Average = (50 + 1) / 2 = 25.5.' },
+          { id: 'b24', text: 'If x : y = 3 : 2, find the value of (3x + 2y) : (2x + y)', options: [{ id: 'a', text: '11:7' }, { id: 'b', text: '13:8' }, { id: 'c', text: '12:7' }, { id: 'd', text: '15:8' }], correct: 'b', explanation: 'Substitute x=3, y=2: (9+4) : (6+2) = 13:8.' },
+          { id: 'b25', text: 'A car covers a distance of 432 km in 6 hours. Find its speed in m/s.', options: [{ id: 'a', text: '15 m/s' }, { id: 'b', text: '20 m/s' }, { id: 'c', text: '25 m/s' }, { id: 'd', text: '30 m/s' }], correct: 'b', explanation: 'Speed = 72 km/h = 72 x 5/18 = 20 m/s.' },
+          { id: 'b26', text: 'Evaluate: 729 / 9 / 3', options: [{ id: 'a', text: '17' }, { id: 'b', text: '27' }, { id: 'c', text: '81' }, { id: 'd', text: '243' }], correct: 'b', explanation: '729 / 9 = 81. 81 / 3 = 27.' },
+          { id: 'b27', text: 'What percentage of 80 is 20?', options: [{ id: 'a', text: '20%' }, { id: 'b', text: '25%' }, { id: 'c', text: '30%' }, { id: 'd', text: '40%' }], correct: 'b', explanation: '(20/80) x 100 = 25%.' },
+          { id: 'b28', text: 'Find the square root of 3364.', options: [{ id: 'a', text: '52' }, { id: 'b', text: '56' }, { id: 'c', text: '58' }, { id: 'd', text: '62' }], correct: 'c', explanation: '58 squared = 3364.' },
+          { id: 'b29', text: 'If the radius of a circle is increased by 10%, what is the percentage increase in its area?', options: [{ id: 'a', text: '10%' }, { id: 'b', text: '121%' }, { id: 'c', text: '21%' }, { id: 'd', text: '20%' }], correct: 'c', explanation: 'Successive percentage: 10 + 10 + 1 = 21%.' },
+          { id: 'b30', text: 'Evaluate: 12.5% of 800 + 16.67% of 600', options: [{ id: 'a', text: '150' }, { id: 'b', text: '180' }, { id: 'c', text: '200' }, { id: 'd', text: '220' }], correct: 'c', explanation: '100 + 100 = 200.' },
+
+          // REASONING ABILITY (Q31 - Q60)
+          { id: 'b31', text: 'In a certain code, "BANK" is written as "CDOL". How is "RURAL" written in that code?', options: [{ id: 'a', text: 'SVSBM' }, { id: 'b', text: 'TVTCN' }, { id: 'c', text: 'SUUBN' }, { id: 'd', text: 'SWWCP' }], correct: 'b', explanation: 'Each letter is shifted forward by +1: SVSBM.' },
+          { id: 'b32', text: 'Direction: Raman walks 10m north, turns right and walks 15m, turns right again and walks 10m. Which direction is he facing now?', options: [{ id: 'a', text: 'North' }, { id: 'b', text: 'South' }, { id: 'c', text: 'East' }, { id: 'd', text: 'West' }], correct: 'b', explanation: 'He started facing north, turned right (East), then right again (South).' },
+          { id: 'b33', text: 'Statements: All pens are books. Some books are pencils. Conclusions: I. Some pens are pencils. II. No pen is pencil.', options: [{ id: 'a', text: 'Only I follows' }, { id: 'b', text: 'Only II follows' }, { id: 'c', text: 'Either I or II follows' }, { id: 'd', text: 'Neither I nor II follows' }], correct: 'c', explanation: 'Complementary pair (Some + No) yields Either I or II follows.' },
+          { id: 'b34', text: 'Find the odd one out: 121, 144, 169, 196, 215, 256', options: [{ id: 'a', text: '144' }, { id: 'b', text: '169' }, { id: 'c', text: '215' }, { id: 'd', text: '256' }], correct: 'c', explanation: 'All others are squares of integers. 215 is not a square.' },
+          { id: 'b35', text: 'If + means -, - means x, x means /, and / means +, evaluate: 20 - 4 + 12 x 3 / 6', options: [{ id: 'a', text: '78' }, { id: 'b', text: '82' }, { id: 'c', text: '85' }, { id: 'd', text: '90' }], correct: 'b', explanation: 'Substitute: 20 x 4 - 12 / 3 + 6 = 80 - 4 + 6 = 82.' },
+          { id: 'b36', text: 'How many meaningful English words can be formed with the letters "L, E, A, P" using each letter only once?', options: [{ id: 'a', text: '1' }, { id: 'b', text: '2' }, { id: 'c', text: '3' }, { id: 'd', text: '4' }], correct: 'b', explanation: 'Words are "LEAP" and "PALE".' },
+          { id: 'b37', text: 'In a row of 40 students, Amit is 15th from the left. What is his position from the right end?', options: [{ id: 'a', text: '24th' }, { id: 'b', text: '25th' }, { id: 'c', text: '26th' }, { id: 'd', text: '27th' }], correct: 'c', explanation: 'Position from right = 40 - 15 + 1 = 26.' },
+          { id: 'b38', text: 'Choose the missing term in the series: AZ, BY, CX, ?', options: [{ id: 'a', text: 'DW' }, { id: 'b', text: 'EU' }, { id: 'c', text: 'FV' }, { id: 'd', text: 'GW' }], correct: 'a', explanation: 'Reverse alphabetical pairs: A-Z, B-Y, C-X, D-W.' },
+          { id: 'b39', text: 'Pointing to a woman, a man said, "Her daughter is the only daughter of my mother." How is the man related to the woman?', options: [{ id: 'a', text: 'Brother' }, { id: 'b', text: 'Husband' }, { id: 'c', text: 'Father' }, { id: 'd', text: 'Son' }], correct: 'b', explanation: 'Only daughter of his mother is his sister, so the woman is his wife.' },
+          { id: 'b40', text: 'Inequality: A >= B > C = D <= E. Which conclusion is true?', options: [{ id: 'a', text: 'A > D' }, { id: 'b', text: 'A > C' }, { id: 'c', text: 'E > B' }, { id: 'd', text: 'B >= E' }], correct: 'b', explanation: 'A >= B > C, hence A > C is definitely true.' },
+          { id: 'b41', text: 'Complete the series: 4, 9, 16, 25, 36, ?', options: [{ id: 'a', text: '42' }, { id: 'b', text: '48' }, { id: 'c', text: '49' }, { id: 'd', text: '64' }], correct: 'c', explanation: 'Squares of integers: 7 squared = 49.' },
+          { id: 'b42', text: 'If "PENCIL" is coded as "ROPFKN", how is "PAPER" coded?', options: [{ id: 'a', text: 'RCRGT' }, { id: 'b', text: 'SDSGU' }, { id: 'c', text: 'RBSGQ' }, { id: 'd', text: 'QBQFS' }], correct: 'a', explanation: 'Letters shifted by +2: RCRGT.' },
+          { id: 'b43', text: 'Statements: All books are novels. All novels are magazines. Conclusions: I. All books are magazines. II. Some magazines are books.', options: [{ id: 'a', text: 'Only I follows' }, { id: 'b', text: 'Only II follows' }, { id: 'c', text: 'Both I and II follow' }, { id: 'd', text: 'Neither follows' }], correct: 'c', explanation: 'Both conclusions directly follow from categorical syllogism.' },
+          { id: 'b44', text: 'Find the odd one out: Apple, Mango, Banana, Potato, Orange', options: [{ id: 'a', text: 'Apple' }, { id: 'b', text: 'Banana' }, { id: 'c', text: 'Potato' }, { id: 'd', text: 'Orange' }], correct: 'c', explanation: 'Potato grows underground as a tuber; all others are fruits.' },
+          { id: 'b45', text: 'If the 3rd day of a month is Monday, what day will be the 25th day of the same month?', options: [{ id: 'a', text: 'Tuesday' }, { id: 'b', text: 'Wednesday' }, { id: 'c', text: 'Thursday' }, { id: 'd', text: 'Friday' }], correct: 'a', explanation: '25 - 3 = 22 days later. 22 mod 7 = 1 remainder. Monday + 1 day = Tuesday.' },
+          { id: 'b46', text: 'Arrange in logical order: 1. Plant 2. Seed 3. Fruit 4. Tree 5. Flower', options: [{ id: 'a', text: '2, 1, 4, 5, 3' }, { id: 'b', text: '2, 4, 1, 5, 3' }, { id: 'c', text: '1, 2, 3, 4, 5' }, { id: 'd', text: '2, 1, 5, 4, 3' }], correct: 'a', explanation: 'Seed -> Plant -> Tree -> Flower -> Fruit (2, 1, 4, 5, 3).' },
+          { id: 'b47', text: 'In a code, "AGVB" is written as "BHWC". How is "BANK" written?', options: [{ id: 'a', text: 'CBOL' }, { id: 'b', text: 'DZOL' }, { id: 'c', text: 'CCPL' }, { id: 'd', text: 'BBOL' }], correct: 'a', explanation: 'Shift of +1: B, B, O, L -> CBOL.' },
+          { id: 'b48', text: 'Find the next number: 10, 14, 26, 42, 70, ?', options: [{ id: 'a', text: '98' }, { id: 'b', text: '104' }, { id: 'c', text: '110' }, { id: 'd', text: '116' }], correct: 'b', explanation: 'Alternating difference sum sequence.' },
+          { id: 'b49', text: 'If A = 1, CAT = 24, then DOG = ?', options: [{ id: 'a', text: '26' }, { id: 'b', text: '28' }, { id: 'c', text: '30' }, { id: 'd', text: '32' }], correct: 'a', explanation: 'D=4, O=15, G=7 => 4 + 15 + 7 = 26.' },
+          { id: 'b50', text: 'Which word cannot be formed from "EXAMINATION"?', options: [{ id: 'a', text: 'NATION' }, { id: 'b', text: 'ANIMATION' }, { id: 'c', text: 'EXIT' }, { id: 'd', text: 'MINING' }], correct: 'd', explanation: 'The letter "G" does not appear in "EXAMINATION".' },
+
+          // GENERAL AWARENESS & BANKING / COMPUTER KNOWLEDGE (Q51 - Q100)
+          { id: 'b51', text: 'Assam Gramin Vikash Bank (AGVB) is sponsored by which commercial bank?', options: [{ id: 'a', text: 'State Bank of India (SBI)' }, { id: 'b', text: 'Punjab National Bank' }, { id: 'c', text: 'UCO Bank' }, { id: 'd', text: 'Canara Bank' }], correct: 'a', explanation: 'AGVB is sponsored by State Bank of India.' },
+          { id: 'b52', text: 'Where is the headquarters of Assam Gramin Vikash Bank located?', options: [{ id: 'a', text: 'Dibrugarh' }, { id: 'b', text: 'Jorhat' }, { id: 'c', text: 'Guwahati' }, { id: 'd', text: 'Silchar' }], correct: 'c', explanation: 'Headquarters of AGVB is in Guwahati, Assam.' },
+          { id: 'b53', text: 'Regional Rural Banks (RRBs) in India were established under which Act?', options: [{ id: 'a', text: 'RBI Act, 1934' }, { id: 'b', text: 'Banking Regulation Act, 1949' }, { id: 'c', text: 'RRB Act, 1976' }, { id: 'd', text: 'NABARD Act, 1981' }], correct: 'c', explanation: 'RRBs were set up under Regional Rural Banks Act, 1976 on recommendations of M. Narasimhan Committee.' },
+          { id: 'b54', text: 'What is the shareholding pattern of Central Government, Sponsor Bank, and State Government in RRBs?', options: [{ id: 'a', text: '50% : 35% : 15%' }, { id: 'b', text: '50% : 30% : 20%' }, { id: 'c', text: '35% : 50% : 15%' }, { id: 'd', text: '50% : 50% : 0%' }], correct: 'a', explanation: 'Central Govt: 50%, Sponsor Bank: 35%, State Govt: 15%.' },
+          { id: 'b55', text: 'Who is the regulator of Regional Rural Banks in India?', options: [{ id: 'a', text: 'NABARD' }, { id: 'b', text: 'SEBI' }, { id: 'c', text: 'Reserve Bank of India (RBI)' }, { id: 'd', text: 'Ministry of Finance' }], correct: 'c', explanation: 'RBI regulates RRBs, while NABARD supervises them.' },
+          { id: 'b56', text: 'What does the letter \'F\' stand for in NEFT?', options: [{ id: 'a', text: 'Fund' }, { id: 'b', text: 'Financial' }, { id: 'c', text: 'Fast' }, { id: 'd', text: 'Foreign' }], correct: 'a', explanation: 'NEFT stands for National Electronic Funds Transfer.' },
+          { id: 'b57', text: 'What is the maximum transaction limit in Immediate Payment Service (IMPS)?', options: [{ id: 'a', text: 'Rs. 2 Lakhs' }, { id: 'b', text: 'Rs. 5 Lakhs' }, { id: 'c', text: 'No limit' }, { id: 'd', text: 'Rs. 1 Lakh' }], correct: 'b', explanation: 'IMPS upper limit per transaction is Rs. 5 Lakhs.' },
+          { id: 'b58', text: 'Which institution was established on July 12, 1982 for agricultural and rural development?', options: [{ id: 'a', text: 'SIDBI' }, { id: 'b', text: 'NABARD' }, { id: 'c', text: 'EXIM Bank' }, { id: 'd', text: 'NHB' }], correct: 'b', explanation: 'National Bank for Agriculture and Rural Development (NABARD) was established in 1982.' },
+          { id: 'b59', text: 'What is the full form of UPI in digital payments?', options: [{ id: 'a', text: 'Unified Payments Interface' }, { id: 'b', text: 'Universal Payment Index' }, { id: 'c', text: 'Unique Payment Initiation' }, { id: 'd', text: 'Unified Processing Identifier' }], correct: 'a', explanation: 'UPI stands for Unified Payments Interface, developed by NPCI.' },
+          { id: 'b60', text: 'Current Repo Rate is fixed by which committee of the RBI?', options: [{ id: 'a', text: 'Monetary Policy Committee (MPC)' }, { id: 'b', text: 'Financial Stability Board' }, { id: 'c', text: 'Bimal Jalan Committee' }, { id: 'd', text: 'Narasimhan Committee' }], correct: 'a', explanation: 'The Monetary Policy Committee determines the policy repo rate.' },
+          { id: 'b61', text: 'What is the full form of ATM in banking?', options: [{ id: 'a', text: 'Any Time Money' }, { id: 'b', text: 'Automated Teller Machine' }, { id: 'c', text: 'Automated Transaction Mode' }, { id: 'd', text: 'Automatic Transfer Mechanism' }], correct: 'b', explanation: 'ATM stands for Automated Teller Machine.' },
+          { id: 'b62', text: 'Which of the following is an example of an operating system?', options: [{ id: 'a', text: 'Microsoft Word' }, { id: 'b', text: 'Linux' }, { id: 'c', text: 'Google Chrome' }, { id: 'd', text: 'Oracle' }], correct: 'b', explanation: 'Linux is a popular open-source operating system.' },
+          { id: 'b63', text: 'What is the shortcut key for "Paste" in Windows operating systems?', options: [{ id: 'a', text: 'Ctrl + C' }, { id: 'b', text: 'Ctrl + V' }, { id: 'c', text: 'Ctrl + X' }, { id: 'd', text: 'Ctrl + P' }], correct: 'b', explanation: 'Ctrl + V is the universal shortcut for pasting copied items.' },
+          { id: 'b64', text: 'What does "HTML" stand for in web development?', options: [{ id: 'a', text: 'HyperText Markup Language' }, { id: 'b', text: 'High Transfer Machine Language' }, { id: 'c', text: 'Hyperlink Text Management Logic' }, { id: 'd', text: 'Higher Text Modern Language' }], correct: 'a', explanation: 'HTML stands for HyperText Markup Language.' },
+          { id: 'b65', text: 'Which unit is considered the "brain" of a computer system?', options: [{ id: 'a', text: 'RAM' }, { id: 'b', text: 'Hard Disk' }, { id: 'c', text: 'Central Processing Unit (CPU)' }, { id: 'd', text: 'Motherboard' }], correct: 'c', explanation: 'CPU executes instructions and acts as the computer brain.' },
+          { id: 'b66', text: '1 Kilobyte (KB) is equal to how many bytes?', options: [{ id: 'a', text: '1000 bytes' }, { id: 'b', text: '1024 bytes' }, { id: 'c', text: '512 bytes' }, { id: 'd', text: '2048 bytes' }], correct: 'b', explanation: '1 KB = 1024 bytes in binary computer architecture.' },
+          { id: 'b67', text: 'What is phishing in computer security?', options: [{ id: 'a', text: 'Cleaning computer dust' }, { id: 'b', text: 'Fraudulent attempt to steal sensitive user information' }, { id: 'c', text: 'Accelerating internet speed' }, { id: 'd', text: 'Compressing large files' }], correct: 'b', explanation: 'Phishing involves deceptive emails or websites pretending to be legitimate entities.' },
+          { id: 'b68', text: 'Which protocol is securely used for browsing encrypted web pages?', options: [{ id: 'a', text: 'HTTP' }, { id: 'b', text: 'FTP' }, { id: 'c', text: 'HTTPS' }, { id: 'd', text: 'SMTP' }], correct: 'c', explanation: 'HTTPS provides encrypted web communication.' },
+          { id: 'b69', text: 'What is the extension of a Microsoft Excel workbook file?', options: [{ id: 'a', text: '.docx' }, { id: 'b', text: '.pptx' }, { id: 'c', text: '.xlsx' }, { id: 'd', text: '.pdf' }], correct: 'c', explanation: '.xlsx is the standard file extension for modern Excel spreadsheets.' },
+          { id: 'b70', text: 'Who is known as the father of the computer?', options: [{ id: 'a', text: 'Alan Turing' }, { id: 'b', text: 'Charles Babbage' }, { id: 'c', text: 'Bill Gates' }, { id: 'd', text: 'Steve Jobs' }], correct: 'b', explanation: 'Charles Babbage conceptualized the first mechanical computer.' },
+          { id: 'b71', text: 'What is the full form of KYC in banking?', options: [{ id: 'a', text: 'Know Your Customer' }, { id: 'b', text: 'Keep Your Cash' }, { id: 'c', text: 'Key Yield Capital' }, { id: 'd', text: 'Knowledge Yield Credit' }], correct: 'a', explanation: 'KYC is mandatory customer identity verification for banks.' },
+          { id: 'b72', text: 'What is a "Cheque" defined under in Indian banking?', options: [{ id: 'a', text: 'Negotiable Instruments Act, 1881' }, { id: 'b', text: 'Banking Regulation Act' }, { id: 'c', text: 'Companies Act' }, { id: 'd', text: 'RBI Act' }], correct: 'a', explanation: 'Cheques are governed by Section 6 of the Negotiable Instruments Act, 1881.' },
+          { id: 'b73', text: 'What is the maximum insurance cover provided by DICGC on bank deposits per depositor?', options: [{ id: 'a', text: 'Rs. 1 Lakh' }, { id: 'b', text: 'Rs. 2 Lakhs' }, { id: 'c', text: 'Rs. 5 Lakhs' }, { id: 'd', text: 'Rs. 10 Lakhs' }], correct: 'c', explanation: 'DICGC insures bank deposits up to Rs. 5 Lakhs.' },
+          { id: 'b74', text: 'Which bank is the central banking institution of India?', options: [{ id: 'a', text: 'State Bank of India' }, { id: 'b', text: 'Reserve Bank of India' }, { id: 'c', text: 'Bank of Baroda' }, { id: 'd', text: 'Punjab National Bank' }], correct: 'b', explanation: 'Reserve Bank of India regulates the monetary and banking system.' },
+          { id: 'b75', text: 'What does "CRR" stand for in banking economics?', options: [{ id: 'a', text: 'Cash Reserve Ratio' }, { id: 'b', text: 'Credit Risk Reserve' }, { id: 'c', text: 'Current Revenue Rate' }, { id: 'd', text: 'Central Reserve Return' }], correct: 'a', explanation: 'CRR is the minimum percentage of deposits commercial banks must maintain with the RBI.' },
+          { id: 'b76', text: 'What is "SLR" in banking terms?', options: [{ id: 'a', text: 'Statutory Liquidity Ratio' }, { id: 'b', text: 'Short-term Loan Rate' }, { id: 'c', text: 'Secure Lending Reserve' }, { id: 'd', text: 'Special Liquidity Return' }], correct: 'a', explanation: 'SLR is the liquid asset percentage banks must maintain with themselves before lending.' },
+          { id: 'b77', text: 'What is the full form of RTGS?', options: [{ id: 'a', text: 'Real Time Gross Settlement' }, { id: 'b', text: 'Rapid Transfer Guarantee System' }, { id: 'c', text: 'Regular Transaction General Service' }, { id: 'd', text: 'Reserve Transfer Gross System' }], correct: 'a', explanation: 'RTGS enables continuous real-time settlement of fund transfers.' },
+          { id: 'b78', text: 'Which card is issued directly against a customer savings or current bank account?', options: [{ id: 'a', text: 'Credit Card' }, { id: 'b', text: 'Debit Card' }, { id: 'c', text: 'Gift Card' }, { id: 'd', text: 'Forex Card' }], correct: 'b', explanation: 'Debit cards withdraw funds directly from the user\'s bank account.' },
+          { id: 'b79', text: 'What is a Non-Performing Asset (NPA)?', options: [{ id: 'a', text: 'Loan where interest/principal overdue for more than 90 days' }, { id: 'b', text: 'Bank building under repair' }, { id: 'c', text: 'Government securities with low return' }, { id: 'd', text: 'Dormant account with zero balance' }], correct: 'a', explanation: 'An asset ceases to generate income for a bank when overdue past 90 days.' },
+          { id: 'b80', text: 'What is the full form of IFSC used in electronic funds transfer?', options: [{ id: 'a', text: 'Indian Financial System Code' }, { id: 'b', text: 'International Fund Settlement Corporation' }, { id: 'c', text: 'Interbank Foreign Security Code' }, { id: 'd', text: 'Indian Foreign Standard Currency' }], correct: 'a', explanation: 'IFSC is an 11-character alphanumeric code identifying bank branches.' },
+          { id: 'b81', text: 'What is volatile memory in a computer architecture?', options: [{ id: 'a', text: 'Hard Disk Drive' }, { id: 'b', text: 'Random Access Memory (RAM)' }, { id: 'c', text: 'Read Only Memory (ROM)' }, { id: 'd', text: 'Solid State Drive' }], correct: 'b', explanation: 'RAM loses its stored data when power is turned off.' },
+          { id: 'b82', text: 'Which device is used to convert hardcopy documents into digital images?', options: [{ id: 'a', text: 'Printer' }, { id: 'b', text: 'Scanner' }, { id: 'c', text: 'Monitor' }, { id: 'd', text: 'Speaker' }], correct: 'b', explanation: 'A scanner optically scans images or documents into digital files.' },
+          { id: 'b83', text: 'What does "URL" stand for on the internet?', options: [{ id: 'a', text: 'Uniform Resource Locator' }, { id: 'b', text: 'Universal Record Link' }, { id: 'c', text: 'Unified Retrieval Language' }, { id: 'd', text: 'Unfiltered Remote Link' }], correct: 'a', explanation: 'URL is the address of a resource on the internet.' },
+          { id: 'b84', text: 'Which of the following is a web browser?', options: [{ id: 'a', text: 'Windows' }, { id: 'b', text: 'Firefox' }, { id: 'c', text: 'MS Word' }, { id: 'd', text: 'Photoshop' }], correct: 'b', explanation: 'Mozilla Firefox is a widely used web browser.' },
+          { id: 'b85', text: 'What is the shortcut key to undo the last action in MS Office?', options: [{ id: 'a', text: 'Ctrl + Y' }, { id: 'b', text: 'Ctrl + Z' }, { id: 'c', text: 'Ctrl + U' }, { id: 'd', text: 'Ctrl + S' }], correct: 'b', explanation: 'Ctrl + Z undoes the previous command.' },
+          { id: 'b86', text: 'What is the full form of PDF?', options: [{ id: 'a', text: 'Portable Document Format' }, { id: 'b', text: 'Printed Data File' }, { id: 'c', text: 'Public Document Folder' }, { id: 'd', text: 'Predefined Digital Form' }], correct: 'a', explanation: 'PDF format preserves document formatting across multiple platforms.' },
+          { id: 'b87', text: 'Which network topology has every node connected to a central hub or switch?', options: [{ id: 'a', text: 'Bus topology' }, { id: 'b', text: 'Star topology' }, { id: 'c', text: 'Ring topology' }, { id: 'd', text: 'Mesh topology' }], correct: 'b', explanation: 'Star topology connects all nodes to a central connecting device.' },
+          { id: 'b88', text: 'What is spyware?', options: [{ id: 'a', text: 'Software that speeds up computer performance' }, { id: 'b', text: 'Malicious software that gathers information about a person or organization' }, { id: 'c', text: 'Antivirus program' }, { id: 'd', text: 'Hardware diagnostic tool' }], correct: 'b', explanation: 'Spyware secretly collects user data without consent.' },
+          { id: 'b89', text: 'What is the maximum number of characters in a standard Tweet or text message traditionally?', options: [{ id: 'a', text: '140 characters' }, { id: 'b', text: '256 characters' }, { id: 'c', text: '500 characters' }, { id: 'd', text: '1024 characters' }], correct: 'a', explanation: 'Original Twitter limit was 140 characters.' },
+          { id: 'b90', text: 'Which programming language is popularly known as the language of the Web for client-side scripting?', options: [{ id: 'a', text: 'Python' }, { id: 'b', text: 'C++' }, { id: 'c', text: 'JavaScript' }, { id: 'd', text: 'Java' }], correct: 'c', explanation: 'JavaScript runs in web browsers for interactive client-side behavior.' },
+          { id: 'b91', text: 'What is the full form of MSME in Indian economy and banking?', options: [{ id: 'a', text: 'Micro, Small and Medium Enterprises' }, { id: 'b', text: 'Medium Scale Manufacturing Establishment' }, { id: 'c', text: 'Micro Sector Marketing Enterprise' }, { id: 'd', text: 'Multilateral Small and Medium Economy' }], correct: 'a', explanation: 'MSMEs form the backbone of industrial and rural credit expansion.' },
+          { id: 'b92', text: 'What is Priority Sector Lending (PSL)?', options: [{ id: 'a', text: 'Loans given exclusively to large corporate houses' }, { id: 'b', text: 'Mandatory bank lending to sectors like agriculture, MSME, and weaker sections' }, { id: 'c', text: 'Loans issued only to foreign investors' }, { id: 'd', text: 'Government bonds purchase' }], correct: 'b', explanation: 'RBI mandates banks to allocate a specific percentage of credit to priority sectors.' },
+          { id: 'b93', text: 'What is the full form of NABARD?', options: [{ id: 'a', text: 'National Bank for Agriculture and Rural Development' }, { id: 'b', text: 'National Authority for Banking and Regional Development' }, { id: 'c', text: 'New Association of Business and Rural Development' }, { id: 'd', text: 'National Agricultural Bank and Rural Division' }], correct: 'a', explanation: 'NABARD promotes sustainable agriculture and rural prosperity.' },
+          { id: 'b94', text: 'Which term is used when the rate of inflation increases rapidly?', options: [{ id: 'a', text: 'Deflation' }, { id: 'b', text: 'Hyperinflation' }, { id: 'c', text: 'Disinflation' }, { id: 'd', text: 'Stagflation' }], correct: 'b', explanation: 'Hyperinflation refers to extremely high and out-of-control price increases.' },
+          { id: 'b95', text: 'What is the full form of EXIM Bank?', options: [{ id: 'a', text: 'Export-Import Bank of India' }, { id: 'b', text: 'External Investment Bank' }, { id: 'c', text: 'Exchange and Insurance Market Bank' }, { id: 'd', text: 'Executive International Bank' }], correct: 'a', explanation: 'EXIM Bank is the premier export finance institution in India.' },
+          { id: 'b96', text: 'What is the primary function of a commercial bank?', options: [{ id: 'a', text: 'Accepting deposits and granting loans' }, { id: 'b', text: 'Printing currency notes' }, { id: 'c', text: 'Formulating monetary policy' }, { id: 'd', text: 'Regulating stock markets' }], correct: 'a', explanation: 'Commercial banks mobilize savings by accepting deposits and providing credit.' },
+          { id: 'b97', text: 'What is the currency of Japan?', options: [{ id: 'a', text: 'Yuan' }, { id: 'b', text: 'Yen' }, { id: 'c', text: 'Won' }, { id: 'd', text: 'Ringgit' }], correct: 'b', explanation: 'Japanese currency is the Yen.' },
+          { id: 'b98', text: 'Where is the headquarters of the Reserve Bank of India (RBI) situated?', options: [{ id: 'a', text: 'New Delhi' }, { id: 'b', text: 'Mumbai' }, { id: 'c', text: 'Kolkata' }, { id: 'd', text: 'Chennai' }], correct: 'b', explanation: 'RBI central office is located in Mumbai, Maharashtra.' },
+          { id: 'b99', text: 'What does "CASA" account stand for in retail banking?', options: [{ id: 'a', text: 'Current Account Savings Account' }, { id: 'b', text: 'Credit And Savings Asset' }, { id: 'c', text: 'Cash Advance and Security Account' }, { id: 'd', text: 'Core Automated Saving Application' }], correct: 'a', explanation: 'CASA deposits constitute low-cost current and savings bank accounts.' },
+          { id: 'b100', text: 'What is the ultimate objective of preparing for IBPS RRB / Assam Gramin Bank examinations?', options: [{ id: 'a', text: 'Securing a stable career in rural banking and driving financial inclusion across grassroots India' }, { id: 'b', text: 'Working in multinational IT software firms' }, { id: 'c', text: 'Managing civil aviation' }, { id: 'd', text: 'Importing foreign petroleum' }], correct: 'a', explanation: 'Regional Rural Bank officers play a vital role in rural credit delivery and financial inclusion.' }
+        ]
+      },
+    };
     // ---------------- SUPER10 TEST ----------------
     // Builds a fresh 10-question test from every existing category.
     // The selected questions and their order are randomized for every new attempt.
@@ -2247,11 +2592,12 @@ function scheduleFirebaseRetry() {
       flushQuestionTime();
       const q = getCurrentQuestion();
       if (!q) return;
-      // All categories: option tap only records the answer.
-// Coins are committed only when the user taps Next.
+      // Answer reward is queued here and is awarded ONLY after the user taps Next.
+      // This prevents the coin balance/reward message from appearing before Next.
       state.quiz.answers[q.id] = optionId;
       state.quiz.pendingCoinRewards = state.quiz.pendingCoinRewards || {};
-      state.quiz.pendingCoinRewards[q.id] = (optionId === q.correct) ? 10 : -3;
+      const answerDelta = (optionId === q.correct) ? 10 : -3;
+      state.quiz.pendingCoinRewards[q.id] = answerDelta;
 
       // Save wrong answers immediately. Completing/submitting the test is NOT required.
       if (optionId !== q.correct && typeof window.saveWrongQuestionInstant === 'function') {
@@ -2393,7 +2739,7 @@ function scheduleFirebaseRetry() {
           );
         }, 0);
 
-        if (answeredCount >= 5) {
+        if (answeredCount > 5) {
           const correctCount = rewardQuestions.reduce((count, q) => {
             return count + (
               state.quiz.answers &&
@@ -2408,7 +2754,7 @@ function scheduleFirebaseRetry() {
             state.quiz.passMark || 40
           );
 
-          const rewardAmount = percent >= passMark ? 300 : 150;
+          const rewardAmount = passed ? 300 : 150;
           const rewardKey =
             'category-complete:' +
             String(state.activeCategory) + ':' +
@@ -2418,7 +2764,7 @@ function scheduleFirebaseRetry() {
               typeof window.coinSystem.award === 'function') {
             window.coinSystem.award(
               rewardAmount,
-              percent >= passMark
+              passed
                 ? 'Category test passed'
                 : 'Category test failed',
               rewardKey
@@ -2427,7 +2773,7 @@ function scheduleFirebaseRetry() {
         } else {
           console.log(
             'Completion reward skipped: only ' + answeredCount +
-            ' question(s) attempted; minimum is 5.'
+            ' question(s) attempted; more than 5 questions are required.'
           );
         }
       } catch (e) {
@@ -2438,9 +2784,14 @@ function scheduleFirebaseRetry() {
       saveProgress('completed');
       state.currentScreen = 'review';
       render();
+      const answeredForToast = Array.isArray(state.quiz.questionSet)
+        ? state.quiz.questionSet.reduce((count, q) => count + (state.quiz.answers && Object.prototype.hasOwnProperty.call(state.quiz.answers, q.id) ? 1 : 0), 0)
+        : 0;
       showToast(
-        passed ? 'Test passed! +300 🪙 added.' : 'Test completed. +150 🪙 added.',
-        'success'
+        answeredForToast > 5
+          ? (passed ? 'Test passed! +300 🪙 added.' : 'Test failed. +150 🪙 added.')
+          : 'Test completed. No completion coins: more than 5 questions must be attempted.',
+        answeredForToast > 5 ? 'success' : 'error'
       );
     };
     window.goDashboard = () => {
@@ -4483,6 +4834,24 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       if(!Array.isArray(owned)) owned=[];
     }catch(e){coins=0;owned=[];}
   }
+
+  async function loadRemoteCoins(){
+    try{
+      const id=uid(); const db=window.firebaseDB || window.db;
+      if(!id || !db || !db.ref) return;
+      const ref=db.ref('users/'+id+'/coins');
+      const snap=await ref.once('value');
+      const remote=Math.max(0,Number(snap.val())||0);
+      const local=coins;
+      if(remote > local){
+        coins=remote;
+        try{localStorage.setItem('rewardCoins',String(coins));}catch(e){}
+        updateUI();
+      }else if(local > remote){
+        await ref.set(local);
+      }
+    }catch(e){}
+  }
   function save(){
     try{
       localStorage.setItem('rewardCoins',String(coins));
@@ -4656,10 +5025,10 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   const REWARD_RULES = {
     follow: 50,
     attempt: 10,
-    correct: 30,
+    correct: 10,
     battleWin: 100,
-    wrong: -2,
-    profileComplete: 0
+    wrong: -3,
+    profileComplete: 100
   };
 
   const catalog = {
@@ -4694,9 +5063,16 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
   function uid(){
     try{
-      if(window.currentUser) return window.currentUser.uid || window.currentUser;
-      if(window.state && window.state.uid) return window.state.uid;
-      return localStorage.getItem('userId') || '';
+      // Always use the app's stable Firebase client id for coins.
+      // This prevents refresh/login state from pointing coins at a different path.
+      if(typeof window.getClientId==='function'){
+        const id=window.getClientId();
+        if(id) return String(id);
+      }
+      const stored=localStorage.getItem('porisram_firebase_user_id') || localStorage.getItem('userId') || '';
+      if(stored) return String(stored);
+      if(window.currentUser) return String(window.currentUser.uid || window.currentUser || '');
+      return '';
     }catch(e){ return ''; }
   }
 
@@ -4706,6 +5082,24 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
       owned = JSON.parse(localStorage.getItem('rewardOwned') || '[]');
       if(!Array.isArray(owned)) owned=[];
     }catch(e){coins=0;owned=[];}
+  }
+
+  async function loadRemoteCoins(){
+    try{
+      const id=uid(); const db=window.firebaseDB || window.db;
+      if(!id || !db || !db.ref) return;
+      const ref=db.ref('users/'+id+'/coins');
+      const snap=await ref.once('value');
+      const remote=Math.max(0,Number(snap.val())||0);
+      const local=coins;
+      if(remote > local){
+        coins=remote;
+        try{localStorage.setItem('rewardCoins',String(coins));}catch(e){}
+        updateUI();
+      }else if(local > remote){
+        await ref.set(local);
+      }
+    }catch(e){}
   }
 
   function persist(){
@@ -4777,7 +5171,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     wrong: function(questionId, quizId){ return award(-3,'Wrong answer',questionId?'wrong:'+(quizId||'quiz')+':'+questionId:null); },
     battleWin: function(battleId){ return award(100,'Quiz Battle victory',battleId?'battleWin:'+battleId:null); },
     profileComplete: function(){ return award(100,'Profile completed','profileComplete'); },
-    balance: function(){return coins;}, refresh: function(remote){ coins=Math.max(0,Number(remote)||0); save(); updateUI(); },
+    balance: function(){return coins;}, refresh: function(remote){ coins=Math.max(0,Number(remote)||0); persist(); },
     history: function(){return readHistory();}
   };
 
@@ -4861,6 +5255,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
   load();
   updateUI();
+  setTimeout(loadRemoteCoins,300);
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind,{once:true});
   else bind();
 
@@ -7415,7 +7810,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     const on=active(), n=balance();
     host.innerHTML='';
     const card=document.createElement('div'); card.className='coin-2x-card';
-    card.innerHTML='<div class="coin-2x-head"><div class="coin-2x-icon">⚡</div><div><div class="coin-2x-title">Coin 2x</div><div class="coin-2x-desc">Buy once for 1,500 🪙. After purchase, every positive coin reward you receive is doubled permanently.</div></div></div>'+
+    card.innerHTML='<div class="coin-2x-head"><div class="coin-2x-icon">⚡</div><div><div class="coin-2x-title">Coin 2x</div><div class="coin-2x-desc">Buy once for 1,500 🪙. After purchase, every coin you earn is doubled permanently. Wrong-answer deductions remain −3 🪙.</div></div></div>'+
       '<div class="coin-2x-examples">'+
       '<div class="coin-2x-example">Correct reward<b>10 → 20 🪙</b></div>'+
       '<div class="coin-2x-example">Test pass<b>300 → 600 🪙</b></div>'+
@@ -7425,7 +7820,7 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     btn.textContent=on?'✓ Coin 2x Active':('Buy Coin 2x — '+COST.toLocaleString()+' 🪙');
     btn.disabled=on||n<COST;
     const status=document.createElement('div'); status.className='coin-2x-status';
-    status.textContent=on?'All future positive coin rewards are 2x.':(n<COST?'Need '+(COST-n).toLocaleString()+' more 🪙':'Ready to activate.');
+    status.textContent=on?'All future earned coins are 2x; deductions stay unchanged.':(n<COST?'Need '+(COST-n).toLocaleString()+' more 🪙':'Ready to activate.');
     btn.onclick=buy; card.appendChild(btn); card.appendChild(status); host.appendChild(card);
   }
   async function buy(){
@@ -7491,6 +7886,30 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     wrapped.__coin2xWrapped=true;
     wrapped.__original=original;
     window.coinSystem.award=wrapped;
+
+    // IMPORTANT: the helper methods (correct/wrong/attempt/follow/battleWin/profileComplete)
+    // were originally closed over the internal award() function, so simply wrapping
+    // window.coinSystem.award would not affect those methods. Rebind every earning
+    // API through the wrapped public award so the 2x booster applies to ALL positive
+    // coin earnings, while penalties remain unchanged.
+    window.coinSystem.follow=function(targetUid){
+      return window.coinSystem.award(50,'Followed a user',targetUid?'follow:'+targetUid+':'+(uid()||'user'):null);
+    };
+    window.coinSystem.attempt=function(questionId,quizId){
+      return window.coinSystem.award(10,'Question attempted',questionId?'attempt:'+(quizId||'quiz')+':'+questionId:null);
+    };
+    window.coinSystem.correct=function(questionId,quizId){
+      return window.coinSystem.award(10,'Correct answer',questionId?'correct:'+(quizId||'quiz')+':'+questionId:null);
+    };
+    window.coinSystem.wrong=function(questionId,quizId){
+      return window.coinSystem.award(-3,'Wrong answer',questionId?'wrong:'+(quizId||'quiz')+':'+questionId:null);
+    };
+    window.coinSystem.battleWin=function(battleId){
+      return window.coinSystem.award(100,'Quiz Battle victory',battleId?'battleWin:'+battleId:null);
+    };
+    window.coinSystem.profileComplete=function(){
+      return window.coinSystem.award(100,'Profile completed','profileComplete');
+    };
     return true;
   }
 
@@ -7660,6 +8079,57 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     init();
     updateButton();
   },500);
+})();
+</script>
+
+<script id="coin-refresh-persistence-final">
+(function(){
+  // Final single-path coin persistence guard. Firebase and local cache use the
+  // same stable client id, and startup restores Firebase before accepting a
+  // stale zero from another coin module.
+  function getId(){
+    try{
+      if(typeof window.getClientId==='function') return String(window.getClientId()||'');
+      return String(localStorage.getItem('porisram_firebase_user_id')||localStorage.getItem('userId')||'');
+    }catch(e){return '';}
+  }
+  function getDb(){return window.firebaseDB||window.db||null;}
+  async function restore(){
+    const id=getId(),db=getDb();
+    if(!id||!db||!db.ref||!window.coinSystem) return;
+    try{
+      const ref=db.ref('users/'+id+'/coins');
+      const snap=await ref.once('value');
+      if(!snap.exists()) return;
+      const remote=Math.max(0,Math.floor(Number(snap.val())||0));
+      const local=Math.max(0,Math.floor(Number(window.coinSystem.balance())||0));
+      const pending=localStorage.getItem('rewardCoinsPending');
+      // A pending local write belongs to this browser session: do not erase it
+      // with Firebase's older value during a refresh.
+      if(pending){
+        try{
+          const q=JSON.parse(pending);
+          const pendingCoins=Math.max(0,Math.floor(Number(q.coins)||0));
+          if(pendingCoins!==remote){
+            await ref.set(pendingCoins);
+            return;
+          }
+          localStorage.removeItem('rewardCoinsPending');
+        }catch(e){}
+      }
+      if(remote!==local && typeof window.coinSystem.refresh==='function'){
+        window.coinSystem.refresh(remote);
+      }
+      try{localStorage.setItem('rewardCoins',String(remote));}catch(e){}
+    }catch(e){}
+  }
+  function start(){
+    restore();
+    setTimeout(restore,1200);
+    setTimeout(restore,3000);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true});
+  else start();
 })();
 </script>
 
