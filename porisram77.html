@@ -2043,6 +2043,18 @@ body.quiz-active{overflow-x:hidden}
       STRONG_PERCENT: 80,
       SLOW_QUESTION_SECONDS: 90
     };
+
+    // Special 30 is configured by the user before each attempt.
+    quizData.special30 = {
+      id: 'special30',
+      title: 'Special 30',
+      icon: 'target',
+      color: 'rose',
+      questions: [],
+      special30: true,
+      timeLimitMinutes: 15
+    };
+
     window.quizData = quizData;
 
 
@@ -2509,7 +2521,256 @@ function scheduleFirebaseRetry() {
     };
 
     // ---------------- QUIZ ----------------
+
+    function shuffleArray(arr) {
+      const a = Array.isArray(arr) ? arr.slice() : [];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function getSpecial30Categories() {
+      return Object.values(quizData).filter(cat =>
+        cat && cat.id !== 'special30' && cat.id !== 'super10' && cat.id !== 'all_govt_exam' &&
+        Array.isArray(cat.questions) && cat.questions.length > 0
+      );
+    }
+
+    function buildSpecial30Questions(categoryIds) {
+      const selected = Array.isArray(categoryIds) ? categoryIds : [];
+      const pool = [];
+      selected.forEach(id => {
+        const cat = quizData[id];
+        if (!cat || !Array.isArray(cat.questions)) return;
+        cat.questions.forEach(q => pool.push({
+          ...q,
+          id: 'special30_' + id + '_' + String(q.id || Math.random().toString(36).slice(2)),
+          special30SourceCategory: id,
+          special30SourceQuestionId: q.id
+        }));
+      });
+      return shuffleArray(pool).slice(0, Math.min(30, pool.length));
+    }
+
+    // One-time paid test unlocks. After purchase, the test stays unlocked for this user.
+    function getTestUnlockKey(testId) {
+      try {
+        const u = (window.currentUser && window.currentUser.uid) ||
+          (typeof window.getClientId === 'function' && window.getClientId()) ||
+          localStorage.getItem('userId') || 'guest';
+        return 'porisram77_test_unlock_' + String(testId) + '_' + String(u);
+      } catch (e) { return 'porisram77_test_unlock_' + String(testId) + '_guest'; }
+    }
+    function isTestUnlocked(testId) {
+      try { return localStorage.getItem(getTestUnlockKey(testId)) === '1'; } catch (e) { return false; }
+    }
+    function unlockPaidTest(testId, cost, label) {
+      if (isTestUnlocked(testId)) return true;
+      if (!window.coinSystem || typeof window.coinSystem.balance !== 'function' || typeof window.coinSystem.award !== 'function') {
+        showToast('Coin system is not available right now.', 'error'); return false;
+      }
+      const balance = Number(window.coinSystem.balance());
+      if (!Number.isFinite(balance) || balance < cost) {
+        showToast('You need ' + cost + ' 🪙 to unlock ' + label + '.', 'error'); return false;
+      }
+      let charged = false;
+      try {
+        charged = Number(window.coinSystem.award(-cost, label + ' unlock', 'unlock:' + testId + ':' + Date.now())) === -cost;
+      } catch (e) {}
+      if (!charged) { showToast('Unlock could not be completed.', 'error'); return false; }
+      try { localStorage.setItem(getTestUnlockKey(testId), '1'); } catch (e) {}
+      showToast(label + ' unlocked permanently.', 'success');
+      return true;
+    }
+
+    // Explicit purchase action: coins are deducted only after the user taps Buy.
+    window.buyPaidTest = (testId) => {
+      const cfg = testId === 'special30'
+        ? { cost: 150, label: 'Special 30' }
+        : testId === 'super10'
+          ? { cost: 50, label: 'Super10' }
+          : null;
+      if (!cfg) return;
+      if (isTestUnlocked(testId)) {
+        showToast(cfg.label + ' is already unlocked.', 'success');
+        return;
+      }
+      if (!window.coinSystem || typeof window.coinSystem.balance !== 'function' || typeof window.coinSystem.award !== 'function') {
+        showToast('Coin system is not available right now.', 'error'); return;
+      }
+      const balance = Number(window.coinSystem.balance());
+      if (!Number.isFinite(balance) || balance < cfg.cost) {
+        showToast('You need ' + cfg.cost + ' 🪙 to buy ' + cfg.label + '.', 'error'); return;
+      }
+      const ok = window.confirm('Buy ' + cfg.label + ' for ' + cfg.cost + ' 🪙? This is a one-time purchase.');
+      if (!ok) return;
+      if (unlockPaidTest(testId, cfg.cost, cfg.label)) {
+        render();
+      }
+    };
+
+    function closeSpecial30Picker() {
+      const el = document.getElementById('special30-picker');
+      if (el) el.remove();
+    }
+
+    function showSpecial30Picker(options = {}) {
+      closeSpecial30Picker();
+      const cats = getSpecial30Categories();
+      const existing = options.categoryIds || [];
+      const existingTime = Number(options.timeLimitMinutes || 15);
+      const overlay = document.createElement('div');
+      overlay.id = 'special30-picker';
+      overlay.className = 'fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4';
+      overlay.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+          <div class="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <div class="inline-flex items-center gap-2 rounded-full bg-rose-50 text-rose-700 px-3 py-1 text-xs font-bold">🎯 SPECIAL 30</div>
+              <h3 class="text-2xl font-extrabold text-gray-900 mt-2">Choose your test</h3>
+              <p class="text-sm text-gray-500 mt-1">Select up to 2 categories. Questions will be picked randomly.</p>
+            </div>
+            <button type="button" id="special30-close" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
+          </div>
+          <div class="space-y-2 mb-6">
+            ${cats.map(cat => `
+              <label class="flex items-center justify-between gap-3 border border-gray-200 rounded-xl p-3 cursor-pointer hover:border-rose-300 hover:bg-rose-50/40">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-10 h-10 rounded-lg bg-${cat.color}-100 text-${cat.color}-700 flex items-center justify-center shrink-0"><i data-lucide="${cat.icon}" class="w-5 h-5"></i></div>
+                  <div class="min-w-0"><div class="font-semibold text-gray-900 truncate">${escapeHtml(cat.title)}</div><div class="text-xs text-gray-500">${cat.questions.length} questions</div></div>
+                </div>
+                <input type="checkbox" class="special30-category w-5 h-5 accent-rose-600" value="${escapeHtml(cat.id)}" ${existing.includes(cat.id) ? 'checked' : ''}>
+              </label>
+            `).join('')}
+          </div>
+          <div id="special30-category-note" class="text-xs text-gray-500 mb-5">Select 1 or 2 categories.</div>
+          <div id="special30-time-step" class="hidden">
+            <div class="border-t border-gray-200 pt-5 mb-5">
+              <h4 class="font-bold text-gray-900 mb-2">Select time period</h4>
+              <p class="text-xs text-gray-500 mb-3">You must complete all 30 questions within this time.</p>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                ${[5,10,15,20].map(min => `<button type="button" class="special30-time-btn border rounded-xl py-3 font-bold ${existingTime===min ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-700'}" data-minutes="${min}">${min} min</button>`).join('')}
+              </div>
+            </div>
+            <button type="button" id="special30-start" class="btn btn-primary w-full">🎯 Start Special 30</button>
+          </div>
+          <button type="button" id="special30-next" class="btn btn-primary w-full">Continue →</button>
+        </div>`;
+      document.body.appendChild(overlay);
+      if (window.lucide) window.lucide.createIcons();
+
+      let chosenTime = [5,10,15,20].includes(existingTime) ? existingTime : 15;
+      const boxes = () => Array.from(overlay.querySelectorAll('.special30-category:checked'));
+      const updateSelection = () => {
+        const selected = boxes();
+        const note = overlay.querySelector('#special30-category-note');
+        if (selected.length > 2) {
+          selected[selected.length - 1].checked = false;
+        }
+        const count = boxes().length;
+        note.textContent = count === 0 ? 'Select at least 1 category.' : `${count} of 2 categories selected.`;
+        note.className = `text-xs mb-5 ${count === 0 ? 'text-red-600' : 'text-gray-500'}`;
+      };
+      overlay.querySelectorAll('.special30-category').forEach(b => b.addEventListener('change', updateSelection));
+      updateSelection();
+
+      overlay.querySelector('#special30-close').onclick = closeSpecial30Picker;
+      overlay.querySelector('#special30-next').onclick = () => {
+        if (boxes().length < 1) {
+          overlay.querySelector('#special30-category-note').textContent = 'Please select at least 1 category.';
+          overlay.querySelector('#special30-category-note').className = 'text-xs text-red-600 mb-5';
+          return;
+        }
+        overlay.querySelector('#special30-next').classList.add('hidden');
+        overlay.querySelector('#special30-time-step').classList.remove('hidden');
+      };
+      overlay.querySelectorAll('.special30-time-btn').forEach(btn => btn.onclick = () => {
+        chosenTime = Number(btn.dataset.minutes);
+        overlay.querySelectorAll('.special30-time-btn').forEach(x => x.className = 'special30-time-btn border rounded-xl py-3 font-bold border-gray-200 text-gray-700');
+        btn.className = 'special30-time-btn border rounded-xl py-3 font-bold border-rose-500 bg-rose-50 text-rose-700';
+      });
+      overlay.querySelector('#special30-start').onclick = () => {
+        const ids = boxes().map(b => b.value);
+        const questions = buildSpecial30Questions(ids);
+        if (questions.length < 30) {
+          const note = overlay.querySelector('#special30-category-note');
+          note.textContent = 'The selected categories do not contain 30 questions.';
+          note.className = 'text-xs text-red-600 mb-5';
+          return;
+        }
+        closeSpecial30Picker();
+        beginSpecial30Attempt(ids, chosenTime, questions, !!options.chargeReattempt);
+      };
+    }
+
+    function beginSpecial30Attempt(categoryIds, timeLimitMinutes, questions, chargeReattempt) {
+      // Special 30 has a one-time 150 🪙 unlock; re-attempts do not charge the unlock again.
+      if (chargeReattempt) {
+        return beginSpecial30Attempt(categoryIds, timeLimitMinutes, questions, false);
+      }
+      if (state.timerInterval) clearInterval(state.timerInterval);
+      const previous = getProgress('special30') || {};
+      state.activeCategory = 'special30';
+      quizData.special30.questions = questions.map(q => ({...q}));
+      state.quiz = {
+        answers: {}, currentIndex: 0, timeSpent: 0, timeByQuestion: {},
+        questionSet: quizData.special30.questions.map(q => ({...q})),
+        attemptStartedAt: Date.now(), status: 'in-progress',
+        attemptNo: (Array.isArray(previous.attemptHistory) ? previous.attemptHistory.length : 0) + 1,
+        pendingCoinRewards: {}, super10PendingRewards: {},
+        special30CategoryIds: categoryIds.slice(),
+        special30TimeLimitMinutes: Number(timeLimitMinutes)
+      };
+      state.progressData.special30 = {
+        ...previous, status: 'in-progress', answers: {}, currentQuestionIndex: 0,
+        timeSpent: 0, timeByQuestion: {}, questionSet: state.quiz.questionSet,
+        special30CategoryIds: categoryIds.slice(), special30TimeLimitMinutes: Number(timeLimitMinutes),
+        attemptNo: state.quiz.attemptNo, lastUpdated: new Date().toISOString()
+      };
+      state.currentScreen = 'quiz';
+      saveLocalCache(); saveProgress('in-progress'); render(); startQuestionClock();
+      if (state.timerInterval) clearInterval(state.timerInterval);
+      state.quiz.timerStartedAt = Date.now();
+      state.timerInterval = setInterval(() => {
+        if (state.currentScreen !== 'quiz') { clearInterval(state.timerInterval); state.timerInterval = null; return; }
+        state.quiz.timeSpent = Math.floor((Date.now() - state.quiz.timerStartedAt) / 1000);
+        const limit = Number(state.quiz.special30TimeLimitMinutes || 0) * 60;
+        const display = document.getElementById('timer-display');
+        if (display) display.textContent = formatTime(Math.max(0, limit - state.quiz.timeSpent));
+        if (limit > 0 && state.quiz.timeSpent >= limit) {
+          clearInterval(state.timerInterval); state.timerInterval = null;
+          showToast('Time is up. Your Special 30 test has been submitted.', 'error');
+          handleFinalSubmit();
+        }
+      }, 250);
+    }
+
     window.startQuiz = (categoryId) => {
+      if (categoryId === 'special30') {
+        if (!isTestUnlocked('special30')) { showToast('Tap Buy Special 30 first to unlock it for 150 🪙.', 'error'); return; }
+        const progress = getProgress('special30');
+        if (progress?.status === 'completed') {
+          state.activeCategory = 'special30';
+          if (progress.questionSet?.length) quizData.special30.questions = progress.questionSet.map(q => ({...q}));
+          state.currentScreen = 'review';
+          render();
+          return;
+        }
+        if (progress?.status === 'in-progress' && Array.isArray(progress.questionSet) && progress.questionSet.length === 30) {
+          quizData.special30.questions = progress.questionSet.map(q => ({...q}));
+          state.activeCategory = 'special30';
+          state.quiz = { answers:{...(progress.answers||{})}, currentIndex:Number(progress.currentQuestionIndex||0), timeSpent:Number(progress.timeSpent||0), timeByQuestion:{...(progress.timeByQuestion||{})}, questionSet:quizData.special30.questions.map(q=>({...q})), special30CategoryIds:progress.special30CategoryIds||[], special30TimeLimitMinutes:Number(progress.special30TimeLimitMinutes||15), pendingCoinRewards:{}, super10PendingRewards:{} };
+          state.currentScreen='quiz'; render();
+          if(state.timerInterval) clearInterval(state.timerInterval);
+          state.quiz.timerStartedAt = Date.now() - state.quiz.timeSpent*1000;
+          state.timerInterval=setInterval(()=>{ const limit=Number(state.quiz.special30TimeLimitMinutes||15)*60; state.quiz.timeSpent=Math.floor((Date.now()-state.quiz.timerStartedAt)/1000); const el=document.getElementById('timer-display'); if(el) el.textContent=formatTime(Math.max(0,limit-state.quiz.timeSpent)); if(state.quiz.timeSpent>=limit){clearInterval(state.timerInterval);state.timerInterval=null;showToast('Time is up. Your Special 30 test has been submitted.','error');handleFinalSubmit();}},250);
+          return;
+        }
+        showSpecial30Picker();
+        return;
+      }
       if(categoryId==='all_govt_exam'){
         const saved=getProgress('all_govt_exam');
         if(saved?.questionSet && Array.isArray(saved.questionSet) && saved.questionSet.length>=100){
@@ -2522,6 +2783,9 @@ function scheduleFirebaseRetry() {
           });
           window.allGovtExam=window.quizData.all_govt_exam;
         }
+      }
+      if (categoryId === 'super10') {
+        if (!isTestUnlocked('super10')) { showToast('Tap Buy Super10 first to unlock it for 50 🪙.', 'error'); return; }
       }
       if (state.timerInterval) clearInterval(state.timerInterval);
 
@@ -2596,6 +2860,11 @@ function scheduleFirebaseRetry() {
     };
 
     window.reattemptQuiz = (categoryId) => {
+      if (categoryId === 'special30') {
+        if (!isTestUnlocked('special30')) { showToast('Tap Buy Special 30 first to unlock it for 150 🪙.', 'error'); return; }
+        showSpecial30Picker();
+        return;
+      }
       const COST = 20;
 
       // Validate category first so coins are never charged for an invalid test.
@@ -3055,8 +3324,9 @@ function scheduleFirebaseRetry() {
         <div id="dashboard-category-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
           ${Object.values(quizData).map(cat => {
             const prog = getProgress(cat.id);
+            const dashboardQuestions = (cat.id === 'special30' && Array.isArray(prog?.questionSet) && prog.questionSet.length) ? prog.questionSet : cat.questions;
             const attempted = prog?.answers ? Object.keys(prog.answers).length : 0;
-            const total = cat.questions.length;
+            const total = cat.id === 'special30' ? 30 : dashboardQuestions.length;
             const percent = Math.round((attempted / total) * 100) || 0;
             const completed = prog?.status === 'completed';
             const inProgress = attempted > 0 && !completed;
@@ -3064,7 +3334,8 @@ function scheduleFirebaseRetry() {
             const bestAttempt = history.length ? history.reduce((best, a) => Number(a.score || 0) > Number(best.score || 0) ? a : best, history[0]) : null;
             let mini = '';
             if (completed) {
-              const r = calculateResult(cat, prog.answers || {}, prog.timeByQuestion || {}, prog.timeSpent || 0);
+              const resultCat = cat.id === 'special30' ? { ...cat, questions: dashboardQuestions } : cat;
+              const r = calculateResult(resultCat, prog.answers || {}, prog.timeByQuestion || {}, prog.timeSpent || 0);
               const bestScore = bestAttempt ? Number(bestAttempt.score || 0) : r.overallPercentage;
               mini = `<div class="grid grid-cols-3 gap-2 mb-4">
                 <div class="bg-green-50 rounded-lg p-2 text-center"><b class="text-green-700">${r.correct}</b><div class="text-[10px] text-gray-500">Correct</div></div>
@@ -3077,10 +3348,10 @@ function scheduleFirebaseRetry() {
             }
             return `<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative overflow-hidden">
               <div class="flex items-start justify-between mb-4"><div class="p-3 rounded-xl text-white bg-${cat.color}-600 shadow-sm"><i data-lucide="${cat.icon}" class="w-7 h-7"></i></div>${completed ? '<span class="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full">Completed</span>' : ''}</div>
-              <h3 class="text-xl font-bold text-gray-900 mb-2">${cat.title}</h3><p class="text-sm text-gray-500 mb-5">${total} ${cat.id === 'super10' ? 'random questions from all categories' : 'curated questions'}</p>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">${cat.title}</h3><p class="text-sm text-gray-500 mb-5">${cat.id === 'special30' ? '30 random questions • choose up to 2 categories • timed test' : `${total} ${cat.id === 'super10' ? 'random questions from all categories' : 'curated questions'}`}</p>
               ${inProgress ? `<div class="mb-5"><div class="flex justify-between text-xs mb-1.5 font-medium"><span>Progress</span><span class="text-blue-600">${attempted} / ${total}</span></div><div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full bg-blue-500" style="width:${percent}%"></div></div></div>` : ''}
               ${mini}
-              ${completed ? `<div class="grid grid-cols-2 gap-2"><button onclick="reattemptQuiz('${cat.id}')" class="btn btn-primary w-full">🔄 Re-attempt <span class="reattempt-fee-badge">−20 🪙</span></button><button onclick="startQuiz('${cat.id}')" class="btn btn-outline w-full">View Results</button></div>` : `<button onclick="startQuiz('${cat.id}')" class="btn btn-primary w-full">${inProgress ? '▶ Resume Test' : 'Start Test'}</button>`}
+              ${completed ? `<div class="grid grid-cols-2 gap-2"><button onclick="reattemptQuiz('${cat.id}')" class="btn btn-primary w-full flex items-center justify-center gap-2 whitespace-nowrap">🔄 <span>Re-attempt</span><span class="reattempt-fee-badge inline-flex items-center whitespace-nowrap">−20 🪙</span></button><button onclick="startQuiz('${cat.id}')" class="btn btn-outline w-full">View Results</button></div>` : (cat.id === 'special30' && !isTestUnlocked('special30') ? `<button onclick="buyPaidTest('special30')" class="btn btn-primary w-full">🛒 Buy Special 30 · 150 🪙</button>` : (cat.id === 'super10' && !isTestUnlocked('super10') ? `<button onclick="buyPaidTest('super10')" class="btn btn-primary w-full">🛒 Buy Super10 · 50 🪙</button>` : `<button onclick="startQuiz('${cat.id}')" class="btn btn-primary w-full">${inProgress ? '▶ Resume Test' : (cat.id === 'special30' ? '🎯 Choose Test' : 'Start Test')}</button>`))}
             </div>`;
           }).join('')}
         </div>
@@ -3098,7 +3369,7 @@ function scheduleFirebaseRetry() {
       return `<div class="max-w-3xl mx-auto slide-up">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6 sticky top-20 z-10">
           <div class="flex items-center justify-between gap-3">
-            <div id="timer-display" class="font-mono font-bold text-gray-800 flex items-center gap-2"><i data-lucide="clock" class="text-blue-500 w-4 h-4"></i>${formatTime(state.quiz.timeSpent)}</div>
+            <div id="timer-display" class="font-mono font-bold ${state.activeCategory === 'special30' ? 'text-rose-600' : 'text-gray-800'} flex items-center gap-2"><i data-lucide="clock" class="${state.activeCategory === 'special30' ? 'text-rose-500' : 'text-blue-500'} w-4 h-4"></i>${state.activeCategory === 'special30' ? formatTime(Math.max(0, Number(state.quiz.special30TimeLimitMinutes || 15) * 60 - Number(state.quiz.timeSpent || 0))) : formatTime(state.quiz.timeSpent)}</div>
             <div class="text-sm text-gray-500">Attempted: <span class="font-bold text-gray-900">${answeredCount}</span> / ${total}</div>
           </div>
           <div class="mt-3 flex items-center justify-between text-xs"><span class="text-gray-500">This question</span><b id="question-time" class="text-blue-600">${formatSeconds(currentTime)}</b></div>
