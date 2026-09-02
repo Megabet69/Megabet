@@ -2062,6 +2062,7 @@ body.quiz-active{overflow-x:hidden}
       profile: null,
       currentScreen: 'loading',
       learnCategoryId: null,
+      memory: null,
       activeCategory: null,
       progressData: {},
       quiz: {
@@ -3320,6 +3321,200 @@ function scheduleFirebaseRetry() {
     setInterval(refreshHeaderCoinBalance, 500);
 
 
+
+    function getMemoryCategories() {
+      return Object.values(quizData).filter(cat =>
+        cat && cat.id !== 'special30' && cat.id !== 'super10' && cat.id !== 'all_govt_exam' &&
+        Array.isArray(cat.questions) && cat.questions.length > 0
+      );
+    }
+
+    function memoryUnlockKey() {
+      let id = 'guest';
+      try {
+        id = (typeof window.getClientId === 'function' && window.getClientId()) ||
+             localStorage.getItem('userId') ||
+             (window.currentUser && window.currentUser.uid) || 'guest';
+      } catch(e) {}
+      return 'porisram77_memory_mode_unlocked:' + String(id);
+    }
+
+    function isMemoryUnlocked() {
+      try { return localStorage.getItem(memoryUnlockKey()) === '1'; } catch(e) { return false; }
+    }
+
+    window.buyMemoryMode = () => {
+      if (isMemoryUnlocked()) {
+        window.openMemoryPicker();
+        return;
+      }
+      const COST = 500;
+      if (!window.coinSystem || typeof window.coinSystem.balance !== 'function' ||
+          typeof window.coinSystem.award !== 'function') {
+        if (typeof window.showToast === 'function') window.showToast('Coin system is unavailable.', 'error');
+        return;
+      }
+      const balance = Number(window.coinSystem.balance());
+      if (!Number.isFinite(balance) || balance < COST) {
+        if (typeof window.showToast === 'function') window.showToast('You need 500 🪙 to unlock Memory Mode.', 'error');
+        return;
+      }
+
+      const ok = window.confirm('Unlock Memory Mode for 500 🪙? This is a one-time purchase.');
+      if (!ok) return;
+
+      let charged = false;
+      try {
+        const result = Number(window.coinSystem.award(
+          -COST,
+          'Memory Mode unlock',
+          'memory-mode-unlock:' + Date.now() + ':' + Math.random().toString(36).slice(2)
+        ));
+        charged = result === -COST;
+      } catch(e) {
+        console.error('Memory Mode unlock charge failed:', e);
+      }
+
+      if (!charged) {
+        if (typeof window.showToast === 'function') window.showToast('Purchase failed. No coins were deducted.', 'error');
+        return;
+      }
+
+      try { localStorage.setItem(memoryUnlockKey(), '1'); } catch(e) {}
+      if (typeof window.showToast === 'function') window.showToast('Memory Mode unlocked permanently!', 'success');
+      window.openMemoryPicker();
+    };
+
+    window.openMemoryPicker = () => {
+      if (!isMemoryUnlocked()) { window.buyMemoryMode(); return; }
+      const old = document.getElementById('memory-picker');
+      if (old) old.remove();
+      const cats = getMemoryCategories();
+      const overlay = document.createElement('div');
+      overlay.id = 'memory-picker';
+      overlay.className = 'fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4';
+      overlay.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+          <div class="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <div class="inline-flex items-center gap-2 rounded-full bg-violet-50 text-violet-700 px-3 py-1 text-xs font-bold">🧠 MEMORY MODE</div>
+              <h3 class="text-2xl font-extrabold text-gray-900 mt-2">Choose a category</h3>
+              <p class="text-sm text-gray-500 mt-1">Study one question at a time and try to remember the answer before revealing it.</p>
+            </div>
+            <button type="button" id="memory-close" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
+          </div>
+          <div class="space-y-2">
+            ${cats.map(cat => `
+              <button type="button" class="memory-category w-full flex items-center gap-3 border border-gray-200 rounded-xl p-3 text-left hover:border-violet-400 hover:bg-violet-50/50 transition" data-id="${escapeHtml(cat.id)}">
+                <div class="w-10 h-10 rounded-lg bg-${cat.color}-100 text-${cat.color}-700 flex items-center justify-center shrink-0"><i data-lucide="${cat.icon}" class="w-5 h-5"></i></div>
+                <div class="min-w-0 flex-1"><div class="font-bold text-gray-900">${escapeHtml(cat.title)}</div><div class="text-xs text-gray-500">${cat.questions.length} questions • Memory practice</div></div>
+                <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i>
+              </button>
+            `).join('')}
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      if (window.lucide) window.lucide.createIcons();
+      overlay.querySelector('#memory-close').onclick = () => overlay.remove();
+      overlay.addEventListener('click', e => {
+        const btn = e.target.closest('.memory-category');
+        if (!btn) return;
+        overlay.remove();
+        window.startMemory(btn.dataset.id);
+      });
+    };
+
+    window.startMemory = (categoryId) => {
+      const cat = quizData[categoryId];
+      if (!cat || !Array.isArray(cat.questions) || !cat.questions.length) {
+        showToast('This memory category is not available.', 'error');
+        return;
+      }
+      const questions = cat.questions.map(q => ({...q}));
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+      state.memory = {
+        categoryId,
+        questions,
+        currentIndex: 0,
+        revealed: false
+      };
+      state.currentScreen = 'memory';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      render();
+    };
+
+    window.revealMemoryAnswer = () => {
+      if (!state.memory) return;
+      state.memory.revealed = true;
+      render();
+    };
+
+    window.nextMemoryQuestion = () => {
+      if (!state.memory) return;
+      if (state.memory.currentIndex < state.memory.questions.length - 1) {
+        state.memory.currentIndex++;
+        state.memory.revealed = false;
+        render();
+      } else {
+        showToast('Memory practice completed!', 'success');
+        window.exitMemory();
+      }
+    };
+
+    window.exitMemory = () => {
+      state.memory = null;
+      state.currentScreen = 'dashboard';
+      render();
+    };
+
+    function renderMemory() {
+      const m = state.memory;
+      if (!m || !m.questions.length) { state.currentScreen = 'dashboard'; return renderDashboard(); }
+      const cat = quizData[m.categoryId];
+      const q = m.questions[m.currentIndex];
+      const correctOpt = Array.isArray(q.options) ? q.options.find(o => o.id === q.correct) : null;
+      const answer = correctOpt ? correctOpt.text : (q.answer || q.correct || 'Answer not provided');
+      return `<div class="max-w-3xl mx-auto fade-in">
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <div>
+            <div class="inline-flex items-center gap-2 rounded-full bg-violet-50 text-violet-700 px-3 py-1 text-xs font-bold">🧠 MEMORY MODE</div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-2">${escapeHtml(cat.title)}</h2>
+            <p class="text-sm text-gray-500 mt-1">Try to remember the answer before revealing it.</p>
+          </div>
+          <button onclick="exitMemory()" class="btn btn-outline shrink-0">← Exit</button>
+        </div>
+
+        <div class="mb-4 flex items-center justify-between text-sm font-semibold text-gray-500">
+          <span>Question ${m.currentIndex + 1} of ${m.questions.length}</span>
+          <span>Memory Practice</span>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+          <div class="text-xs font-extrabold uppercase tracking-wide text-violet-600 mb-3">Remember this</div>
+          <h3 class="text-xl sm:text-2xl font-bold text-gray-900 leading-relaxed">${escapeHtml(q.text)}</h3>
+
+          ${m.revealed ? `
+            <div class="mt-7 rounded-2xl bg-emerald-50 border border-emerald-200 p-5">
+              <div class="text-xs font-extrabold uppercase tracking-wide text-emerald-700 mb-2">✓ Answer</div>
+              <div class="text-lg font-bold text-emerald-950">${escapeHtml(answer)}</div>
+              ${q.explanation ? `<div class="mt-3 text-sm text-gray-600"><span class="font-bold text-gray-800">Explanation:</span> ${escapeHtml(q.explanation)}</div>` : ''}
+            </div>
+            <button onclick="nextMemoryQuestion()" class="btn btn-primary w-full mt-5">${m.currentIndex === m.questions.length - 1 ? 'Finish Memory Mode' : 'Next Question →'}</button>
+          ` : `
+            <div class="mt-7 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-7 text-center">
+              <div class="text-4xl mb-2">🧠</div>
+              <p class="font-semibold text-gray-700">Think of the answer first.</p>
+              <p class="text-sm text-gray-500 mt-1">When you are ready, reveal the answer.</p>
+              <button onclick="revealMemoryAnswer()" class="btn btn-primary mt-5">👁️ Reveal Answer</button>
+            </div>
+          `}
+        </div>
+      </div>`;
+    }
+
     function getLearnCategories() {
       return Object.values(quizData).filter(cat =>
         cat && cat.id !== 'special30' && cat.id !== 'super10' && cat.id !== 'all_govt_exam' &&
@@ -3479,6 +3674,20 @@ function scheduleFirebaseRetry() {
     function renderDashboard() {
       return `<div class="fade-in">
         <div class="mb-8"><h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Hello, ${escapeHtml(state.profile.name)}! 👋</h2><p class="text-gray-600 mt-1">Select a category to start or resume your test.</p></div>
+
+          <div id="memory-mode-dashboard-card" class="mb-6 bg-white rounded-2xl shadow-sm border border-violet-200 p-6 relative overflow-hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 text-2xl">🧠</div>
+                <div>
+                  <h3 class="text-xl font-extrabold text-gray-900">Memory Mode</h3>
+                  <p class="text-sm text-gray-500 mt-1">Choose one category, remember the answer, then reveal it.</p>
+                </div>
+              </div>
+              ${isMemoryUnlocked() ? '<button onclick="openMemoryPicker()" class="btn btn-primary shrink-0 bg-violet-600 hover:bg-violet-700 border-violet-600">🧠 Start Memory Mode</button>' : '<button onclick="buyMemoryMode()" class="btn btn-primary shrink-0 bg-violet-600 hover:bg-violet-700 border-violet-600">🛒 Buy · 500 🪙</button>'}
+            </div>
+          </div>
+
         <div id="dashboard-category-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6 relative overflow-hidden">
             <div class="flex items-start justify-between mb-4"><div class="p-3 rounded-xl text-white bg-emerald-600 shadow-sm"><i data-lucide="graduation-cap" class="w-7 h-7"></i></div><span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">Study</span></div>
@@ -4778,6 +4987,8 @@ function scheduleFirebaseRetry() {
         content = renderDashboard();
       } else if (state.currentScreen === 'learn') {
         content = renderLearn();
+      } else if (state.currentScreen === 'memory') {
+        content = renderMemory();
 
       } else if (state.currentScreen === 'profile') {
         const stats = getProfileStats();
