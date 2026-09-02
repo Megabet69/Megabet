@@ -2263,8 +2263,43 @@ body.quiz-active{overflow-x:hidden}
 
       state.progressData = data.progress || {};
       saveLocalCache();
+      startLiveProgressListener();
       setFirebaseStatus("online");
       return true;
+    }
+
+    // LIVE FIREBASE PROGRESS SYNC: keep the UI updated automatically without
+    // requiring a manual browser refresh. Firebase remains the only source of truth.
+    let progressValueListener = null;
+    let progressRenderTimer = null;
+
+    function startLiveProgressListener() {
+      try {
+        if (progressValueListener) {
+          try { userRoot().child("progress").off("value", progressValueListener); } catch (e) {}
+        }
+        progressValueListener = snapshot => {
+          const remote = snapshot.val() || {};
+          state.progressData = remote;
+          setFirebaseStatus("online");
+
+          // Never interrupt an active quiz by re-rendering the question.
+          // The current quiz already has the same state in memory and its
+          // writes are serialized. Dashboard/review/history update instantly.
+          if (state.currentScreen !== "quiz") {
+            clearTimeout(progressRenderTimer);
+            progressRenderTimer = setTimeout(() => {
+              if (state.currentScreen !== "quiz") render();
+            }, 0);
+          }
+        };
+        userRoot().child("progress").on("value", progressValueListener, error => {
+          console.warn("Live Firebase progress listener error:", error);
+          setFirebaseStatus("offline");
+        });
+      } catch (e) {
+        console.warn("Could not start live progress listener:", e);
+      }
     }
 
     async function saveProfileData() {
