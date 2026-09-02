@@ -917,6 +917,14 @@ body.quiz-active{overflow-x:hidden}
 }
 </style>
 
+
+<style id="medium-selector-style">
+#medium-selector{font-weight:800;min-width:100px;}
+@media(max-width:640px){
+  #medium-selector{min-width:88px!important;font-size:11px!important;padding-left:6px!important;padding-right:6px!important;}
+  header label:has(#medium-selector)>span{display:none;}
+}
+</style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -2060,6 +2068,7 @@ body.quiz-active{overflow-x:hidden}
 
     const state = {
       profile: null,
+      medium: 'en',
       currentScreen: 'loading',
       learnCategoryId: null,
       memory: null,
@@ -2192,6 +2201,7 @@ body.quiz-active{overflow-x:hidden}
       try {
         const cache = {
           profile: state.profile || null,
+          medium: state.medium || 'en',
           currentScreen: state.currentScreen,
           activeCategory: state.activeCategory,
           progressData: state.progressData || {},
@@ -2219,6 +2229,7 @@ body.quiz-active{overflow-x:hidden}
         if (!cache || typeof cache !== "object") return false;
 
         if (cache.profile) state.profile = cache.profile;
+        state.medium = (cache.medium === 'as' || cache.medium === 'en') ? cache.medium : ((state.profile && state.profile.medium === 'as') ? 'as' : 'en');
         if (cache.progressData) state.progressData = cache.progressData;
         if (cache.activeCategory) state.activeCategory = cache.activeCategory;
 
@@ -2249,12 +2260,42 @@ body.quiz-active{overflow-x:hidden}
       const snapshot = await userRoot().once("value");
       const data = snapshot.val() || {};
 
-      // Firebase is authoritative when available.
+      // Merge Firebase with the local cache instead of blindly replacing it.
+      // This prevents a just-completed Super10/Special30 attempt from being
+      // lost when the browser refreshes while an older Firebase snapshot is
+      // still being returned. Newer progress wins per category.
       state.profile = data.profile || state.profile || null;
-      state.progressData = data.progress || state.progressData || {};
+      state.medium = (state.profile && state.profile.medium === 'as') ? 'as' : ((state.medium === 'as') ? 'as' : 'en');
+      const remoteProgress = data.progress || {};
+      const localProgress = state.progressData || {};
+      const mergedProgress = { ...remoteProgress };
+      Object.keys(localProgress).forEach(catId => {
+        const local = localProgress[catId];
+        const remote = remoteProgress[catId];
+        if (!remote) {
+          mergedProgress[catId] = local;
+          return;
+        }
+        const localTime = Date.parse(local?.lastUpdated || local?.updatedAt || '') || 0;
+        const remoteTime = Date.parse(remote?.lastUpdated || remote?.updatedAt || '') || 0;
+        if (localTime > remoteTime) mergedProgress[catId] = local;
+      });
+      state.progressData = mergedProgress;
 
       saveLocalCache();
       setFirebaseStatus("online");
+
+      // If local data is newer than Firebase, push that category back in the
+      // background so the next device/refresh also gets the latest history.
+      const syncTasks = [];
+      Object.keys(localProgress).forEach(catId => {
+        const local = localProgress[catId];
+        const remote = remoteProgress[catId];
+        const localTime = Date.parse(local?.lastUpdated || local?.updatedAt || '') || 0;
+        const remoteTime = Date.parse(remote?.lastUpdated || remote?.updatedAt || '') || 0;
+        if (local && localTime > remoteTime) syncTasks.push(saveFirebaseProgress(catId, local));
+      });
+      if (syncTasks.length) Promise.allSettled(syncTasks).catch(() => {});
       return true;
     }
 
@@ -2266,7 +2307,7 @@ body.quiz-active{overflow-x:hidden}
         place: String(state.profile.place || ""),
         avatar: String(state.profile.avatar || "😀"),
         bio: String(state.profile.bio || ""),
-        bio: String(state.profile.bio || ""),
+        medium: state.medium === 'as' ? 'as' : 'en',
         createdAt: state.profile.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -2388,6 +2429,83 @@ function scheduleFirebaseRetry() {
         .replace(/'/g, '&#039;');
     }
 
+    // ---------------- QUESTION MEDIUM / ASSAMESE ----------------
+    // Only the question text is translated. Options, answers and explanations
+    // intentionally remain unchanged, as requested. Translations are cached
+    // locally so the same question is never translated twice on the device.
+    const ASSAMESE_TRANSLATION_CACHE_KEY = 'porisram_assamese_question_translations_v1';
+    let assameseTranslationCache = {};
+    try {
+      const raw = localStorage.getItem(ASSAMESE_TRANSLATION_CACHE_KEY);
+      if (raw) assameseTranslationCache = JSON.parse(raw) || {};
+    } catch (e) {}
+
+    function saveAssameseTranslationCache() {
+      try { localStorage.setItem(ASSAMESE_TRANSLATION_CACHE_KEY, JSON.stringify(assameseTranslationCache)); } catch (e) {}
+    }
+
+    function questionTranslationKey(text) {
+      return String(text || '').trim();
+    }
+
+    async function translateQuestionToAssamese(text) {
+      const key = questionTranslationKey(text);
+      if (!key) return '';
+      if (assameseTranslationCache[key]) return assameseTranslationCache[key];
+      try {
+        const params = new URLSearchParams({ client:'gtx', sl:'en', tl:'as', dt:'t', q:key });
+        const response = await fetch('https://translate.googleapis.com/translate_a/single?' + params.toString(), { cache:'force-cache' });
+        if (!response.ok) throw new Error('Translation request failed');
+        const data = await response.json();
+        const translated = Array.isArray(data) && Array.isArray(data[0])
+          ? data[0].map(part => Array.isArray(part) ? (part[0] || '') : '').join('')
+          : '';
+        if (!translated) throw new Error('Empty translation');
+        assameseTranslationCache[key] = translated;
+        saveAssameseTranslationCache();
+        return translated;
+      } catch (e) {
+        console.warn('Assamese question translation unavailable:', e);
+        return '';
+      }
+    }
+
+    const pendingAssameseTranslations = new Map();
+    function ensureAssameseQuestion(q) {
+      if (!q || state.medium !== 'as') return;
+      const key = questionTranslationKey(q.text);
+      if (!key || assameseTranslationCache[key] || pendingAssameseTranslations.has(key)) return;
+      const task = translateQuestionToAssamese(key).finally(() => {
+        pendingAssameseTranslations.delete(key);
+        if (state.medium === 'as' && state.currentScreen === 'quiz') render();
+      });
+      pendingAssameseTranslations.set(key, task);
+    }
+
+    function getQuestionDisplayText(q) {
+      if (!q) return '';
+      if (state.medium !== 'as') return q.text;
+      const key = questionTranslationKey(q.text);
+      const translated = assameseTranslationCache[key];
+      if (translated) return translated;
+      ensureAssameseQuestion(q);
+      return 'অসমীয়া অনুবাদ লোড হৈ আছে…';
+    }
+
+    window.changeMedium = async function(medium) {
+      state.medium = medium === 'as' ? 'as' : 'en';
+      state.profile = { ...(state.profile || {}), medium: state.medium };
+      saveLocalCache();
+      render();
+      try {
+        await userRoot().child('profile').child('medium').set(state.medium);
+      } catch (e) { console.warn('Medium preference sync failed:', e); }
+      if (state.medium === 'as' && state.currentScreen === 'quiz') {
+        const q = getCurrentQuestion();
+        ensureAssameseQuestion(q);
+      }
+    };
+
     function calculateResult(cat, answers, timeByQuestion = {}, totalTime = 0) {
       const total = cat.questions.length;
       const attemptedQuestions = cat.questions.filter(q => answers[q.id]);
@@ -2443,11 +2561,12 @@ function scheduleFirebaseRetry() {
         timeSpent: state.quiz.timeSpent,
         timeByQuestion: { ...state.quiz.timeByQuestion },
         attemptHistory: Array.isArray(existing.attemptHistory) ? existing.attemptHistory : [],
+        questionSet: Array.isArray(state.quiz.questionSet) && state.quiz.questionSet.length
+          ? state.quiz.questionSet.map(q => ({...q}))
+          : (quizData[state.activeCategory]?.questions || []).map(q => ({...q})),
+        attemptNo: Number(state.quiz.attemptNo || existing.attemptNo || 1),
         lastUpdated: new Date().toISOString()
       };
-      if(state.activeCategory==='all_govt_exam' && window.quizData && window.quizData.all_govt_exam){
-        data.questionSet=window.quizData.all_govt_exam.questions.map(q=>({...q}));
-      }
       if (status) data.status = status;
       return data;
     }
@@ -2809,6 +2928,10 @@ function scheduleFirebaseRetry() {
       state.quiz.timeSpent = Number(progress?.timeSpent || 0);
       state.quiz.timeByQuestion = { ...(progress?.timeByQuestion || {}) };
       state.quiz.currentIndex = Number.isInteger(progress?.currentQuestionIndex) ? progress.currentQuestionIndex : 0;
+      state.quiz.questionSet = (Array.isArray(progress?.questionSet) && progress.questionSet.length)
+        ? progress.questionSet.map(q => ({...q}))
+        : cat.questions.map(q => ({...q}));
+      state.quiz.attemptNo = Number(progress?.attemptNo || (Array.isArray(progress?.attemptHistory) ? progress.attemptHistory.length + 1 : 1));
 
       // A completed test opens directly in review mode.
       if (progress?.status === 'completed') {
@@ -3171,6 +3294,41 @@ function scheduleFirebaseRetry() {
       }
 
 
+      // Persist a permanent attempt record. Previously the completed result
+      // was saved without appending to attemptHistory, so Super10/Special30
+      // history disappeared after refresh or was always empty.
+      const previousProgress = getProgress(categoryId) || {};
+      const previousHistory = Array.isArray(previousProgress.attemptHistory) ? previousProgress.attemptHistory : [];
+      const attemptRecord = {
+        attemptNo: Number(state.quiz.attemptNo || previousHistory.length + 1),
+        score: Number(result.overallPercentage) || 0,
+        accuracy: Number(result.accuracy) || 0,
+        correct: Number(result.correct) || 0,
+        wrong: Number(result.wrong) || 0,
+        skipped: Number(result.skipped) || 0,
+        attempted: Number(result.attempted) || 0,
+        total: Number(result.total) || 0,
+        totalTime: Number(result.totalTime) || 0,
+        answers: { ...(state.quiz.answers || {}) },
+        timeByQuestion: { ...(state.quiz.timeByQuestion || {}) },
+        questionSet: (Array.isArray(state.quiz.questionSet) && state.quiz.questionSet.length
+          ? state.quiz.questionSet
+          : cat.questions).map(q => ({...q})),
+        completedAt: Date.now()
+      };
+      state.progressData[categoryId] = {
+        ...previousProgress,
+        status: 'completed',
+        answers: { ...(state.quiz.answers || {}) },
+        currentQuestionIndex: state.quiz.currentIndex,
+        timeSpent: state.quiz.timeSpent,
+        timeByQuestion: { ...(state.quiz.timeByQuestion || {}) },
+        questionSet: attemptRecord.questionSet,
+        attemptNo: attemptRecord.attemptNo,
+        attemptHistory: [...previousHistory, attemptRecord],
+        lastUpdated: new Date().toISOString()
+      };
+      saveLocalCache();
       saveProgress('completed');
       state.currentScreen = 'review';
       render();
@@ -3305,6 +3463,13 @@ function scheduleFirebaseRetry() {
             <span class="text-gray-300 header-divider header-place-divider">|</span>
             <span id="header-coin-balance" class="inline-flex items-center gap-1 font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full header-coin" title="Your coins">${window.coinSystem && typeof window.coinSystem.balance === 'function' ? window.coinSystem.balance() : 0} 🪙</span>
           </div>
+          <label class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500">
+            <span>Medium</span>
+            <select id="medium-selector" aria-label="Question medium" onchange="changeMedium(this.value)" class="!min-h-[38px] !py-1.5 !px-2 !rounded-lg !text-xs !font-bold !bg-white !border-gray-200">
+              <option value="en" ${state.medium === 'en' ? 'selected' : ''}>English</option>
+              <option value="as" ${state.medium === 'as' ? 'selected' : ''}>অসমীয়া</option>
+            </select>
+          </label>
           ${state.currentScreen !== 'dashboard' ? `<button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="goDashboard()">Dashboard</button>` : ''}
           ${state.currentScreen !== 'profile' && state.currentScreen !== 'welcome' && state.currentScreen !== 'loading' ? `<button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="showProfile()"><i data-lucide="user" class="w-4 h-4"></i> Profile</button>` : ''}`;
         lucide.createIcons();
@@ -3795,7 +3960,7 @@ function scheduleFirebaseRetry() {
         </div>
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8 mb-6">
           <span class="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">Question ${state.quiz.currentIndex + 1} of ${total}</span>
-          <h2 class="text-xl font-semibold text-gray-900 my-6">${escapeHtml(q.text)}</h2>
+          <h2 class="text-xl font-semibold text-gray-900 my-6" lang="${state.medium === 'as' ? 'as' : 'en'}">${escapeHtml(getQuestionDisplayText(q))}</h2>
           <div class="space-y-3">${q.options.map(opt => {
             const selected = currentAnswer === opt.id;
             return `<label class="flex items-center p-4 border-2 rounded-xl cursor-pointer ${selected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}"><input type="radio" name="${q.id}" class="hidden" ${selected ? 'checked' : ''} onchange="handleOptionSelect('${opt.id}')"/><span class="${selected ? 'font-medium text-blue-900' : 'text-gray-700'}">${escapeHtml(opt.text)}</span></label>`;
