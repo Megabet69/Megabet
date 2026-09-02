@@ -2061,6 +2061,7 @@ body.quiz-active{overflow-x:hidden}
     const state = {
       profile: null,
       currentScreen: 'loading',
+      learnCategoryId: null,
       activeCategory: null,
       progressData: {},
       quiz: {
@@ -3318,10 +3319,172 @@ function scheduleFirebaseRetry() {
     }
     setInterval(refreshHeaderCoinBalance, 500);
 
+
+    function getLearnCategories() {
+      return Object.values(quizData).filter(cat =>
+        cat && cat.id !== 'special30' && cat.id !== 'super10' && cat.id !== 'all_govt_exam' &&
+        Array.isArray(cat.questions) && cat.questions.length > 0
+      );
+    }
+
+    function learnUnlockKey() {
+      let id = 'guest';
+      try {
+        id = (typeof window.getClientId === 'function' && window.getClientId()) ||
+             localStorage.getItem('userId') ||
+             (window.currentUser && window.currentUser.uid) || 'guest';
+      } catch(e) {}
+      return 'porisram77_learn_unlocked:' + String(id);
+    }
+
+    function isLearnUnlocked() {
+      try { return localStorage.getItem(learnUnlockKey()) === '1'; } catch(e) { return false; }
+    }
+
+    window.buyLearn = () => {
+      if (isLearnUnlocked()) {
+        window.openLearnPicker();
+        return;
+      }
+      const COST = 5000;
+      if (!window.coinSystem || typeof window.coinSystem.balance !== 'function' ||
+          typeof window.coinSystem.award !== 'function') {
+        if (typeof window.showToast === 'function') window.showToast('Coin system is unavailable.', 'error');
+        return;
+      }
+      const balance = Number(window.coinSystem.balance());
+      if (!Number.isFinite(balance) || balance < COST) {
+        if (typeof window.showToast === 'function') window.showToast('You need 5000 🪙 to unlock Learn.', 'error');
+        return;
+      }
+
+      const ok = window.confirm('Unlock Learn for 5000 🪙? This is a one-time purchase.');
+      if (!ok) return;
+
+      let charged = false;
+      try {
+        const result = Number(window.coinSystem.award(
+          -COST,
+          'Learn unlock',
+          'learn-unlock:' + Date.now() + ':' + Math.random().toString(36).slice(2)
+        ));
+        charged = result === -COST;
+      } catch(e) {
+        console.error('Learn unlock charge failed:', e);
+      }
+
+      if (!charged) {
+        if (typeof window.showToast === 'function') window.showToast('Purchase failed. No coins were deducted.', 'error');
+        return;
+      }
+
+      try { localStorage.setItem(learnUnlockKey(), '1'); } catch(e) {}
+      if (typeof window.showToast === 'function') window.showToast('Learn unlocked permanently!', 'success');
+      window.openLearnPicker();
+    };
+
+    window.openLearnPicker = () => {
+      if (!isLearnUnlocked()) { window.buyLearn(); return; }
+      const old = document.getElementById('learn-picker');
+      if (old) old.remove();
+      const cats = getLearnCategories();
+      const overlay = document.createElement('div');
+      overlay.id = 'learn-picker';
+      overlay.className = 'fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4';
+      overlay.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+          <div class="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-bold">📚 LEARN</div>
+              <h3 class="text-2xl font-extrabold text-gray-900 mt-2">Choose a category</h3>
+              <p class="text-sm text-gray-500 mt-1">Select one category to study questions with their answers.</p>
+            </div>
+            <button type="button" id="learn-close" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
+          </div>
+          <div class="space-y-2">
+            ${cats.map(cat => `
+              <button type="button" class="learn-category w-full flex items-center gap-3 border border-gray-200 rounded-xl p-3 text-left hover:border-emerald-400 hover:bg-emerald-50/50 transition" data-id="${escapeHtml(cat.id)}">
+                <div class="w-10 h-10 rounded-lg bg-${cat.color}-100 text-${cat.color}-700 flex items-center justify-center shrink-0"><i data-lucide="${cat.icon}" class="w-5 h-5"></i></div>
+                <div class="min-w-0 flex-1"><div class="font-bold text-gray-900">${escapeHtml(cat.title)}</div><div class="text-xs text-gray-500">${cat.questions.length} questions • Learn with answers</div></div>
+                <i data-lucide="chevron-right" class="w-5 h-5 text-gray-400"></i>
+              </button>
+            `).join('')}
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      if (window.lucide) window.lucide.createIcons();
+      overlay.querySelector('#learn-close').onclick = () => overlay.remove();
+      overlay.addEventListener('click', e => {
+        const btn = e.target.closest('.learn-category');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        overlay.remove();
+        window.startLearn(id);
+      });
+    };
+
+    window.startLearn = (categoryId) => {
+      const cat = quizData[categoryId];
+      if (!cat || !Array.isArray(cat.questions) || !cat.questions.length) {
+        showToast('This learning category is not available.', 'error');
+        return;
+      }
+      state.learnCategoryId = categoryId;
+      state.currentScreen = 'learn';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      render();
+    };
+
+    window.exitLearn = () => {
+      state.learnCategoryId = null;
+      state.currentScreen = 'dashboard';
+      render();
+    };
+
+    function renderLearn() {
+      const cat = quizData[state.learnCategoryId];
+      if (!cat) { state.currentScreen = 'dashboard'; return renderDashboard(); }
+      return `<div class="max-w-5xl mx-auto fade-in">
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <div>
+            <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-bold">📚 LEARN MODE</div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-2">${escapeHtml(cat.title)}</h2>
+            <p class="text-gray-500 mt-1">Study the questions and answers directly. No test, no timer, no coins.</p>
+          </div>
+          <button onclick="exitLearn()" class="btn btn-outline shrink-0">← Back</button>
+        </div>
+        <div class="space-y-4">
+          ${cat.questions.map((q, i) => {
+            const correctOpt = Array.isArray(q.options) ? q.options.find(o => o.id === q.correct) : null;
+            const answer = correctOpt ? correctOpt.text : (q.answer || q.correct || 'Answer not provided');
+            return `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6">
+              <div class="flex items-start gap-3">
+                <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 font-extrabold text-sm">${i+1}</span>
+                <div class="min-w-0 flex-1">
+                  <h3 class="font-bold text-gray-900 leading-6">${escapeHtml(q.text)}</h3>
+                  <div class="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
+                    <div class="text-xs font-extrabold uppercase tracking-wide text-emerald-700 mb-1">✓ Answer</div>
+                    <div class="font-semibold text-emerald-950">${escapeHtml(answer)}</div>
+                  </div>
+                  ${q.explanation ? `<div class="mt-3 text-sm text-gray-600"><span class="font-bold text-gray-800">Explanation:</span> ${escapeHtml(q.explanation)}</div>` : ''}
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="mt-6 text-center"><button onclick="exitLearn()" class="btn btn-outline">← Choose Another Category</button></div>
+      </div>`;
+    }
+
     function renderDashboard() {
       return `<div class="fade-in">
         <div class="mb-8"><h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Hello, ${escapeHtml(state.profile.name)}! 👋</h2><p class="text-gray-600 mt-1">Select a category to start or resume your test.</p></div>
         <div id="dashboard-category-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6 relative overflow-hidden">
+            <div class="flex items-start justify-between mb-4"><div class="p-3 rounded-xl text-white bg-emerald-600 shadow-sm"><i data-lucide="graduation-cap" class="w-7 h-7"></i></div><span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">Study</span></div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Learn</h3><p class="text-sm text-gray-500 mb-5">Choose 1 category and study all questions with direct answers and explanations.</p>
+            ${isLearnUnlocked() ? '<button onclick="openLearnPicker()" class="btn btn-primary w-full bg-emerald-600 hover:bg-emerald-700 border-emerald-600">📚 Start Learning</button>' : '<button onclick="buyLearn()" class="btn btn-primary w-full bg-emerald-600 hover:bg-emerald-700 border-emerald-600">🛒 Buy Learn · 5000 🪙</button>'}
+          </div>
           ${Object.values(quizData).map(cat => {
             const prog = getProgress(cat.id);
             const dashboardQuestions = (cat.id === 'special30' && Array.isArray(prog?.questionSet) && prog.questionSet.length) ? prog.questionSet : cat.questions;
@@ -4613,6 +4776,8 @@ function scheduleFirebaseRetry() {
           </div>`;
       } else if (state.currentScreen === 'dashboard') {
         content = renderDashboard();
+      } else if (state.currentScreen === 'learn') {
+        content = renderLearn();
 
       } else if (state.currentScreen === 'profile') {
         const stats = getProfileStats();
