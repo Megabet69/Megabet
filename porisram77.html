@@ -2192,23 +2192,31 @@ body.quiz-active{overflow-x:hidden}
       }
     });
 
-    // ---------------- LOCAL UI CACHE (NO QUIZ PROGRESS) ----------------
-    // IMPORTANT: quiz progress/results are NEVER restored from localStorage.
-    // Firebase Realtime Database is the single source of truth for attempts.
-    const LOCAL_CACHE_KEY = "porisram_app_cache_v3";
+    // ---------------- INSTANT LOCAL RESTORE ----------------
+    // Firebase remains the source of truth, but localStorage lets the app
+    // reopen instantly after screen-off/background/tab restoration.
+    const LOCAL_CACHE_KEY = "porisram_app_cache_v2";
 
     function saveLocalCache() {
       try {
-        // Only non-authoritative UI preferences are cached locally.
         const cache = {
           profile: state.profile || null,
           medium: state.medium || 'en',
-          currentScreen: state.currentScreen === 'profile' ? 'profile' : 'dashboard',
+          currentScreen: state.currentScreen,
+          activeCategory: state.activeCategory,
+          progressData: state.progressData || {},
+          quiz: {
+            currentIndex: state.quiz.currentIndex,
+            answers: state.quiz.answers || {},
+            timeSpent: state.quiz.timeSpent || 0,
+            timeByQuestion: state.quiz.timeByQuestion || {},
+            questionStartedAt: state.quiz.questionStartedAt || null
+          },
           savedAt: Date.now()
         };
         localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(cache));
       } catch (e) {
-        console.warn("Local UI cache save failed:", e);
+        console.warn("Local cache save failed:", e);
       }
     }
 
@@ -2221,30 +2229,29 @@ body.quiz-active{overflow-x:hidden}
         if (!cache || typeof cache !== "object") return false;
 
         if (cache.profile) state.profile = cache.profile;
-        state.medium = (cache.medium === 'as' || cache.medium === 'en')
-          ? cache.medium
-          : ((state.profile && state.profile.medium === 'as') ? 'as' : 'en');
+        state.medium = (cache.medium === 'as' || cache.medium === 'en') ? cache.medium : ((state.profile && state.profile.medium === 'as') ? 'as' : 'en');
+        if (cache.progressData) state.progressData = cache.progressData;
+        if (cache.activeCategory) state.activeCategory = cache.activeCategory;
 
-        // NEVER restore progressData, activeCategory, answers, current question,
-        // timers or result history from localStorage.
-        state.progressData = {};
-        state.activeCategory = null;
-        state.quiz = {
-          currentIndex: 0,
-          answers: {},
-          timeSpent: 0,
-          timeByQuestion: {},
-          questionStartedAt: null,
-          isSaving: false
-        };
+        if (cache.quiz) {
+          state.quiz.currentIndex = Number.isInteger(cache.quiz.currentIndex)
+            ? cache.quiz.currentIndex : 0;
+          state.quiz.answers = { ...(cache.quiz.answers || {}) };
+          state.quiz.timeSpent = Number(cache.quiz.timeSpent || 0);
+          state.quiz.timeByQuestion = { ...(cache.quiz.timeByQuestion || {}) };
+          state.quiz.questionStartedAt = cache.quiz.questionStartedAt || null;
+        }
 
+        // Do not restore a stale quiz screen as an active timer. Restore the
+        // quiz data itself; Firebase will confirm the latest progress.
         if (state.profile) {
-          state.currentScreen = cache.currentScreen === "profile" ? "profile" : "dashboard";
+          state.currentScreen =
+            cache.currentScreen === "profile" ? "profile" : "dashboard";
         }
 
         return true;
       } catch (e) {
-        console.warn("Local UI cache restore failed:", e);
+        console.warn("Local cache restore failed:", e);
         return false;
       }
     }
@@ -2253,53 +2260,43 @@ body.quiz-active{overflow-x:hidden}
       const snapshot = await userRoot().once("value");
       const data = snapshot.val() || {};
 
-      // FIREBASE IS THE ONLY AUTHORITY FOR QUIZ PROGRESS.
-      // Do not merge localStorage progress into this object. That merge was
-      // capable of resurrecting an older Super10/Special30 result after refresh.
+      // Merge Firebase with the local cache instead of blindly replacing it.
+      // This prevents a just-completed Super10/Special30 attempt from being
+      // lost when the browser refreshes while an older Firebase snapshot is
+      // still being returned. Newer progress wins per category.
       state.profile = data.profile || state.profile || null;
-      state.medium = (state.profile && state.profile.medium === 'as')
-        ? 'as'
-        : ((state.medium === 'as') ? 'as' : 'en');
-
-      state.progressData = data.progress || {};
-      saveLocalCache();
-      startLiveProgressListener();
-      setFirebaseStatus("online");
-      return true;
-    }
-
-    // LIVE FIREBASE PROGRESS SYNC: keep the UI updated automatically without
-    // requiring a manual browser refresh. Firebase remains the only source of truth.
-    let progressValueListener = null;
-    let progressRenderTimer = null;
-
-    function startLiveProgressListener() {
-      try {
-        if (progressValueListener) {
-          try { userRoot().child("progress").off("value", progressValueListener); } catch (e) {}
+      state.medium = (state.profile && state.profile.medium === 'as') ? 'as' : ((state.medium === 'as') ? 'as' : 'en');
+      const remoteProgress = data.progress || {};
+      const localProgress = state.progressData || {};
+      const mergedProgress = { ...remoteProgress };
+      Object.keys(localProgress).forEach(catId => {
+        const local = localProgress[catId];
+        const remote = remoteProgress[catId];
+        if (!remote) {
+          mergedProgress[catId] = local;
+          return;
         }
-        progressValueListener = snapshot => {
-          const remote = snapshot.val() || {};
-          state.progressData = remote;
-          setFirebaseStatus("online");
+        const localTime = Date.parse(local?.lastUpdated || local?.updatedAt || '') || 0;
+        const remoteTime = Date.parse(remote?.lastUpdated || remote?.updatedAt || '') || 0;
+        if (localTime > remoteTime) mergedProgress[catId] = local;
+      });
+      state.progressData = mergedProgress;
 
-          // Never interrupt an active quiz by re-rendering the question.
-          // The current quiz already has the same state in memory and its
-          // writes are serialized. Dashboard/review/history update instantly.
-          if (state.currentScreen !== "quiz") {
-            clearTimeout(progressRenderTimer);
-            progressRenderTimer = setTimeout(() => {
-              if (state.currentScreen !== "quiz") render();
-            }, 0);
-          }
-        };
-        userRoot().child("progress").on("value", progressValueListener, error => {
-          console.warn("Live Firebase progress listener error:", error);
-          setFirebaseStatus("offline");
-        });
-      } catch (e) {
-        console.warn("Could not start live progress listener:", e);
-      }
+      saveLocalCache();
+      setFirebaseStatus("online");
+
+      // If local data is newer than Firebase, push that category back in the
+      // background so the next device/refresh also gets the latest history.
+      const syncTasks = [];
+      Object.keys(localProgress).forEach(catId => {
+        const local = localProgress[catId];
+        const remote = remoteProgress[catId];
+        const localTime = Date.parse(local?.lastUpdated || local?.updatedAt || '') || 0;
+        const remoteTime = Date.parse(remote?.lastUpdated || remote?.updatedAt || '') || 0;
+        if (local && localTime > remoteTime) syncTasks.push(saveFirebaseProgress(catId, local));
+      });
+      if (syncTasks.length) Promise.allSettled(syncTasks).catch(() => {});
+      return true;
     }
 
     async function saveProfileData() {
@@ -2342,74 +2339,27 @@ body.quiz-active{overflow-x:hidden}
       }
     }
 
-    // Serialize writes per category. This prevents an older asynchronous
-    // save from finishing after a newer save and overwriting the latest result.
-    const firebaseProgressWriteChains = Object.create(null);
-    const firebaseProgressLatest = Object.create(null);
-
-    function cloneProgressData(data) {
-      try {
-        return JSON.parse(JSON.stringify(data || {}));
-      } catch (e) {
-        return { ...(data || {}) };
-      }
-    }
-
-    function queueFirebaseProgressSave(catId, data) {
-      if (!catId) return Promise.resolve(false);
-
-      const snapshotData = cloneProgressData(data);
-      const writeToken = Date.now().toString() + "_" + Math.random().toString(36).slice(2);
-      firebaseProgressLatest[catId] = { token: writeToken, data: snapshotData };
-
-      const previous = firebaseProgressWriteChains[catId] || Promise.resolve();
-      const write = previous
-        .catch(() => {})
-        .then(async () => {
-          // If a newer snapshot was queued while this one waited, skip the
-          // stale write entirely.
-          const latest = firebaseProgressLatest[catId];
-          if (!latest || latest.token !== writeToken) return true;
-
-          const firebaseData = {
-            ...snapshotData,
-            // Keep one authoritative timestamp generated with this snapshot.
-            updatedAt: snapshotData.lastUpdated || new Date().toISOString()
-          };
-
-          await userRoot().child("progress").child(catId).set(firebaseData);
-
-          // Verify the exact category write before reporting success.
-          const check = await userRoot().child("progress").child(catId).once("value");
-          const saved = check.val() || {};
-          const expectedStamp = String(firebaseData.lastUpdated || firebaseData.updatedAt || "");
-          const actualStamp = String(saved.lastUpdated || saved.updatedAt || "");
-
-          if (expectedStamp && actualStamp && expectedStamp !== actualStamp) {
-            throw new Error("Firebase progress verification failed for " + catId);
-          }
-
-          state.progressData[catId] = saved;
-          setFirebaseStatus("online");
-          return true;
-        })
-        .catch(error => {
-          console.error("PROGRESS SAVE ERROR:", error);
-          setFirebaseStatus("offline");
-          scheduleFirebaseRetry();
-          return false;
-        });
-
-      firebaseProgressWriteChains[catId] = write;
-      return write;
-    }
-
     async function saveFirebaseProgress(catId, data) {
       if (!catId) return false;
-      // Keep the in-memory state synchronized, but never use localStorage as
-      // the persistence layer for quiz progress.
-      state.progressData[catId] = cloneProgressData(data);
-      return queueFirebaseProgressSave(catId, state.progressData[catId]);
+
+      state.progressData[catId] = data;
+      // Protect progress even if the device sleeps before Firebase finishes.
+      saveLocalCache();
+
+      try {
+        await userRoot().child("progress").child(catId).set({
+          ...data,
+          updatedAt: new Date().toISOString()
+        });
+
+        setFirebaseStatus("online");
+        return true;
+      } catch (error) {
+        console.error("PROGRESS SAVE ERROR:", error);
+        setFirebaseStatus("offline");
+        scheduleFirebaseRetry();
+        return false;
+      }
     }
 function scheduleFirebaseRetry() {
       if (firebaseRetryTimer) return;
@@ -2622,18 +2572,17 @@ function scheduleFirebaseRetry() {
     }
 
     async function saveProgress(forceStatus = null) {
-      if (!state.activeCategory) return false;
+      if (!state.activeCategory) return;
 
       state.quiz.isSaving = true;
 
       try {
         const data = buildSavedData(forceStatus);
-        return await saveFirebaseProgress(state.activeCategory, data);
+        await saveFirebaseProgress(state.activeCategory, data);
       } catch (error) {
         console.error("Firebase progress save failed:", error);
         setFirebaseStatus('offline');
         scheduleFirebaseRetry();
-        return false;
       } finally {
         state.quiz.isSaving = false;
       }
@@ -4140,8 +4089,10 @@ function scheduleFirebaseRetry() {
 
     function getProfileStats() {
       let totalTests=0, totalQuestions=0, attempted=0, correct=0, wrong=0, skipped=0, totalTime=0;
+      const performanceExcluded = new Set(['super10','special30']);
 
       Object.values(quizData).forEach(cat => {
+        if (performanceExcluded.has(cat.id)) return;
         const prog = state.progressData?.[cat.id];
         if (!prog) return;
 
@@ -4175,7 +4126,8 @@ function scheduleFirebaseRetry() {
     }
 
     function getCategoryPerformance() {
-      return Object.values(quizData).map(cat => {
+      const performanceExcluded = new Set(['super10','special30']);
+      return Object.values(quizData).filter(cat => !performanceExcluded.has(cat.id)).map(cat => {
         const prog = state.progressData?.[cat.id] || {};
         const answers = prog.answers || {};
         const times = prog.timeByQuestion || {};
@@ -5640,9 +5592,9 @@ function scheduleFirebaseRetry() {
       if (el) el.textContent = formatSeconds(getLiveQuestionSeconds());
     }, 1000);
 
-    // Persist the current quiz checkpoint directly to Firebase when mobile
-    // browsers background/suspend the page. localStorage is NOT used for quiz
-    // progress, answers, timers, or result history.
+    // Persist instantly when mobile browsers background/suspend the page.
+    // Firebase may be paused while the screen is off, so localStorage is the
+    // emergency checkpoint and Firebase sync continues when connectivity returns.
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") {
         try {
