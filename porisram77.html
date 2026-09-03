@@ -7114,11 +7114,22 @@ function getAEJECategories() {
             if (found) cosmetics[type] = found;
           }
         });
+        // Coin statistics for leaderboard/public profiles.
+        // Current balance comes from the user's Firebase coins field.
+        // Total earned is calculated from positive coinHistory entries.
+        const currentCoins = Math.max(0, Math.floor(Number(data?.coins || 0)));
+        const coinHistory = (data?.coinHistory && typeof data.coinHistory === 'object') ? data.coinHistory : {};
+        const totalCoinsEarned = Object.values(coinHistory).reduce((sum, entry) => {
+          const amount = Number(entry?.amount || 0);
+          return sum + (Number.isFinite(amount) && amount > 0 ? amount : 0);
+        }, 0);
+
         return {
           id, name: profile.name || "Student", place: profile.place || "Place not set",
           bio: String(profile.bio || "").trim(),
           avatar: profile.avatar || "😀", attempted, correct,
           accuracy: attempted ? (correct / attempted) * 100 : 0, bestCategory,
+          currentCoins, totalCoinsEarned,
           batteryPercent: Number.isFinite(Number(data?.batteryPercent)) ? Math.round(Number(data.batteryPercent)) : null,
           batteryCharging: data?.batteryCharging === true,
           batteryUpdatedAt: Number.isFinite(Number(data?.batteryUpdatedAt)) ? Number(data.batteryUpdatedAt) : null,
@@ -8069,6 +8080,10 @@ function getAEJECategories() {
                           Best: ${escapeHTML(u.bestCategory.title)} (${u.bestCategory.accuracy.toFixed(1)}%)
                         </p>
                       ` : ''}
+                      <p class="text-[11px] text-amber-700 font-bold truncate mt-0.5 flex items-center gap-1">
+                        <span>🪙</span>
+                        ${Number(u.currentCoins || 0).toLocaleString()} current • ${Number(u.totalCoinsEarned || 0).toLocaleString()} earned
+                      </p>
                     </div>
                     <div class="leaderboard-accuracy text-right mr-1 sm:mr-3 shrink-0">
                       <p class="font-extrabold ${u.accuracy >= 60 ? 'text-green-600' : u.accuracy >= 40 ? 'text-yellow-600' : 'text-red-600'}">
@@ -10750,12 +10765,20 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 .public-profile-name{font-size:22px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.public-profile-place{font-size:13px;color:#6b7280;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .public-profile-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 20px 14px}.public-profile-stat{background:#f8fafc;border-radius:12px;text-align:center;padding:10px 4px;min-width:0}.public-profile-stat b{display:block;font-size:18px}.public-profile-stat span{font-size:11px;color:#6b7280}.public-profile-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px 14px}.public-profile-actions button{min-height:44px;border:0;border-radius:11px;color:#fff;font-weight:900}.public-profile-section{margin:0 20px 14px;padding:13px;background:#f8fafc;border-radius:12px;word-break:break-word}.public-profile-cosmetics{display:flex;flex-wrap:wrap;gap:7px}.public-profile-pill{padding:6px 9px;background:#fff;border:1px solid #e5e7eb;border-radius:999px;font-size:12px;font-weight:800}
 @media(max-width:600px){.public-profile-overlay{padding:0;align-items:flex-end}.public-profile-card{width:100%;max-height:95vh;border-radius:22px 22px 0 0}.public-profile-top{padding:18px 16px 12px}.public-profile-avatar{width:76px;height:76px;min-width:76px}.public-profile-avatar span{font-size:36px}.public-profile-stats{grid-template-columns:repeat(2,1fr);padding:0 16px 12px}.public-profile-actions{padding:0 16px 12px}.public-profile-section{margin-left:16px;margin-right:16px}}
+.public-profile-stat b{overflow-wrap:anywhere}
 </style>
 <div id="public-profile-overlay" class="public-profile-overlay" aria-hidden="true">
  <div class="public-profile-card">
   <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eee"><b>Profile</b><button id="public-profile-close" type="button" style="width:36px;height:36px;border:0;border-radius:9px;background:#f3f4f6;font-size:22px">×</button></div>
   <div class="public-profile-top"><div id="public-profile-avatar" class="public-profile-avatar"><span>😀</span><img style="display:none" alt="Profile picture"></div><div style="min-width:0;flex:1"><div id="public-profile-name" class="public-profile-name">Student</div><div id="public-profile-place" class="public-profile-place">📍 Place not set</div></div></div>
-  <div class="public-profile-stats"><div class="public-profile-stat"><b id="pp-followers">0</b><span>Followers</span></div><div class="public-profile-stat"><b id="pp-following">0</b><span>Following</span></div><div class="public-profile-stat"><b id="pp-accuracy">0.0%</b><span>Accuracy</span></div><div class="public-profile-stat"><b id="pp-wins">0</b><span>Challenge Wins</span></div></div>
+  <div class="public-profile-stats">
+    <div class="public-profile-stat"><b id="pp-followers">0</b><span>Followers</span></div>
+    <div class="public-profile-stat"><b id="pp-following">0</b><span>Following</span></div>
+    <div class="public-profile-stat"><b id="pp-accuracy">0.0%</b><span>Accuracy</span></div>
+    <div class="public-profile-stat"><b id="pp-wins">0</b><span>Challenge Wins</span></div>
+    <div class="public-profile-stat"><b id="pp-current-coins">0 🪙</b><span>Current Coins</span></div>
+    <div class="public-profile-stat"><b id="pp-total-earned">0 🪙</b><span>Total Earned</span></div>
+  </div>
   <div class="public-profile-actions"><button id="pp-follow" style="background:#2563eb">Follow</button><button id="pp-challenge" style="background:#111827">Challenge</button></div>
   <div class="public-profile-section"><b>🏆 Best Category</b><div id="pp-best" style="margin-top:5px">No category yet</div></div>
   <div class="public-profile-section"><b>About</b><div id="pp-bio" style="margin-top:5px">No bio added yet.</div></div>
@@ -10799,6 +10822,20 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   // /profile is only an optional nested source for profile-only fields.
   const prof=await firebaseDB.ref('users/'+id+'/profile').once('value').catch(()=>null);
   if(prof&&prof.exists())u=Object.assign({},u,prof.val()||{});
+
+  // Coin statistics: current balance + lifetime positive earnings.
+  // coinHistory is read from the user's Firebase root so deductions are not
+  // counted as earnings.
+  const currentCoins = Math.max(0, Math.floor(Number(u.coins || 0)));
+  const coinHistory = (u.coinHistory && typeof u.coinHistory === 'object') ? u.coinHistory : {};
+  const totalCoinsEarned = Object.values(coinHistory).reduce((sum, entry) => {
+    const amount = Number(entry?.amount || 0);
+    return sum + (Number.isFinite(amount) && amount > 0 ? amount : 0);
+  }, 0);
+  const currentCoinsEl = document.getElementById('pp-current-coins');
+  const totalEarnedEl = document.getElementById('pp-total-earned');
+  if(currentCoinsEl) currentCoinsEl.textContent = currentCoins.toLocaleString() + ' 🪙';
+  if(totalEarnedEl) totalEarnedEl.textContent = totalCoinsEarned.toLocaleString() + ' 🪙';
 
   // Never allow an empty nested profile to overwrite the leaderboard identity.
   document.getElementById('public-profile-name').textContent=leaderboardUser.name||u.name||'Student';
@@ -10933,6 +10970,17 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
         const fi=u.following&&typeof u.following==='object'?u.following:{};
         document.getElementById('pp-followers').textContent=Object.keys(fo).filter(k=>fo[k]!=null).length.toLocaleString();
         document.getElementById('pp-following').textContent=Object.keys(fi).filter(k=>fi[k]!=null).length.toLocaleString();
+
+        const currentCoins=Math.max(0,Math.floor(Number(u.coins||0)));
+        const ch=(u.coinHistory&&typeof u.coinHistory==='object')?u.coinHistory:{};
+        const totalCoinsEarned=Object.values(ch).reduce(function(sum,entry){
+          const amount=Number(entry&&entry.amount||0);
+          return sum+(Number.isFinite(amount)&&amount>0?amount:0);
+        },0);
+        const cc=document.getElementById('pp-current-coins');
+        const te=document.getElementById('pp-total-earned');
+        if(cc)cc.textContent=currentCoins.toLocaleString()+' 🪙';
+        if(te)te.textContent=totalCoinsEarned.toLocaleString()+' 🪙';
       }catch(e){}
     },100);
   },true);
