@@ -1040,6 +1040,62 @@ button[id*="reattempt"]{
 @media(max-width:640px){.fifty-fifty-btn{padding:7px 8px;font-size:10px;border-radius:10px}.fifty-fifty-btn span{font-size:8px;padding:2px 4px}}
 @media(max-width:380px){.fifty-fifty-btn{padding:6px 7px;font-size:9px}.fifty-fifty-btn span{display:none}}
 </style>
+
+<style id="exam-reminder-ui">
+  .exam-reminder-banner{
+    width:100%;box-sizing:border-box;min-height:128px;
+    margin:0 0 22px;padding:22px 22px;border:1px solid #bfdbfe;border-radius:18px;
+    background:linear-gradient(135deg,#eff6ff,#ffffff 65%,#eef2ff);
+    box-shadow:0 8px 24px rgba(37,99,235,.10)
+  }
+  .exam-reminder-banner.overdue{border-color:#fecaca;background:linear-gradient(135deg,#fff1f2,#fff)}
+  .exam-reminder-banner.today{border-color:#fde68a;background:linear-gradient(135deg,#fffbeb,#fff)}
+  .exam-reminder-inner{display:flex;align-items:center;gap:12px;min-width:0}
+  .exam-reminder-icon{width:44px;height:44px;border-radius:13px;background:#2563eb;color:#fff;
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:21px}
+  .exam-reminder-banner.overdue .exam-reminder-icon{background:#dc2626}
+  .exam-reminder-banner.today .exam-reminder-icon{background:#d97706}
+  .exam-reminder-copy{min-width:0;flex:1}
+  .exam-reminder-label{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#2563eb}
+  .exam-reminder-banner.overdue .exam-reminder-label{color:#dc2626}
+  .exam-reminder-banner.today .exam-reminder-label{color:#b45309}
+  .exam-reminder-title{font-size:21px;font-weight:900;color:#111827;overflow-wrap:anywhere}
+  .exam-reminder-meta{font-size:12px;color:#64748b;margin-top:3px;line-height:1.45}
+  .exam-reminder-days{font-size:13px;font-weight:900;white-space:nowrap;padding:7px 10px;border-radius:999px;background:#dbeafe;color:#1d4ed8}
+  .exam-reminder-banner.overdue .exam-reminder-days{background:#fee2e2;color:#b91c1c}
+  .exam-reminder-banner.today .exam-reminder-days{background:#fef3c7;color:#92400e}
+  .exam-reminder-manage{margin-top:11px;display:flex;justify-content:flex-end}
+  .exam-reminder-category{
+    width:100%;min-height:112px;text-align:left;cursor:pointer;touch-action:manipulation;
+    border:1px solid #c7d2fe!important;
+    background:linear-gradient(135deg,#eef2ff,#fff)!important;
+  }
+  .exam-reminder-category:hover{border-color:#818cf8!important;box-shadow:0 10px 25px rgba(79,70,229,.10)!important}
+  .exam-reminder-list{display:grid;gap:10px;margin-top:14px}
+  .exam-reminder-item{border:1px solid #e5e7eb;border-radius:14px;padding:13px;background:#fff}
+  .exam-reminder-item-head{display:flex;gap:10px;align-items:flex-start}
+  .exam-reminder-item-main{min-width:0;flex:1}
+  .exam-reminder-item-name{font-weight:900;color:#111827;font-size:15px;overflow-wrap:anywhere}
+  .exam-reminder-item-meta{font-size:12px;color:#64748b;margin-top:4px;line-height:1.5}
+  .exam-reminder-actions{display:flex;gap:7px;margin-top:10px}
+  .exam-reminder-actions button{min-height:38px;flex:1;border-radius:10px;font-weight:800;cursor:pointer}
+  .exam-reminder-empty{padding:18px;text-align:center;border:1px dashed #cbd5e1;border-radius:14px;color:#64748b;font-size:13px}
+  .exam-reminder-modal-list{max-height:43vh;overflow:auto;padding-right:2px}
+  html.dark .exam-reminder-banner{background:linear-gradient(135deg,#172554,#111827);border-color:#334155}
+  html.dark .exam-reminder-banner.overdue{background:linear-gradient(135deg,#3f1720,#111827);border-color:#7f1d1d}
+  html.dark .exam-reminder-banner.today{background:linear-gradient(135deg,#422006,#111827);border-color:#92400e}
+  html.dark .exam-reminder-title,html.dark .exam-reminder-item-name{color:#f8fafc}
+  html.dark .exam-reminder-meta,html.dark .exam-reminder-item-meta{color:#94a3b8}
+  html.dark .exam-reminder-category,html.dark .exam-reminder-item{background:#1f2937!important;border-color:#374151!important}
+  @media(max-width:640px){
+    .exam-reminder-banner{min-height:118px;padding:17px 15px}
+    .exam-reminder-inner{align-items:flex-start}
+    .exam-reminder-days{font-size:11px;padding:6px 8px}
+    .exam-reminder-title{font-size:15px}
+    .exam-reminder-meta{font-size:11px}
+  }
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -4410,7 +4466,8 @@ button[id*="reattempt"]{
       chatGame: null,
       chatGameListener: null,
       chatGameSelection: null,
-      challengeModalOpen: false
+      challengeModalOpen: false,
+      examReminders: []
     };
     window.state = state;
 
@@ -6343,6 +6400,324 @@ function getAEJECategories() {
         </div>`;
     }
 
+
+    // ---------------- EXAM APPLICATION REMINDERS ----------------
+    // Reminders are per-user, persisted locally for instant display and synced
+    // to the same Firebase user path used by the rest of the app.
+    const EXAM_REMINDER_LOCAL_KEY = "porisram_exam_reminders_v1";
+
+    function examReminderUid(){
+      try { return typeof getClientId === "function" ? getClientId() : ""; }
+      catch(e){ return ""; }
+    }
+
+    function normalizeExamReminders(value){
+      if (!Array.isArray(value)) return [];
+      return value.map(x => ({
+        id: String(x?.id || ("exam_" + Date.now() + "_" + Math.random().toString(36).slice(2,8))),
+        name: String(x?.name || "").trim(),
+        date: String(x?.date || "").trim(),
+        fees: Math.max(0, Number(x?.fees || 0)),
+        createdAt: Number(x?.createdAt || Date.now()),
+        updatedAt: Number(x?.updatedAt || Date.now())
+      })).filter(x => x.name && /^\d{4}-\d{2}-\d{2}$/.test(x.date));
+    }
+
+    function saveExamRemindersLocal(){
+      try { localStorage.setItem(EXAM_REMINDER_LOCAL_KEY, JSON.stringify(state.examReminders || [])); }
+      catch(e){}
+    }
+
+    function loadExamRemindersLocal(){
+      try {
+        const raw = localStorage.getItem(EXAM_REMINDER_LOCAL_KEY);
+        if (raw) state.examReminders = normalizeExamReminders(JSON.parse(raw));
+      } catch(e){ state.examReminders = []; }
+    }
+
+    async function saveExamRemindersFirebase(){
+      const uid = examReminderUid();
+      if (!uid || !window.firebaseDB) return false;
+      try {
+        await window.firebaseDB.ref("users/" + uid + "/examReminders").set(state.examReminders || []);
+        return true;
+      } catch(e) {
+        console.warn("Exam reminder Firebase save failed:", e);
+        return false;
+      }
+    }
+
+    async function loadExamRemindersFirebase(){
+      const uid = examReminderUid();
+      if (!uid || !window.firebaseDB) return;
+      try {
+        const snap = await window.firebaseDB.ref("users/" + uid + "/examReminders").once("value");
+        if (snap.exists()) {
+          state.examReminders = normalizeExamReminders(snap.val());
+          saveExamRemindersLocal();
+        }
+      } catch(e){ console.warn("Exam reminder Firebase load failed:", e); }
+    }
+
+    function examReminderDate(dateStr){
+      const d = new Date(dateStr + "T23:59:59");
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function examReminderDaysLeft(dateStr){
+      const end = examReminderDate(dateStr);
+      if (!end) return null;
+      const now = new Date();
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59);
+      return Math.ceil((end.getTime() - todayEnd.getTime()) / 86400000);
+    }
+
+    function formatExamReminderDate(dateStr){
+      const d = examReminderDate(dateStr);
+      if (!d) return dateStr;
+      return d.toLocaleDateString(undefined, {day:"2-digit", month:"short", year:"numeric"});
+    }
+
+    function sortedExamReminders(){
+      return normalizeExamReminders(state.examReminders).sort((a,b) => {
+        const da = examReminderDate(a.date)?.getTime() || Infinity;
+        const db = examReminderDate(b.date)?.getTime() || Infinity;
+        return da - db;
+      });
+    }
+
+    function getNearestExamReminder(){
+      return sortedExamReminders()[0] || null;
+    }
+
+    function renderExamReminderBanner(){
+      const nearest = getNearestExamReminder();
+      if (!nearest) return "";
+      const days = examReminderDaysLeft(nearest.date);
+      // The home reminder activates 10 days before the deadline and remains
+      // visible on the deadline day/afterward until the user deletes it.
+      if (days === null || days > 10) return "";
+
+      const overdue = days < 0;
+      const today = days === 0;
+      const label = overdue ? "Application deadline passed" : today ? "Deadline is today" : "Exam application reminder";
+      const badge = overdue ? ("Overdue by " + Math.abs(days) + " day" + (Math.abs(days) === 1 ? "" : "s"))
+        : today ? "Apply today"
+        : (days + " day" + (days === 1 ? "" : "s") + " left");
+      const fees = Number(nearest.fees || 0).toLocaleString("en-IN");
+
+      return `
+        <div class="exam-reminder-banner ${overdue ? "overdue" : today ? "today" : ""}">
+          <div class="exam-reminder-inner">
+            <div class="exam-reminder-icon">⏰</div>
+            <div class="exam-reminder-copy">
+              <div class="exam-reminder-label">${label}</div>
+              <div class="exam-reminder-title">${escapeHtml(nearest.name)}</div>
+              <div class="exam-reminder-meta">
+                Last apply date: <b>${escapeHtml(formatExamReminderDate(nearest.date))}</b>
+                &nbsp;•&nbsp; Fees: <b>₹${fees}</b>
+              </div>
+            </div>
+            <div class="exam-reminder-days">${badge}</div>
+          </div>
+          <div class="exam-reminder-manage">
+            <button type="button" class="btn btn-outline !py-2 !px-3 text-xs" onclick="openExamReminders()">Manage reminders</button>
+          </div>
+        </div>`;
+    }
+
+    function openExamReminders(){
+      const modal = document.getElementById("exam-reminder-modal");
+      if (modal) { modal.remove(); return; }
+
+      const items = sortedExamReminders();
+      const listHtml = items.length ? items.map(x => {
+        const days = examReminderDaysLeft(x.date);
+        const status = days < 0 ? "Expired" : days === 0 ? "Due today" : days + " day" + (days === 1 ? "" : "s") + " left";
+        return `
+          <div class="exam-reminder-item">
+            <div class="exam-reminder-item-head">
+              <div class="exam-reminder-icon" style="width:38px;height:38px;font-size:18px;background:#4f46e5">📅</div>
+              <div class="exam-reminder-item-main">
+                <div class="exam-reminder-item-name">${escapeHtml(x.name)}</div>
+                <div class="exam-reminder-item-meta">
+                  Last apply: <b>${escapeHtml(formatExamReminderDate(x.date))}</b>
+                  &nbsp;•&nbsp; Fees: <b>₹${Number(x.fees || 0).toLocaleString("en-IN")}</b>
+                  &nbsp;•&nbsp; <b>${status}</b>
+                </div>
+              </div>
+            </div>
+            <div class="exam-reminder-actions">
+              <button type="button" class="btn btn-outline text-xs exam-reminder-edit-btn" data-exam-reminder-action="edit" data-exam-reminder-id="${escapeHtml(x.id)}">✏️ Edit</button>
+              <button type="button" class="btn btn-danger text-xs exam-reminder-delete-btn" data-exam-reminder-action="delete" data-exam-reminder-id="${escapeHtml(x.id)}">🗑️ Delete</button>
+            </div>
+          </div>`;
+      }).join("") : `<div class="exam-reminder-empty">No exam reminders yet. Add your first exam below.</div>`;
+
+      const wrap = document.createElement("div");
+      wrap.id = "exam-reminder-modal";
+      wrap.className = "fixed inset-0 z-[10000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4";
+      wrap.innerHTML = `
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 max-h-[90vh] overflow-auto">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="text-xs font-extrabold tracking-widest text-indigo-500 uppercase">Reminder Me</div>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mt-1">Exam Application Reminders</h2>
+              <p class="text-xs sm:text-sm text-gray-500 mt-1">You can add multiple exams. The nearest deadline gets priority on Home.</p>
+            </div>
+            <button type="button" class="reward-close shrink-0" onclick="openExamReminders()" aria-label="Close">×</button>
+          </div>
+
+          <form id="exam-reminder-form" class="mt-5 border border-indigo-100 dark:border-slate-700 rounded-2xl p-4 bg-indigo-50/50 dark:bg-slate-800">
+            <input type="hidden" id="exam-reminder-edit-id" value="">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-extrabold text-gray-700 dark:text-gray-200 mb-1">Exam name</label>
+                <input id="exam-reminder-name" required maxlength="80" placeholder="e.g. VFA" class="w-full px-3 py-2.5">
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-gray-700 dark:text-gray-200 mb-1">Last apply date</label>
+                <input id="exam-reminder-date" type="date" required class="w-full px-3 py-2.5">
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-gray-700 dark:text-gray-200 mb-1">Fees (₹)</label>
+                <input id="exam-reminder-fees" type="number" min="0" step="1" value="0" placeholder="500" class="w-full px-3 py-2.5">
+              </div>
+            </div>
+            <div class="flex gap-2 mt-3">
+              <button id="exam-reminder-submit" type="submit" class="btn btn-primary flex-1">➕ Add Exam</button>
+              <button id="exam-reminder-cancel-edit" type="button" class="btn btn-secondary hidden" onclick="cancelExamReminderEdit()">Cancel</button>
+            </div>
+          </form>
+
+          <div class="mt-5">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="font-extrabold text-gray-900 dark:text-white">Saved exams</h3>
+              <span class="text-xs font-bold text-gray-500">${items.length} saved</span>
+            </div>
+            <div class="exam-reminder-list exam-reminder-modal-list">${listHtml}</div>
+          </div>
+        </div>`;
+      document.body.appendChild(wrap);
+
+      // Event delegation: buttons remain functional after every modal/list refresh.
+      wrap.addEventListener("click", function(ev){
+        const btn = ev.target.closest("[data-exam-reminder-action]");
+        if (!btn) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const id = btn.getAttribute("data-exam-reminder-id") || "";
+        const action = btn.getAttribute("data-exam-reminder-action");
+        if (action === "edit") editExamReminder(id);
+        if (action === "delete") deleteExamReminder(id);
+      });
+
+      const form = document.getElementById("exam-reminder-form");
+      if (form) form.addEventListener("submit", saveExamReminderFromForm);
+      lucide.createIcons();
+    }
+
+    async function saveExamReminderFromForm(e){
+      e.preventDefault();
+      const nameEl = document.getElementById("exam-reminder-name");
+      const dateEl = document.getElementById("exam-reminder-date");
+      const feesEl = document.getElementById("exam-reminder-fees");
+      const editEl = document.getElementById("exam-reminder-edit-id");
+      const name = (nameEl?.value || "").trim();
+      const date = dateEl?.value || "";
+      const fees = Math.max(0, Math.floor(Number(feesEl?.value || 0)));
+
+      if (!name || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        showToast("Please enter exam name and a valid last apply date.", "error");
+        return;
+      }
+
+      const editId = editEl?.value || "";
+      const now = Date.now();
+      if (editId) {
+        state.examReminders = normalizeExamReminders(state.examReminders).map(x =>
+          x.id === editId ? {...x, name, date, fees, updatedAt: now} : x
+        );
+        showToast("Exam reminder updated.", "success");
+      } else {
+        state.examReminders = normalizeExamReminders(state.examReminders);
+        state.examReminders.push({
+          id: "exam_" + now + "_" + Math.random().toString(36).slice(2,8),
+          name, date, fees, createdAt: now, updatedAt: now
+        });
+        showToast("Exam reminder added.", "success");
+      }
+
+      saveExamRemindersLocal();
+      await saveExamRemindersFirebase();
+      const modal = document.getElementById("exam-reminder-modal");
+      if (modal) modal.remove();
+      openExamReminders();
+      render();
+    }
+
+    function editExamReminder(encodedId){
+      const id = decodeURIComponent(String(encodedId || ""));
+      const x = normalizeExamReminders(state.examReminders).find(r => String(r.id) === id);
+      if (!x) {
+        showToast("Reminder not found.", "error");
+        return;
+      }
+      const name = document.getElementById("exam-reminder-name");
+      const date = document.getElementById("exam-reminder-date");
+      const fees = document.getElementById("exam-reminder-fees");
+      const edit = document.getElementById("exam-reminder-edit-id");
+      const submit = document.getElementById("exam-reminder-submit");
+      const cancel = document.getElementById("exam-reminder-cancel-edit");
+      if (!name || !date || !fees || !edit) return;
+      edit.value = x.id;
+      name.value = x.name;
+      date.value = x.date;
+      fees.value = String(x.fees || 0);
+      if (submit) submit.innerHTML = "💾 Save Changes";
+      if (cancel) cancel.classList.remove("hidden");
+      name.scrollIntoView({behavior:"smooth", block:"center"});
+      setTimeout(() => name.focus(), 150);
+    }
+
+    function cancelExamReminderEdit(){
+      const form = document.getElementById("exam-reminder-form");
+      if (!form) return;
+      form.reset();
+      const edit = document.getElementById("exam-reminder-edit-id");
+      const fees = document.getElementById("exam-reminder-fees");
+      const submit = document.getElementById("exam-reminder-submit");
+      const cancel = document.getElementById("exam-reminder-cancel-edit");
+      if (edit) edit.value = "";
+      if (fees) fees.value = "0";
+      if (submit) submit.innerHTML = "➕ Add Exam";
+      if (cancel) cancel.classList.add("hidden");
+    }
+
+    async function deleteExamReminder(encodedId){
+      const id = decodeURIComponent(String(encodedId || ""));
+      const current = normalizeExamReminders(state.examReminders);
+      const x = current.find(r => String(r.id) === id);
+      if (!x) {
+        showToast("Reminder not found.", "error");
+        return;
+      }
+      if (!window.confirm("Delete the reminder for \"" + x.name + "\"?")) return;
+      state.examReminders = current.filter(r => String(r.id) !== id);
+      saveExamRemindersLocal();
+      await saveExamRemindersFirebase();
+      const modal = document.getElementById("exam-reminder-modal");
+      if (modal) modal.remove();
+      openExamReminders();
+      render();
+      showToast("Exam reminder deleted.", "success");
+    }
+
+    window.openExamReminders = openExamReminders;
+    window.editExamReminder = editExamReminder;
+    window.deleteExamReminder = deleteExamReminder;
+    window.cancelExamReminderEdit = cancelExamReminderEdit;
+
     function renderDashboard() {
       try {
         Object.keys(quizData || {}).forEach(id => {
@@ -6365,6 +6740,8 @@ function getAEJECategories() {
       );
 
       return `<div class="fade-in professional-home">
+
+        ${renderExamReminderBanner()}
 
         <div class="mb-7">
           <div class="text-xs font-extrabold tracking-widest text-gray-400 uppercase">PORISRAM 77</div>
@@ -6478,6 +6855,25 @@ function getAEJECategories() {
 
           <div id="dashboard-category-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             ${renderTestCardGrid(normalCats)}
+          </div>
+
+          <div class="mt-6">
+            <button type="button" onclick="openExamReminders()"
+              class="exam-reminder-category rounded-2xl border p-4 sm:p-5 shadow-sm transition-all duration-200">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shrink-0 text-2xl">⏰</div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 class="text-lg sm:text-xl font-extrabold text-gray-900">Reminder Me</h3>
+                    <span class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-[10px] sm:text-xs font-extrabold">
+                      ${state.examReminders?.length || 0} SAVED
+                    </span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-gray-600">Add exam name, last apply date and fees. Get a Home reminder 10 days before the deadline.</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-5 h-5 text-indigo-600 shrink-0"></i>
+              </div>
+            </button>
           </div>
         </section>
 
@@ -8185,13 +8581,15 @@ function getAEJECategories() {
       // Render from local cache immediately. Never wait for the network
       // before showing the login/welcome screen.
       restoreLocalCache();
+      loadExamRemindersLocal();
       state.currentScreen = state.profile ? "dashboard" : "welcome";
       render();
 
       // Network work happens in the background and must never block first paint.
       Promise.allSettled([
         loadFollowing(),
-        loadFirebaseData()
+        loadFirebaseData(),
+        loadExamRemindersFirebase()
       ]).then(results => {
         const firebaseResult = results[1];
         if (firebaseResult && firebaseResult.status === "fulfilled") {
@@ -8201,6 +8599,7 @@ function getAEJECategories() {
             render();
           }
           setFirebaseStatus("online");
+          if (state.currentScreen === "dashboard") render();
         } else {
           setFirebaseStatus("offline");
           scheduleFirebaseRetry();
@@ -8223,6 +8622,11 @@ function getAEJECategories() {
     // Firebase may be paused while the screen is off, so localStorage is the
     // emergency checkpoint and Firebase sync continues when connectivity returns.
     document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        loadExamRemindersFirebase().then(() => {
+          if (state.currentScreen === "dashboard") render();
+        }).catch(() => {});
+      }
       if (document.visibilityState === "hidden") {
         try {
           flushQuestionTime();
