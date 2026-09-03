@@ -925,6 +925,87 @@ body.quiz-active{overflow-x:hidden}
   header label:has(#medium-selector)>span{display:none;}
 }
 </style>
+
+<style id="reattempt-mobile-professional-fix">
+/* Professional, mobile-safe re-attempt controls */
+.reattempt-fee-badge{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:3px !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+  padding:4px 7px !important;
+  margin:4px 0 0 !important;
+  border-radius:999px !important;
+  font-size:10px !important;
+  line-height:1.15 !important;
+  white-space:nowrap !important;
+  vertical-align:middle !important;
+}
+
+.reattempt-btn,
+button[class*="reattempt"],
+button[id*="reattempt"]{
+  min-width:0 !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+  word-break:normal !important;
+  line-height:1.25 !important;
+  text-align:center !important;
+}
+
+@media (max-width:640px){
+  .reattempt-fee-badge{
+    font-size:9px !important;
+    padding:3px 6px !important;
+    margin:3px auto 0 !important;
+  }
+
+  .reattempt-btn,
+  button[class*="reattempt"],
+  button[id*="reattempt"]{
+    width:100% !important;
+    min-height:42px !important;
+    padding:9px 10px !important;
+    font-size:12px !important;
+    line-height:1.25 !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:5px !important;
+  }
+
+  /* Prevent fee/status text from visually escaping its card/button area */
+  .reattempt-btn .reattempt-fee-badge,
+  button[class*="reattempt"] .reattempt-fee-badge,
+  button[id*="reattempt"] .reattempt-fee-badge{
+    flex:0 1 auto !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+
+  /* Result/history cards should never clip or overlap re-attempt content */
+  [class*="history"] .reattempt-fee-badge,
+  [class*="result"] .reattempt-fee-badge{
+    max-width:100% !important;
+  }
+}
+
+@media (max-width:380px){
+  .reattempt-btn,
+  button[class*="reattempt"],
+  button[id*="reattempt"]{
+    min-height:40px !important;
+    padding:8px 8px !important;
+    font-size:11px !important;
+  }
+}
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -2011,6 +2092,2198 @@ body.quiz-active{overflow-x:hidden}
         icon: 'leaf',
         color: 'emerald',
         questions: [{"id":"enveng_q1","text":"What is the design period for storage by dams?","options":[{"id":"a","text":"15 years"},{"id":"b","text":"30 years"},{"id":"c","text":"50 years"},{"id":"d","text":"100 years"}],"correct":"c","explanation":"Major dam structures and storage reservoirs are designed for a long service life of 50 years to ensure long-term water security."},{"id":"enveng_q2","text":"What is the design period for infiltration works?","options":[{"id":"a","text":"15 years"},{"id":"b","text":"30 years"},{"id":"c","text":"50 years"},{"id":"d","text":"10 years"}],"correct":"b","explanation":"Infiltration wells and galleries are typically designed for a 30-year period in municipal water supply systems."},{"id":"enveng_q3","text":"What is the design period for pump house civil works?","options":[{"id":"a","text":"15 years"},{"id":"b","text":"30 years"},{"id":"c","text":"50 years"},{"id":"d","text":"10 years"}],"correct":"b","explanation":"Civil structures such as pump house buildings have a standard design period of 30 years."},{"id":"enveng_q4","text":"What is the design period for electric motors and pumps?","options":[{"id":"a","text":"15 years"},{"id":"b","text":"30 years"},{"id":"c","text":"50 years"},{"id":"d","text":"5 years"}],"correct":"a","explanation":"Mechanical and electrical equipment like pumps and motors experience mechanical wear and are designed for a 15-year life."},{"id":"enveng_q5","text":"What is the design period for water treatment units?","options":[{"id":"a","text":"15 years"},{"id":"b","text":"30 years"},{"id":"c","text":"50 years"},{"id":"d","text":"10 years"}],"correct":"a","explanation":"Water treatment plant units are designed for a 15-year horizon to allow periodic upgrades and capacity expansion."},{"id":"enveng_q6","text":"What is the design period for pipe connections to treatment units?","options":[{"id":"a","text":"15 years"},{"id":"b","text":"30 years"},{"id":"c","text":"50 years"},{"id":"d","text":"60 years"}],"correct":"b","explanation":"Interconnecting pipe mains and headers inside treatment plant premises are designed for 30 years."},{"id":"enveng_q7","text":"What is the design period for raw water and clear water conveying mains?","options":[{"id":"a","text":"15 years"},{"id":"b","text":"30 years"},{"id":"c","text":"50 years"},{"id":"d","text":"25 years"}],"correct":"b","explanation":"Raw water transmission pipelines and clear water feeder mains are laid with a 30-year design capacity."},{"id":"enveng_q8","text":"What is the design period for clear water reservoirs at headworks?","options":[{"id":"a","text":"15 years"},{"id":"b","text":"30 years"},{"id":"c","text":"50 years"},{"id":"d","text":"20 years"}],"correct":"a","explanation":"Clear water balancing reservoirs located at headworks are designed for a 15-year operational horizon."},{"id":"enveng_q9","text":"What is the design period for the distribution system?","options":[{"id":"a","text":"15 years"},{"id":"b","text":"30 years"},{"id":"c","text":"50 years"},{"id":"d","text":"40 years"}],"correct":"b","explanation":"Water distribution pipe networks are buried beneath roads and urban areas, making a 30-year design period standard."},{"id":"enveng_q10","text":"Which population forecast method is used for very old and large cities?","options":[{"id":"a","text":"Arithmetic Increase Method"},{"id":"b","text":"Geometric Increase Method"},{"id":"c","text":"Incremental Increase Method"},{"id":"d","text":"Logistic Curve Method"}],"correct":"a","explanation":"The Arithmetic Increase Method assumes a constant growth rate ($dP/dt = k$), making it best suited for established, saturated cities."},{"id":"enveng_q11","text":"In the Arithmetic Increase Method, it is assumed that:","options":[{"id":"a","text":"The percentage increase is constant"},{"id":"b","text":"The increase in population is constant"},{"id":"c","text":"The growth rate is decreasing"},{"id":"d","text":"The population follows an S-curve"}],"correct":"b","explanation":"Arithmetic Increase assumes that population increases by a constant numerical value per decade ($dP/dt = k$)."},{"id":"enveng_q12","text":"Which population forecast method is used for new, young & rapid growing cities?","options":[{"id":"a","text":"Arithmetic Increase Method"},{"id":"b","text":"Geometric Increase Method"},{"id":"c","text":"Zonal Method"},{"id":"d","text":"Graphical Comparison Method"}],"correct":"b","explanation":"Young cities exhibit exponential compounding growth, making the Geometric Increase Method ($dP/dt = kP$) most accurate."},{"id":"enveng_q13","text":"In the Geometric Increase Method, it is assumed that:","options":[{"id":"a","text":"The percentage increase from decade to decade is constant"},{"id":"b","text":"The numerical increase is constant"},{"id":"c","text":"Growth follows a logistic curve"},{"id":"d","text":"The incremental increase is constant"}],"correct":"a","explanation":"Geometric Increase assumes a constant percentage or fractional growth rate from decade to decade."},{"id":"enveng_q14","text":"Which method combines both the arithmetic average method and the geometrical average method?","options":[{"id":"a","text":"Logistic Curve Method"},{"id":"b","text":"Incremental Increase Method"},{"id":"c","text":"Decreasing Growth Rate Method"},{"id":"d","text":"Graphical Extension Method"}],"correct":"b","explanation":"The Incremental Increase Method combines the average arithmetic increase with the average incremental increase, balancing both methods."},{"id":"enveng_q15","text":"When is the Decrease Growth Rate Method applicable?","options":[{"id":"a","text":"When the city is rapidly expanding"},{"id":"b","text":"When the rate of growth shows an upward trend"},{"id":"c","text":"When the rate of growth shows a downward trend"},{"id":"d","text":"For entirely new master-planned cities"}],"correct":"c","explanation":"This method is applied when historical census data reveals that the growth rate (percentage increase) is steadily declining towards saturation."},{"id":"enveng_q16","text":"Which method requires extending the curve of previous census data carefully to forecast population?","options":[{"id":"a","text":"Graphical Extension Method"},{"id":"b","text":"Graphical Comparison Method"},{"id":"c","text":"Zoning Method"},{"id":"d","text":"Arithmetic Method"}],"correct":"a","explanation":"The Graphical Extension Method involves plotting historical population data and visually extrapolating the smooth curve into future decades."},{"id":"enveng_q17","text":"Which method presumes that the city under consideration will develop similar to cities developed in the past?","options":[{"id":"a","text":"Graphical Extension Method"},{"id":"b","text":"Graphical Comparison Method"},{"id":"c","text":"Incremental Increase Method"},{"id":"d","text":"Logistic Curve Method"}],"correct":"b","explanation":"Graphical Comparison compares the target city's development with similar, older reference cities that have already passed through the current stage."},{"id":"enveng_q18","text":"Which forecasting method prepares a master plan dividing the city into industrial, commercial, and residential areas?","options":[{"id":"a","text":"Zoning Method"},{"id":"b","text":"Logistic Curve Method"},{"id":"c","text":"Graphical Extension Method"},{"id":"d","text":"Geometric Method"}],"correct":"a","explanation":"The Zoning Method estimates future population based on land-use zoning density allocations outlined in a city's master plan."},{"id":"enveng_q19","text":"Which of the following is NOT typically listed as a factor affecting per capita water demand?","options":[{"id":"a","text":"Size of the city"},{"id":"b","text":"Climate conditions"},{"id":"c","text":"Literacy rate of the population"},{"id":"d","text":"Standard of living"}],"correct":"c","explanation":"While city size, climate, industrialization, and living standards directly affect water consumption, literacy rate is not a direct engineering parameter."},{"id":"enveng_q20","text":"What is the per capita water demand for a population of less than 20,000?","options":[{"id":"a","text":"110 lpcd"},{"id":"b","text":"150 lpcd"},{"id":"c","text":"240 lpcd"},{"id":"d","text":"335 lpcd"}],"correct":"a","explanation":"For small towns with population under 20,000, standard per capita domestic water demand is taken as 110 liters per capita per day (lpcd)."},{"id":"enveng_q21","text":"What is the per capita water demand for a population between 20,000 and 50,000?","options":[{"id":"a","text":"110 lpcd"},{"id":"b","text":"110-150 lpcd"},{"id":"c","text":"150-240 lpcd"},{"id":"d","text":"240-275 lpcd"}],"correct":"b","explanation":"For towns with a population between 20,000 and 50,000, water consumption ranges from 110 to 150 lpcd."},{"id":"enveng_q22","text":"What is the per capita water demand for a population between 50,000 and 2,00,000?","options":[{"id":"a","text":"110-150 lpcd"},{"id":"b","text":"150-240 lpcd"},{"id":"c","text":"240-275 lpcd"},{"id":"d","text":"275-335 lpcd"}],"correct":"b","explanation":"Medium cities (50,000 to 200,000 population) require between 150 and 240 lpcd."},{"id":"enveng_q23","text":"What is the per capita water demand for a population between 2 lakhs and 5 lakhs?","options":[{"id":"a","text":"150-240 lpcd"},{"id":"b","text":"240-275 lpcd"},{"id":"c","text":"275-335 lpcd"},{"id":"d","text":"335-360 lpcd"}],"correct":"b","explanation":"Cities with population between 200,000 and 500,000 have an average demand of 240 to 275 lpcd."},{"id":"enveng_q24","text":"What is the per capita water demand for a population between 5 lakhs and 10 lakhs?","options":[{"id":"a","text":"240-275 lpcd"},{"id":"b","text":"275-335 lpcd"},{"id":"c","text":"335-360 lpcd"},{"id":"d","text":"> 360 lpcd"}],"correct":"b","explanation":"Large urban centers with 500,000 to 1,000,000 population require 275 to 335 lpcd."},{"id":"enveng_q25","text":"What is the per capita water demand for a population greater than 10 lakhs?","options":[{"id":"a","text":"240-275 lpcd"},{"id":"b","text":"275-335 lpcd"},{"id":"c","text":"335-360 lpcd"},{"id":"d","text":"400 lpcd"}],"correct":"c","explanation":"Metropolitan cities with population exceeding 10 lakhs (1 million) require 335 to 360 lpcd due to higher commercial and industrial activities."},{"id":"enveng_q26","text":"What is the institutional water demand for Schools/Colleges?","options":[{"id":"a","text":"15 lpcd"},{"id":"b","text":"45 lpcd"},{"id":"c","text":"45-135 lpcd"},{"id":"d","text":"180 lpcd"}],"correct":"c","explanation":"Educational institutions require 45 lpcd for day scholars and up to 135 lpcd for residential boarding institutions."},{"id":"enveng_q27","text":"What is the institutional water demand for Offices?","options":[{"id":"a","text":"15 lpcd"},{"id":"b","text":"45 lpcd"},{"id":"c","text":"70 lpcd"},{"id":"d","text":"135 lpcd"}],"correct":"b","explanation":"Standard institutional demand for administrative offices is 45 lpcd per head."},{"id":"enveng_q28","text":"What is the institutional water demand for Restaurants?","options":[{"id":"a","text":"15 lpcd"},{"id":"b","text":"45 lpcd"},{"id":"c","text":"70 per seat"},{"id":"d","text":"180 per seat"}],"correct":"c","explanation":"Commercial water demand for restaurants is calculated at 70 liters per seat per day."},{"id":"enveng_q29","text":"What is the institutional water demand for Cinema/Theatre?","options":[{"id":"a","text":"15 lpcd"},{"id":"b","text":"45 lpcd"},{"id":"c","text":"70 lpcd"},{"id":"d","text":"180 lpcd"}],"correct":"a","explanation":"Cinemas and theaters require an institutional water allowance of 15 liters per seat per day."},{"id":"enveng_q30","text":"What is the institutional water demand for Hotels?","options":[{"id":"a","text":"70 lt/bed"},{"id":"b","text":"135 lt/bed"},{"id":"c","text":"180 lt/bed"},{"id":"d","text":"340 lt/bed"}],"correct":"c","explanation":"Hotels have an average institutional water demand of 180 liters per bed per day."},{"id":"enveng_q31","text":"What is the institutional water demand for Hospitals with less than 100 beds?","options":[{"id":"a","text":"180 lt/bed"},{"id":"b","text":"340 lt/bed"},{"id":"c","text":"450 lt/bed"},{"id":"d","text":"500 lt/bed"}],"correct":"b","explanation":"Hospitals with under 100 beds require 340 lt/bed/day (larger hospitals requiring up to 450 lt/bed/day)."},{"id":"enveng_q32","text":"What is the approximate quantity of industrial water demand for the Automobile industry?","options":[{"id":"a","text":"40 lpcd"},{"id":"b","text":"80-200 lpcd"},{"id":"c","text":"200-400 lpcd"},{"id":"d","text":"1-2 lpcd"}],"correct":"a","explanation":"The automobile manufacturing industry requires approximately 40 lpcd in industrial allocation calculations."},{"id":"enveng_q33","text":"What is the approximate quantity of industrial water demand for Fertilizers?","options":[{"id":"a","text":"40 lpcd"},{"id":"b","text":"80-200 lpcd"},{"id":"c","text":"200-400 lpcd"},{"id":"d","text":"1-2 lpcd"}],"correct":"b","explanation":"Fertilizer production plants require approximately 80 to 200 lpcd."},{"id":"enveng_q34","text":"What is the approximate quantity of industrial water demand for the Paper industry?","options":[{"id":"a","text":"40 lpcd"},{"id":"b","text":"80-200 lpcd"},{"id":"c","text":"200-400 lpcd"},{"id":"d","text":"1-2 lpcd"}],"correct":"c","explanation":"Paper manufacturing is water-intensive, requiring 200 to 400 lpcd equivalent allocation."},{"id":"enveng_q35","text":"What is the approximate quantity of industrial water demand for Petroleum Refinery?","options":[{"id":"a","text":"1-2 lpcd"},{"id":"b","text":"40 lpcd"},{"id":"c","text":"80-200 lpcd"},{"id":"d","text":"200-400 lpcd"}],"correct":"a","explanation":"Petroleum refineries require approximately 1 to 2 lpcd per tonne of crude processed in standard planning guidelines."},{"id":"enveng_q36","text":"What is the approximate quantity of industrial water demand for the Sugar industry?","options":[{"id":"a","text":"1-2 lpcd"},{"id":"b","text":"40 lpcd"},{"id":"c","text":"80-200 lpcd"},{"id":"d","text":"200-400 lpcd"}],"correct":"a","explanation":"Sugar factories require approximately 1 to 2 lpcd per tonne of crushed cane."},{"id":"enveng_q37","text":"Which formula represents the Fire Demand according to the GOI Method?","options":[{"id":"a","text":"Q = 3182√P"},{"id":"b","text":"Q = 5663√P"},{"id":"c","text":"Q = 100√P"},{"id":"d","text":"Q = 1136(P/5 + 10)"}],"correct":"c","explanation":"The Government of India (GOI) manual formula for fire demand estimation is $Q = 100\\sqrt{P}$, where $P$ is population in thousands and $Q$ is in kiloliters/day."},{"id":"enveng_q38","text":"Which formula represents Kuchling's Method for Fire Demand?","options":[{"id":"a","text":"Q = 100√P"},{"id":"b","text":"Q = 3182√P"},{"id":"c","text":"Q = 5663√P"},{"id":"d","text":"Q = 1136(P/5 + 10)"}],"correct":"b","explanation":"Kuchling's formula for fire demand is $Q = 3182\\sqrt{P}$, where $P$ is population in thousands and $Q$ is in L/min."},{"id":"enveng_q39","text":"Which formula represents Buston's Method for Fire Demand?","options":[{"id":"a","text":"Q = 3182√P"},{"id":"b","text":"Q = 5663√P"},{"id":"c","text":"Q = 1136(P/5 + 10)"},{"id":"d","text":"Q = 4637√P(1-0.01√P)"}],"correct":"b","explanation":"Buston's formula for fire demand calculation is $Q = 5663\\sqrt{P}$, where $Q$ is in L/min."},{"id":"enveng_q40","text":"Which formula represents Free Man's Formula for Fire Demand?","options":[{"id":"a","text":"Q = 100√P"},{"id":"b","text":"Q = 3182√P"},{"id":"c","text":"Q = 5663√P"},{"id":"d","text":"Q = 1136[P/5 + 10]"}],"correct":"d","explanation":"Free Man's empirical formula for estimating fire demand is $Q = 1136 \\left( \\frac{P}{5} + 10 \\right)$ in L/min."},{"id":"enveng_q41","text":"Which formula represents the National Board of Underwriters method for Fire Demand?","options":[{"id":"a","text":"Q = 3182√P"},{"id":"b","text":"Q = 5663√P"},{"id":"c","text":"Q = 1136[P/5 + 10]"},{"id":"d","text":"Q = 4637√P(1-0.01√P)"}],"correct":"d","explanation":"The National Board of Fire Underwriters formula is $Q = 4637\\sqrt{P}(1 - 0.01\\sqrt{P})$, where $Q$ is in L/min."},{"id":"enveng_q42","text":"Water demand for losses and theft is nearly what percentage of total water demand?","options":[{"id":"a","text":"1-2%"},{"id":"b","text":"5-6%"},{"id":"c","text":"10-15%"},{"id":"d","text":"20-25%"}],"correct":"c","explanation":"Water loss due to pipe leakage, unauthorized connections, and theft is estimated at 10% to 15% of total supply."},{"id":"enveng_q43","text":"Water demand for public use is nearly what percentage of total water demand?","options":[{"id":"a","text":"1-2%"},{"id":"b","text":"5-6%"},{"id":"c","text":"10-15%"},{"id":"d","text":"20-25%"}],"correct":"b","explanation":"Public water demand (parks, street washing, public facilities) accounts for roughly 5% to 6% of total city consumption."},{"id":"enveng_q44","text":"The Total Water Demand for LIG/EWS generally ranges between:","options":[{"id":"a","text":"110 to 150 lpcd"},{"id":"b","text":"270 to 335 lpcd"},{"id":"c","text":"150 to 200 lpcd"},{"id":"d","text":"335 to 400 lpcd"}],"correct":"b","explanation":"Overall gross municipal water allocation including all uses for Low Income Group (LIG) and Economically Weaker Section (EWS) townships ranges between 270 and 335 lpcd."},{"id":"enveng_q45","text":"What is the relationship between Maximum Daily Demand and Average Daily Demand?","options":[{"id":"a","text":"Max Daily = 1.5 × Avg Daily"},{"id":"b","text":"Max Daily = 1.8 × Avg Daily"},{"id":"c","text":"Max Daily = 2.7 × Avg Daily"},{"id":"d","text":"Max Daily = 1.28 × Avg Daily"}],"correct":"b","explanation":"Maximum daily consumption is calculated as $1.8 \\times \\text{Average Daily Demand}$ ($180\\%$ of average)."},{"id":"enveng_q46","text":"What is the relationship between Maximum Hourly Demand and Average Hourly Demand?","options":[{"id":"a","text":"Max Hourly = 1.5 × Avg Hourly"},{"id":"b","text":"Max Hourly = 1.8 × Avg Hourly"},{"id":"c","text":"Max Hourly = 2.7 × Avg Hourly"},{"id":"d","text":"Max Hourly = 1.48 × Avg Hourly"}],"correct":"a","explanation":"Maximum hourly demand of the maximum day is $1.5 \\times \\text{Average Hourly Demand of that day}$ ($150\\%$)."},{"id":"enveng_q47","text":"Peak Demand is equal to:","options":[{"id":"a","text":"1.5 × Avg Daily demand"},{"id":"b","text":"1.8 × Avg Daily demand"},{"id":"c","text":"2.7 × Avg Daily demand"},{"id":"d","text":"1.28 × Avg Daily demand"}],"correct":"c","explanation":"Peak hourly demand (coincident draft factor) is calculated as $1.8 \\times 1.5 = 2.7 \\times \\text{Average Daily Demand}$."},{"id":"enveng_q48","text":"What is the relationship between Maximum Weekly Demand and Average Weekly Demand?","options":[{"id":"a","text":"Max Weekly = 1.28 × Avg Weekly"},{"id":"b","text":"Max Weekly = 1.48 × Avg Weekly"},{"id":"c","text":"Max Weekly = 1.5 × Avg Weekly"},{"id":"d","text":"Max Weekly = 1.8 × Avg Weekly"}],"correct":"b","explanation":"Maximum weekly water demand is taken as $1.48 \\times \\text{Average Weekly Demand}$ ($148\\%$)."},{"id":"enveng_q49","text":"What is the relationship between Maximum Monthly Demand and Average Monthly Demand?","options":[{"id":"a","text":"Max Monthly = 1.28 × Monthly demand"},{"id":"b","text":"Max Monthly = 1.48 × Monthly demand"},{"id":"c","text":"Max Monthly = 1.5 × Monthly demand"},{"id":"d","text":"Max Monthly = 1.8 × Monthly demand"}],"correct":"a","explanation":"Maximum monthly water demand is taken as $1.28 \\times \\text{Average Monthly Demand}$ ($128\\%$)."},{"id":"enveng_q50","text":"Which of the following is considered a Physical Parameter of water?","options":[{"id":"a","text":"pH"},{"id":"b","text":"Hardness"},{"id":"c","text":"Turbidity"},{"id":"d","text":"Pathogens"}],"correct":"c","explanation":"Turbidity affects physical clarity and light transmission. pH and Hardness are Chemical parameters; Pathogens are Biological."},{"id":"enveng_q51","text":"Which of the following is considered a Chemical Parameter of water?","options":[{"id":"a","text":"Colour"},{"id":"b","text":"Alkalinity"},{"id":"c","text":"Odour & Taste"},{"id":"d","text":"Temperature"}],"correct":"b","explanation":"Alkalinity measures acid-neutralizing ions ($\text{HCO}_3^-$, $\text{CO}_3^{2-}$, $\text{OH}^-$), making it a chemical parameter."},{"id":"enveng_q52","text":"Which of the following is considered a Biological Parameter of water?","options":[{"id":"a","text":"Total Solid"},{"id":"b","text":"Metals"},{"id":"c","text":"TDS"},{"id":"d","text":"Pathogens"}],"correct":"d","explanation":"Pathogens (disease-causing bacteria, viruses, protozoa) represent biological contamination in water."},{"id":"enveng_q53","text":"What is the unit used in Jackson's Turbidity Meter?","options":[{"id":"a","text":"NTU"},{"id":"b","text":"JTU"},{"id":"c","text":"TCU"},{"id":"d","text":"FTU"}],"correct":"b","explanation":"Jackson's Turbidity Meter measures turbidity in JTU (Jackson Turbidity Units) based on flame extinction distance."},{"id":"enveng_q54","text":"Bayli's Turbidity Meter is based on which technique?","options":[{"id":"a","text":"Light Scattering Technique"},{"id":"b","text":"Colour Matching Technique / Light Absorption"},{"id":"c","text":"Gravimetric Analysis"},{"id":"d","text":"Electrometric Method"}],"correct":"b","explanation":"Bayli's Turbidity Meter operates on light absorption and color matching principles for low turbidity values (< 2 NTU)."},{"id":"enveng_q55","text":"Colour of water is measured using which instrument?","options":[{"id":"a","text":"Osmoscope"},{"id":"b","text":"Tintometer"},{"id":"c","text":"Turbidity Rod"},{"id":"d","text":"pH Meter"}],"correct":"b","explanation":"Water color is measured using a Tintometer (or Nessler tubes) by visual comparison with platinum-cobalt standards."},{"id":"enveng_q56","text":"1 True Colour Unit (TCU) is equal to:","options":[{"id":"a","text":"1 mg of calcium carbonate in 1 litre water"},{"id":"b","text":"1 mg of chloroplatinate ion in 1 litre distilled water"},{"id":"c","text":"1 mg of alum in 1 litre water"},{"id":"d","text":"1 mg of sodium chloride in 1 litre distilled water"}],"correct":"b","explanation":"1 TCU is defined as the color produced by $1\\text{ mg}$ of platinum-cobalt (as chloroplatinate ion) dissolved in $1\\text{ liter}$ of distilled water."},{"id":"enveng_q57","text":"Taste and Odour of water are quantified using:","options":[{"id":"a","text":"Threshold Odour Number (TON)"},{"id":"b","text":"Jackson Turbidity Unit (JTU)"},{"id":"c","text":"True Colour Unit (TCU)"},{"id":"d","text":"Nephelometric Turbidity Unit (NTU)"}],"correct":"a","explanation":"Taste and odor intensity are quantitatively measured using the Threshold Odour Number (TON)."},{"id":"enveng_q58","text":"What is the formula for calculating Threshold Odour Number (TON)?","options":[{"id":"a","text":"A / (A+B)"},{"id":"b","text":"(A+B) / A"},{"id":"c","text":"(A+B) / B"},{"id":"d","text":"B / (A+B)"}],"correct":"b","explanation":"TON is calculated as $\\frac{A + B}{A}$, where $A$ is the volume of sample water and $B$ is the volume of odor-free dilution water."},{"id":"enveng_q59","text":"In the TON formula (A+B)/A, what does 'A' represent?","options":[{"id":"a","text":"Volume of distilled water added"},{"id":"b","text":"Volume of sample"},{"id":"c","text":"Volume of standard odour-free water"},{"id":"d","text":"Total volume of the mixture"}],"correct":"b","explanation":"In the TON dilution formula, $A$ represents the initial volume of the raw water sample."},{"id":"enveng_q60","text":"Temporary hardness in water is primarily caused by:","options":[{"id":"a","text":"Sulphates of Ca and Mg"},{"id":"b","text":"Chlorides of Ca and Mg"},{"id":"c","text":"Carbonates & Bicarbonates of Ca and Mg"},{"id":"d","text":"Nitrates of Ca and Mg"}],"correct":"c","explanation":"Temporary (carbonate) hardness is caused by carbonates and bicarbonates of Calcium and Magnesium, which can be removed simply by boiling."},{"id":"enveng_q61","text":"Permanent hardness in water is caused by:","options":[{"id":"a","text":"Carbonates of Ca and Mg"},{"id":"b","text":"Bicarbonates of Ca and Mg"},{"id":"c","text":"Sulphates, Chlorides & Nitrates of Ca and Mg"},{"id":"d","text":"Hydroxides of Na and K"}],"correct":"c","explanation":"Permanent (non-carbonate) hardness is caused by chlorides, sulfates, and nitrates of Calcium and Magnesium, requiring chemical softening."},{"id":"enveng_q62","text":"In the Membrane Filter Technique, what is the typical pore size of the filter used?","options":[{"id":"a","text":"0.22 μm"},{"id":"b","text":"0.45 μm"},{"id":"c","text":"1.0 μm"},{"id":"d","text":"5.0 μm"}],"correct":"b","explanation":"A sterile membrane filter with a pore size of $0.45\\ \\mu\\text{m}$ retains coliform bacteria while allowing water to pass through."},{"id":"enveng_q63","text":"What is the acceptable limit for Aluminium (as Al) in drinking water?","options":[{"id":"a","text":"0.03 mg/l"},{"id":"b","text":"0.2 mg/l"},{"id":"c","text":"0.5 mg/l"},{"id":"d","text":"1.0 mg/l"}],"correct":"a","explanation":"According to IS 10500 drinking water standards, the acceptable limit for Aluminium is $0.03\\text{ mg/L}$."},{"id":"enveng_q64","text":"What is the permissible limit for Aluminium in the absence of an alternate source?","options":[{"id":"a","text":"0.03 mg/l"},{"id":"b","text":"0.2 mg/l"},{"id":"c","text":"0.5 mg/l"},{"id":"d","text":"1.5 mg/l"}],"correct":"b","explanation":"The permissible upper limit for Aluminium in drinking water in the absence of an alternate supply source is $0.2\\text{ mg/L}$."},{"id":"enveng_q65","text":"What is the acceptable limit for Ammonia (as total ammonia-N)?","options":[{"id":"a","text":"0.03 mg/l"},{"id":"b","text":"0.2 mg/l"},{"id":"c","text":"0.5 mg/l"},{"id":"d","text":"1.0 mg/l"}],"correct":"c","explanation":"The acceptable limit for Ammonia in drinking water is $0.5\\text{ mg/L}$."},{"id":"enveng_q66","text":"What is the acceptable limit for Barium (as Ba)?","options":[{"id":"a","text":"0.3 mg/l"},{"id":"b","text":"0.5 mg/l"},{"id":"c","text":"0.7 mg/l"},{"id":"d","text":"1.0 mg/l"}],"correct":"c","explanation":"The acceptable limit for Barium under IS 10500 is $0.7\\text{ mg/L}$."},{"id":"enveng_q67","text":"What is the acceptable limit for Boron (as B)?","options":[{"id":"a","text":"0.1 mg/l"},{"id":"b","text":"0.5 mg/l"},{"id":"c","text":"1.0 mg/l"},{"id":"d","text":"1.5 mg/l"}],"correct":"b","explanation":"The acceptable limit for Boron in drinking water is $0.5\\text{ mg/L}$."},{"id":"enveng_q68","text":"What is the acceptable limit for Calcium (as Ca)?","options":[{"id":"a","text":"30 mg/l"},{"id":"b","text":"75 mg/l"},{"id":"c","text":"100 mg/l"},{"id":"d","text":"200 mg/l"}],"correct":"b","explanation":"The acceptable limit for Calcium concentration in drinking water is $75\\text{ mg/L}$."},{"id":"enveng_q69","text":"What is the permissible limit for Calcium (as Ca) in the absence of an alternate source?","options":[{"id":"a","text":"75 mg/l"},{"id":"b","text":"150 mg/l"},{"id":"c","text":"200 mg/l"},{"id":"d","text":"250 mg/l"}],"correct":"c","explanation":"In the absence of an alternate source, Calcium is permissible up to $200\\text{ mg/L}$."},{"id":"enveng_q70","text":"What is the acceptable limit for Chloramines (as Cl2)?","options":[{"id":"a","text":"1.0 mg/l"},{"id":"b","text":"2.0 mg/l"},{"id":"c","text":"3.0 mg/l"},{"id":"d","text":"4.0 mg/l"}],"correct":"d","explanation":"The maximum acceptable limit for chloramines in drinking water is $4.0\\text{ mg/L}$."},{"id":"enveng_q71","text":"What is the acceptable limit for Chloride (as Cl)?","options":[{"id":"a","text":"100 mg/l"},{"id":"b","text":"250 mg/l"},{"id":"c","text":"500 mg/l"},{"id":"d","text":"1000 mg/l"}],"correct":"b","explanation":"The acceptable concentration limit for Chlorides in drinking water is $250\\text{ mg/L}$."},{"id":"enveng_q72","text":"What is the permissible limit for Chloride in the absence of an alternate source?","options":[{"id":"a","text":"250 mg/l"},{"id":"b","text":"500 mg/l"},{"id":"c","text":"1000 mg/l"},{"id":"d","text":"2000 mg/l"}],"correct":"c","explanation":"The permissible upper limit for Chloride in drinking water is $1000\\text{ mg/L}$."},{"id":"enveng_q73","text":"What is the acceptable limit for Copper (as Cu)?","options":[{"id":"a","text":"0.05 mg/l"},{"id":"b","text":"0.5 mg/l"},{"id":"c","text":"1.0 mg/l"},{"id":"d","text":"1.5 mg/l"}],"correct":"a","explanation":"The acceptable limit for Copper in drinking water is $0.05\\text{ mg/L}$ (permissible up to $1.5\\text{ mg/L}$)."},{"id":"enveng_q74","text":"What is the acceptable limit for Fluoride (as F)?","options":[{"id":"a","text":"0.5 mg/l"},{"id":"b","text":"1.0 mg/l"},{"id":"c","text":"1.5 mg/l"},{"id":"d","text":"2.0 mg/l"}],"correct":"b","explanation":"The acceptable limit for Fluoride is $1.0\\text{ mg/L}$ to protect dental enamel without causing mottling."},{"id":"enveng_q75","text":"What is the permissible limit for Fluoride in the absence of an alternate source?","options":[{"id":"a","text":"1.0 mg/l"},{"id":"b","text":"1.5 mg/l"},{"id":"c","text":"2.0 mg/l"},{"id":"d","text":"2.5 mg/l"}],"correct":"b","explanation":"The upper permissible limit for Fluoride in drinking water is $1.5\\text{ mg/L}$. Concentrations above this cause skeletal fluorosis."},{"id":"enveng_q76","text":"Excessive Fluoride in drinking water above the permissible limit can cause:","options":[{"id":"a","text":"Blue baby syndrome"},{"id":"b","text":"Discolouration of teeth / Dental Cavity issues"},{"id":"c","text":"Goiter"},{"id":"d","text":"Minamata disease"}],"correct":"b","explanation":"Fluoride excess (> 1.5 mg/L) leads to dental mottling, tooth enamel discolouration, and skeletal fluorosis."},{"id":"enveng_q77","text":"What is the required minimum limit for Free residual chlorine?","options":[{"id":"a","text":"0.1 mg/l"},{"id":"b","text":"0.2 mg/l"},{"id":"c","text":"0.5 mg/l"},{"id":"d","text":"1.0 mg/l"}],"correct":"b","explanation":"A minimum free residual chlorine concentration of $0.2\\text{ mg/L}$ is required at the consumer tap to prevent post-contamination."},{"id":"enveng_q78","text":"What is the acceptable limit for Iron (as Fe)?","options":[{"id":"a","text":"0.1 mg/l"},{"id":"b","text":"0.3 mg/l"},{"id":"c","text":"0.5 mg/l"},{"id":"d","text":"1.0 mg/l"}],"correct":"b","explanation":"The acceptable limit for Iron in drinking water is $0.3\\text{ mg/L}$ to avoid staining and metallic taste."},{"id":"enveng_q79","text":"What is the acceptable limit for Magnesium (as Mg)?","options":[{"id":"a","text":"10 mg/l"},{"id":"b","text":"30 mg/l"},{"id":"c","text":"75 mg/l"},{"id":"d","text":"100 mg/l"}],"correct":"b","explanation":"The acceptable limit for Magnesium in drinking water is $30\\text{ mg/L}$."},{"id":"enveng_q80","text":"What is the permissible limit for Magnesium (as Mg) in the absence of an alternate source?","options":[{"id":"a","text":"30 mg/l"},{"id":"b","text":"75 mg/l"},{"id":"c","text":"100 mg/l"},{"id":"d","text":"150 mg/l"}],"correct":"c","explanation":"In the absence of an alternate source, Magnesium concentration is permissible up to $100\\text{ mg/L}$."},{"id":"enveng_q81","text":"What is the acceptable limit for Manganese (as Mn)?","options":[{"id":"a","text":"0.05 mg/l"},{"id":"b","text":"0.1 mg/l"},{"id":"c","text":"0.3 mg/l"},{"id":"d","text":"0.5 mg/l"}],"correct":"b","explanation":"The acceptable limit for Manganese in drinking water is $0.1\\text{ mg/L}$."},{"id":"enveng_q82","text":"What is the acceptable limit for Colour in water?","options":[{"id":"a","text":"1 Hazen unit"},{"id":"b","text":"5 Hazen units"},{"id":"c","text":"10 Hazen units"},{"id":"d","text":"15 Hazen units"}],"correct":"b","explanation":"The acceptable limit for drinking water color is $5\\text{ Hazen units}$ (TCU)."},{"id":"enveng_q83","text":"What is the permissible limit for Colour in the absence of an alternate source?","options":[{"id":"a","text":"5 Hazen units"},{"id":"b","text":"10 Hazen units"},{"id":"c","text":"15 Hazen units"},{"id":"d","text":"20 Hazen units"}],"correct":"c","explanation":"The permissible limit for color in drinking water is $15\\text{ Hazen units}$."},{"id":"enveng_q84","text":"What is the acceptable range for pH value of drinking water?","options":[{"id":"a","text":"5.5 - 7.5"},{"id":"b","text":"6.5 - 8.5"},{"id":"c","text":"7.0 - 9.0"},{"id":"d","text":"7.5 - 9.5"}],"correct":"b","explanation":"IS 10500 specifies the acceptable pH range for drinking water as $6.5$ to $8.5$."},{"id":"enveng_q85","text":"What is the acceptable limit for Turbidity?","options":[{"id":"a","text":"1 NTU"},{"id":"b","text":"5 NTU"},{"id":"c","text":"10 NTU"},{"id":"d","text":"15 NTU"}],"correct":"a","explanation":"The acceptable limit for drinking water turbidity is $1\\text{ NTU}$."},{"id":"enveng_q86","text":"What is the permissible limit for Turbidity in the absence of an alternate source?","options":[{"id":"a","text":"1 NTU"},{"id":"b","text":"5 NTU"},{"id":"c","text":"10 NTU"},{"id":"d","text":"15 NTU"}],"correct":"b","explanation":"The permissible upper limit for turbidity in drinking water is $5\\text{ NTU}$."},{"id":"enveng_q87","text":"What is the acceptable limit for Total Dissolved Solids (TDS)?","options":[{"id":"a","text":"250 mg/l"},{"id":"b","text":"500 mg/l"},{"id":"c","text":"1000 mg/l"},{"id":"d","text":"2000 mg/l"}],"correct":"b","explanation":"The acceptable limit for Total Dissolved Solids (TDS) in drinking water is $500\\text{ mg/L}$."},{"id":"enveng_q88","text":"What is the permissible limit for TDS in the absence of an alternate source?","options":[{"id":"a","text":"500 mg/l"},{"id":"b","text":"1000 mg/l"},{"id":"c","text":"1500 mg/l"},{"id":"d","text":"2000 mg/l"}],"correct":"d","explanation":"The permissible limit for TDS in drinking water is $2000\\text{ mg/L}$."},{"id":"enveng_q89","text":"To increase the opening area and reduce flow velocity, screens are normally kept inclined at an angle of:","options":[{"id":"a","text":"30° - 45°"},{"id":"b","text":"45° - 60°"},{"id":"c","text":"60° - 75°"},{"id":"d","text":"90° (Vertical)"}],"correct":"b","explanation":"Bar screens are inclined at $45^\\circ$ to $60^\\circ$ to horizontal to increase effective submerged area, lower approach velocity, and facilitate manual raking."},{"id":"enveng_q90","text":"What is the typical spacing for coarse screens?","options":[{"id":"a","text":"< 10 mm"},{"id":"b","text":"< 20 mm"},{"id":"c","text":"20 - 50 mm"},{"id":"d","text":"> 50 mm"}],"correct":"d","explanation":"Coarse screens (trash racks) have clear openings greater than $50\\text{ mm}$ to catch large floating debris."},{"id":"enveng_q91","text":"Aeration of water is done to remove which of the following gases?","options":[{"id":"a","text":"Oxygen"},{"id":"b","text":"Hydrogen Sulphide (H2S)"},{"id":"c","text":"Nitrogen"},{"id":"d","text":"Ozone"}],"correct":"b","explanation":"Aeration expels dissolved foul-smelling gases like Hydrogen Sulphide ($\text{H}_2\text{S}$) and Carbon Dioxide ($\text{CO}_2$) while oxygenating water."},{"id":"enveng_q92","text":"Which process converts Iron (Fe) and Manganese (Mn) from their soluble form to insoluble form?","options":[{"id":"a","text":"Screening"},{"id":"b","text":"Sedimentation"},{"id":"c","text":"Aeration"},{"id":"d","text":"Filtration"}],"correct":"c","explanation":"Aeration introduces oxygen which oxidizes soluble Ferrous ($\text{Fe}^{2+}$) and Manganous ($\text{Mn}^{2+}$) ions into insoluble Ferric ($\text{Fe}^{3+}$) and Manganic ($\text{Mn}^{4+}$) precipitates."},{"id":"enveng_q93","text":"The addition of a chemical to a colloidal dispersion to destabilize particles and reduce forces keeping them apart is called:","options":[{"id":"a","text":"Flocculation"},{"id":"b","text":"Coagulation"},{"id":"c","text":"Sedimentation"},{"id":"d","text":"Filtration"}],"correct":"b","explanation":"Coagulation is the process of adding chemicals (like Alum) to neutralize negative electric charges on fine colloids and destabilize them."},{"id":"enveng_q94","text":"Sand incrustation in filters, often due to calcium carbonate deposition, can be remedied by:","options":[{"id":"a","text":"Adding more alum"},{"id":"b","text":"Carbonating (addition of CO2) or adding Sodium hexa metaphosphate"},{"id":"c","text":"Increasing the filtration rate"},{"id":"d","text":"Backwashing with hot water"}],"correct":"b","explanation":"Recarbonation (passing $\text{CO}_2$) converts excess $\text{CaCO}_3$ to soluble bicarbonate, preventing calcium sand coating."},{"id":"enveng_q95","text":"Which of the following represents the correct sequence in a typical water treatment plant?","options":[{"id":"a","text":"Aeration -> Screening -> Coagulation -> Filtration"},{"id":"b","text":"Screening -> Aeration -> Primary Sedimentation -> Coagulation -> Flocculation"},{"id":"c","text":"Coagulation -> Screening -> Aeration -> Disinfection"},{"id":"d","text":"Filtration -> Sedimentation -> Screening -> Aeration"}],"correct":"b","explanation":"The correct conventional treatment sequence is Screening $\\rightarrow$ Aeration $\\rightarrow$ Primary Sedimentation $\\rightarrow$ Coagulation $\\rightarrow$ Flocculation $\\rightarrow$ Secondary Settling $\\rightarrow$ Filtration $\\rightarrow$ Disinfection."},{"id":"enveng_q96","text":"Residual ozone in water treatment is measured by which test?","options":[{"id":"a","text":"Winkler's test"},{"id":"b","text":"EDTA test"},{"id":"c","text":"Orthotolidine test"},{"id":"d","text":"DPD test"}],"correct":"c","explanation":"The Orthotolidine test (OT test) can be used to measure residual ozone as well as chlorine in water."},{"id":"enveng_q97","text":"What is the normal dose of chlorine for Plain Chlorination (used for very clean raw water)?","options":[{"id":"a","text":"0.2 mg/l"},{"id":"b","text":"0.5 mg/l"},{"id":"c","text":"1.0 mg/l"},{"id":"d","text":"5.0 mg/l"}],"correct":"b","explanation":"Plain chlorination of clear, unpolluted raw water uses a standard chlorine dosage of around $0.5\\text{ mg/L}$."},{"id":"enveng_q98","text":"The application of excess chlorine (5 to 15 mg/l) beyond the break point is known as:","options":[{"id":"a","text":"Pre-chlorination"},{"id":"b","text":"Post-chlorination"},{"id":"c","text":"Super chlorination"},{"id":"d","text":"Double chlorination"}],"correct":"c","explanation":"Super chlorination involves adding heavy chlorine doses ($5\\text{ to }15\\text{ mg/L}$) past the breakpoint during waterborne epidemic outbreaks."},{"id":"enveng_q99","text":"Nalgonda Technique is primarily used for:","options":[{"id":"a","text":"Desalination"},{"id":"b","text":"Removal of Iron and Manganese"},{"id":"c","text":"Defluoridation (Removal of excess fluoride)"},{"id":"d","text":"Softening of water"}],"correct":"c","explanation":"The Nalgonda Technique (developed by NEERI) uses lime and alum addition followed by settling for economical defluoridation of drinking water."},{"id":"enveng_q100","text":"In a water distribution system, sluice valves are usually placed:","options":[{"id":"a","text":"At the lowest points of the pressure conduits"},{"id":"b","text":"At the summits (highest points) of the pressure conduits where pressure is low"},{"id":"c","text":"Only at the treatment plant exit"},{"id":"d","text":"Randomly every 100 meters"}],"correct":"b","explanation":"Sluice/gate valves are installed along high points or summits and at pipe intersections to isolate pipeline sections for maintenance."}]
+      },
+      general_awareness_polity: {
+        "id": "general_awareness_polity",
+        "title": "General Awareness – Polity",
+        "icon": "landmark",
+        "color": "indigo",
+        "questions": [
+          {
+            "id": "gap_polity_q1",
+            "text": "Which words were added to the Preamble of the Indian Constitution by the 42nd Amendment Act in 1976?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Democratic, Republic"
+              },
+              {
+                "id": "b",
+                "text": "Socialist, Secular, Integrity"
+              },
+              {
+                "id": "c",
+                "text": "Sovereign, Secular"
+              },
+              {
+                "id": "d",
+                "text": "Liberty, Equality, Fraternity"
+              }
+            ],
+            "correct": "b",
+            "explanation": "The 42nd Amendment (1976) added 'Socialist', 'Secular', and 'Integrity' to the Preamble."
+          },
+          {
+            "id": "gap_polity_q2",
+            "text": "When was the Constitution of India formally adopted by the Constituent Assembly?",
+            "options": [
+              {
+                "id": "a",
+                "text": "26th January 1950"
+              },
+              {
+                "id": "b",
+                "text": "15th August 1947"
+              },
+              {
+                "id": "c",
+                "text": "26th November 1949"
+              },
+              {
+                "id": "d",
+                "text": "2nd October 1948"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The Constitution was adopted on 26th Nov 1949 and came into effect on 26th Jan 1950."
+          },
+          {
+            "id": "gap_polity_q3",
+            "text": "Who moved the 'Objective Resolution' in the Constituent Assembly, which later formed the basis of the Preamble?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Dr. B.R. Ambedkar"
+              },
+              {
+                "id": "b",
+                "text": "Mahatma Gandhi"
+              },
+              {
+                "id": "c",
+                "text": "Jawaharlal Nehru"
+              },
+              {
+                "id": "d",
+                "text": "Sardar Patel"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Jawaharlal Nehru moved the Objective Resolution."
+          },
+          {
+            "id": "gap_polity_q4",
+            "text": "Fundamental Rights in the Indian Constitution are primarily inspired by the constitution of which country?",
+            "options": [
+              {
+                "id": "a",
+                "text": "UK"
+              },
+              {
+                "id": "b",
+                "text": "USA"
+              },
+              {
+                "id": "c",
+                "text": "USSR"
+              },
+              {
+                "id": "d",
+                "text": "Ireland"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Fundamental Rights are inspired by the US Bill of Rights."
+          },
+          {
+            "id": "gap_polity_q5",
+            "text": "Which Article of the Indian Constitution defines 'State' for the purpose of Fundamental Rights?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 11"
+              },
+              {
+                "id": "b",
+                "text": "Article 12"
+              },
+              {
+                "id": "c",
+                "text": "Article 13"
+              },
+              {
+                "id": "d",
+                "text": "Article 14"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 12 defines the 'State' against which Fundamental Rights are available."
+          },
+          {
+            "id": "gap_polity_q6",
+            "text": "Article 13 primarily deals with:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Definition of State"
+              },
+              {
+                "id": "b",
+                "text": "Abolition of Titles"
+              },
+              {
+                "id": "c",
+                "text": "Judicial Review"
+              },
+              {
+                "id": "d",
+                "text": "Right to Education"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 13 relates to laws inconsistent with Fundamental Rights and establishes the basis for Judicial Review."
+          },
+          {
+            "id": "gap_polity_q7",
+            "text": "Which of the following is NOT a part of the 'Right to Equality' (Articles 14-18)?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Equality before law"
+              },
+              {
+                "id": "b",
+                "text": "Abolition of untouchability"
+              },
+              {
+                "id": "c",
+                "text": "Freedom of Speech"
+              },
+              {
+                "id": "d",
+                "text": "Abolition of titles"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Freedom of Speech is under the Right to Freedom (Article 19)."
+          },
+          {
+            "id": "gap_polity_q8",
+            "text": "Article 14 guarantees:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Equality of opportunity in public employment"
+              },
+              {
+                "id": "b",
+                "text": "Equality before law and equal protection of laws"
+              },
+              {
+                "id": "c",
+                "text": "Abolition of untouchability"
+              },
+              {
+                "id": "d",
+                "text": "Right to property"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 14 ensures equality before the law."
+          },
+          {
+            "id": "gap_polity_q9",
+            "text": "Article 15 prohibits discrimination on grounds ONLY of:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Religion, race, caste, sex, or place of birth"
+              },
+              {
+                "id": "b",
+                "text": "Religion, language, caste"
+              },
+              {
+                "id": "c",
+                "text": "Race, sex, wealth"
+              },
+              {
+                "id": "d",
+                "text": "Caste, place of birth, residence"
+              }
+            ],
+            "correct": "a",
+            "explanation": "Article 15 lists five specific grounds: religion, race, caste, sex, place of birth."
+          },
+          {
+            "id": "gap_polity_q10",
+            "text": "Equality of opportunity in matters of public employment is guaranteed under:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 15"
+              },
+              {
+                "id": "b",
+                "text": "Article 16"
+              },
+              {
+                "id": "c",
+                "text": "Article 17"
+              },
+              {
+                "id": "d",
+                "text": "Article 18"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 16 provides equality of opportunity in public employment."
+          },
+          {
+            "id": "gap_polity_q11",
+            "text": "Article 17 deals with the absolute abolition of:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Titles"
+              },
+              {
+                "id": "b",
+                "text": "Child labour"
+              },
+              {
+                "id": "c",
+                "text": "Untouchability"
+              },
+              {
+                "id": "d",
+                "text": "Forced labour"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 17 abolishes untouchability and forbids its practice."
+          },
+          {
+            "id": "gap_polity_q12",
+            "text": "Which title is permitted under Article 18?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Maharaja"
+              },
+              {
+                "id": "b",
+                "text": "Nawab"
+              },
+              {
+                "id": "c",
+                "text": "Academic/Military titles (e.g., Dr., Col.)"
+              },
+              {
+                "id": "d",
+                "text": "Sir"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 18 abolishes titles except military and academic distinctions."
+          },
+          {
+            "id": "gap_polity_q13",
+            "text": "How many basic freedoms are guaranteed under Article 19?",
+            "options": [
+              {
+                "id": "a",
+                "text": "5"
+              },
+              {
+                "id": "b",
+                "text": "6"
+              },
+              {
+                "id": "c",
+                "text": "7"
+              },
+              {
+                "id": "d",
+                "text": "8"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 19 guarantees 6 freedoms (speech, assembly, association, movement, residence, profession)."
+          },
+          {
+            "id": "gap_polity_q14",
+            "text": "Under Article 19, the right to assemble peacefully must be:",
+            "options": [
+              {
+                "id": "a",
+                "text": "With arms"
+              },
+              {
+                "id": "b",
+                "text": "Without arms"
+              },
+              {
+                "id": "c",
+                "text": "With prior police permission only"
+              },
+              {
+                "id": "d",
+                "text": "Indoors only"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Citizens have the right to assemble peaceably and without arms."
+          },
+          {
+            "id": "gap_polity_q15",
+            "text": "The freedoms under Article 19 are subject to:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Absolute protection"
+              },
+              {
+                "id": "b",
+                "text": "Reasonable restrictions"
+              },
+              {
+                "id": "c",
+                "text": "Presidential veto"
+              },
+              {
+                "id": "d",
+                "text": "State legislature approval"
+              }
+            ],
+            "correct": "b",
+            "explanation": "These freedoms are not absolute and are subject to 'reasonable restrictions'."
+          },
+          {
+            "id": "gap_polity_q16",
+            "text": "What does Article 20 protect citizens from?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Preventive detention"
+              },
+              {
+                "id": "b",
+                "text": "Double Jeopardy and Self-incrimination"
+              },
+              {
+                "id": "c",
+                "text": "Traffic in human beings"
+              },
+              {
+                "id": "d",
+                "text": "Discrimination"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 20 protects against ex-post-facto laws, double jeopardy, and self-incrimination."
+          },
+          {
+            "id": "gap_polity_q17",
+            "text": "Which article protects 'Life and Personal Liberty'?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 19"
+              },
+              {
+                "id": "b",
+                "text": "Article 20"
+              },
+              {
+                "id": "c",
+                "text": "Article 21"
+              },
+              {
+                "id": "d",
+                "text": "Article 22"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 21 guarantees protection of life and personal liberty."
+          },
+          {
+            "id": "gap_polity_q18",
+            "text": "The Right to Education (Article 21A) guarantees free education for children of what age group?",
+            "options": [
+              {
+                "id": "a",
+                "text": "0 to 6 years"
+              },
+              {
+                "id": "b",
+                "text": "6 to 14 years"
+              },
+              {
+                "id": "c",
+                "text": "14 to 18 years"
+              },
+              {
+                "id": "d",
+                "text": "6 to 18 years"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 21A provides education for ages 6 to 14."
+          },
+          {
+            "id": "gap_polity_q19",
+            "text": "Article 22 deals with protection against:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Exploitation"
+              },
+              {
+                "id": "b",
+                "text": "Arrest and detention in certain cases"
+              },
+              {
+                "id": "c",
+                "text": "Double jeopardy"
+              },
+              {
+                "id": "d",
+                "text": "Traffic in human beings"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 22 provides safeguards relating to arrest and preventive detention."
+          },
+          {
+            "id": "gap_polity_q20",
+            "text": "What is the primary purpose of 'Preventive Detention'?",
+            "options": [
+              {
+                "id": "a",
+                "text": "To punish for a past crime"
+              },
+              {
+                "id": "b",
+                "text": "To stop an individual from committing a future offense"
+              },
+              {
+                "id": "c",
+                "text": "To force a confession"
+              },
+              {
+                "id": "d",
+                "text": "To collect taxes"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Preventive detention is precautionary, to prevent future crimes."
+          },
+          {
+            "id": "gap_polity_q21",
+            "text": "Article 23 prohibits:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Child labour"
+              },
+              {
+                "id": "b",
+                "text": "Traffic in human beings and forced labour (Begar)"
+              },
+              {
+                "id": "c",
+                "text": "Untouchability"
+              },
+              {
+                "id": "d",
+                "text": "Religious taxation"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 23 prohibits human trafficking and forced labour."
+          },
+          {
+            "id": "gap_polity_q22",
+            "text": "The notes state that Article 24 prohibits child labor in 'hazardous places'. Which age group is protected?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Below 18 years"
+              },
+              {
+                "id": "b",
+                "text": "Below 16 years"
+              },
+              {
+                "id": "c",
+                "text": "Below 14 years"
+              },
+              {
+                "id": "d",
+                "text": "Below 12 years"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 24 prohibits employment of children below 14 years in factories/mines."
+          },
+          {
+            "id": "gap_polity_q23",
+            "text": "Article 25 guarantees freedom of:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Conscience and free profession, practice of religion"
+              },
+              {
+                "id": "b",
+                "text": "Managing religious affairs"
+              },
+              {
+                "id": "c",
+                "text": "Establishing religious schools"
+              },
+              {
+                "id": "d",
+                "text": "Tax exemption for religion"
+              }
+            ],
+            "correct": "a",
+            "explanation": "Article 25 grants individual freedom of religion."
+          },
+          {
+            "id": "gap_polity_q24",
+            "text": "The right to manage religious affairs is granted under:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 25"
+              },
+              {
+                "id": "b",
+                "text": "Article 26"
+              },
+              {
+                "id": "c",
+                "text": "Article 27"
+              },
+              {
+                "id": "d",
+                "text": "Article 28"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 26 grants collective rights to religious denominations to manage their affairs."
+          },
+          {
+            "id": "gap_polity_q25",
+            "text": "Which practice is explicitly prohibited under Article 27?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Practicing any religion"
+              },
+              {
+                "id": "b",
+                "text": "Compelling payment of taxes to promote a specific religion"
+              },
+              {
+                "id": "c",
+                "text": "Building temples/mosques"
+              },
+              {
+                "id": "d",
+                "text": "Religious processions"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 27 provides freedom from taxation for promotion of a religion."
+          },
+          {
+            "id": "gap_polity_q26",
+            "text": "Article 28 deals with freedom as to attendance at religious instruction in:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Certain educational institutions"
+              },
+              {
+                "id": "b",
+                "text": "Public places"
+              },
+              {
+                "id": "c",
+                "text": "Parliament"
+              },
+              {
+                "id": "d",
+                "text": "Workplaces"
+              }
+            ],
+            "correct": "a",
+            "explanation": "Article 28 restricts religious instruction in state-funded educational institutions."
+          },
+          {
+            "id": "gap_polity_q27",
+            "text": "Article 29 protects the distinct language, script, or culture of:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Only linguistic minorities"
+              },
+              {
+                "id": "b",
+                "text": "Only religious minorities"
+              },
+              {
+                "id": "c",
+                "text": "Any section of the citizens residing in India"
+              },
+              {
+                "id": "d",
+                "text": "Foreigners in India"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 29 protects the interests of minorities (any section of citizens)."
+          },
+          {
+            "id": "gap_polity_q28",
+            "text": "Which article guarantees the right of minorities to establish and administer educational institutions?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 28"
+              },
+              {
+                "id": "b",
+                "text": "Article 29"
+              },
+              {
+                "id": "c",
+                "text": "Article 30"
+              },
+              {
+                "id": "d",
+                "text": "Article 31"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 30 gives this right to religious and linguistic minorities."
+          },
+          {
+            "id": "gap_polity_q29",
+            "text": "Article 32 of the Constitution provides for:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Right to Equality"
+              },
+              {
+                "id": "b",
+                "text": "Right to Constitutional Remedies"
+              },
+              {
+                "id": "c",
+                "text": "Right to Property"
+              },
+              {
+                "id": "d",
+                "text": "Right to Education"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 32 allows citizens to approach the Supreme Court for enforcement of Fundamental Rights."
+          },
+          {
+            "id": "gap_polity_q30",
+            "text": "Which of the following is considered a 'legal right' but was removed from the list of Fundamental Rights?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Right to Life"
+              },
+              {
+                "id": "b",
+                "text": "Right to Constitutional Remedies"
+              },
+              {
+                "id": "c",
+                "text": "Right to Property"
+              },
+              {
+                "id": "d",
+                "text": "Right to Freedom of Speech"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The Right to Property was removed by the 44th Amendment."
+          },
+          {
+            "id": "gap_polity_q31",
+            "text": "The Right to Property was removed from Fundamental Rights by which amendment?",
+            "options": [
+              {
+                "id": "a",
+                "text": "42nd Amendment Act"
+              },
+              {
+                "id": "b",
+                "text": "44th Amendment Act"
+              },
+              {
+                "id": "c",
+                "text": "86th Amendment Act"
+              },
+              {
+                "id": "d",
+                "text": "1st Amendment Act"
+              }
+            ],
+            "correct": "b",
+            "explanation": "The 44th Amendment Act (1978) made it a legal right under Article 300A."
+          },
+          {
+            "id": "gap_polity_q32",
+            "text": "The Constitution refers to India as a:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Union of States"
+              },
+              {
+                "id": "b",
+                "text": "Federation of States"
+              },
+              {
+                "id": "c",
+                "text": "Confederation"
+              },
+              {
+                "id": "d",
+                "text": "Unitary State"
+              }
+            ],
+            "correct": "a",
+            "explanation": "Article 1 describes India as a 'Union of States'."
+          },
+          {
+            "id": "gap_polity_q33",
+            "text": "According to the Preamble, the source of authority of the Constitution lies with:",
+            "options": [
+              {
+                "id": "a",
+                "text": "The Parliament"
+              },
+              {
+                "id": "b",
+                "text": "The President"
+              },
+              {
+                "id": "c",
+                "text": "The Supreme Court"
+              },
+              {
+                "id": "d",
+                "text": "The People of India"
+              }
+            ],
+            "correct": "d",
+            "explanation": "The Preamble starts with 'We, the People of India'."
+          },
+          {
+            "id": "gap_polity_q34",
+            "text": "Which Article relates to the formation of new states or alteration of boundaries?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 1"
+              },
+              {
+                "id": "b",
+                "text": "Article 2"
+              },
+              {
+                "id": "c",
+                "text": "Article 3"
+              },
+              {
+                "id": "d",
+                "text": "Article 4"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 3 authorizes Parliament to form new states or alter areas/boundaries."
+          },
+          {
+            "id": "gap_polity_q35",
+            "text": "In the Preamble, 'Republic' means:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Rule by the majority"
+              },
+              {
+                "id": "b",
+                "text": "The Head of State is an elected person"
+              },
+              {
+                "id": "c",
+                "text": "Rule by a monarch"
+              },
+              {
+                "id": "d",
+                "text": "Complete independence"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Republic implies the head of state (President) is elected, not hereditary."
+          },
+          {
+            "id": "gap_polity_q36",
+            "text": "How many Fundamental Rights are currently recognized by the Indian Constitution?",
+            "options": [
+              {
+                "id": "a",
+                "text": "5"
+              },
+              {
+                "id": "b",
+                "text": "6"
+              },
+              {
+                "id": "c",
+                "text": "7"
+              },
+              {
+                "id": "d",
+                "text": "8"
+              }
+            ],
+            "correct": "b",
+            "explanation": "There are 6 categories of Fundamental Rights."
+          },
+          {
+            "id": "gap_polity_q37",
+            "text": "To which part of the Constitution do Fundamental Rights belong?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Part I"
+              },
+              {
+                "id": "b",
+                "text": "Part II"
+              },
+              {
+                "id": "c",
+                "text": "Part III"
+              },
+              {
+                "id": "d",
+                "text": "Part IV"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Fundamental Rights are enshrined in Part III."
+          },
+          {
+            "id": "gap_polity_q38",
+            "text": "Which feature of the Constitution ensures that it is the supreme law of the land?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Written Constitution"
+              },
+              {
+                "id": "b",
+                "text": "Parliamentary System"
+              },
+              {
+                "id": "c",
+                "text": "Fundamental Duties"
+              },
+              {
+                "id": "d",
+                "text": "Directive Principles"
+              }
+            ],
+            "correct": "a",
+            "explanation": "A Written Constitution is a key feature indicating supremacy."
+          },
+          {
+            "id": "gap_polity_q39",
+            "text": "The term 'Secular' in the Indian context means:",
+            "options": [
+              {
+                "id": "a",
+                "text": "State has its own religion"
+              },
+              {
+                "id": "b",
+                "text": "State is anti-religion"
+              },
+              {
+                "id": "c",
+                "text": "State treats all religions equally"
+              },
+              {
+                "id": "d",
+                "text": "State promotes majority religion"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Positive secularism means the state protects all religions equally."
+          },
+          {
+            "id": "gap_polity_q40",
+            "text": "Fundamental Rights are available against the arbitrary actions of:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Private individuals only"
+              },
+              {
+                "id": "b",
+                "text": "The State"
+              },
+              {
+                "id": "c",
+                "text": "Both State and private individuals (in some cases)"
+              },
+              {
+                "id": "d",
+                "text": "Foreigners"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Mainly against the State, but some (like Art 17) apply against individuals too."
+          },
+          {
+            "id": "gap_polity_q41",
+            "text": "Can Fundamental Rights be suspended?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Never"
+              },
+              {
+                "id": "b",
+                "text": "Only by the Supreme Court"
+              },
+              {
+                "id": "c",
+                "text": "Yes, during a National Emergency"
+              },
+              {
+                "id": "d",
+                "text": "Yes, by the Prime Minister anytime"
+              }
+            ],
+            "correct": "c",
+            "explanation": "They can be suspended during a National Emergency (except Arts 20 & 21)."
+          },
+          {
+            "id": "gap_polity_q42",
+            "text": "Dr. B.R. Ambedkar called which Article the 'Heart and Soul' of the Constitution?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 14"
+              },
+              {
+                "id": "b",
+                "text": "Article 19"
+              },
+              {
+                "id": "c",
+                "text": "Article 21"
+              },
+              {
+                "id": "d",
+                "text": "Article 32"
+              }
+            ],
+            "correct": "d",
+            "explanation": "Article 32 (Constitutional Remedies) was called the heart and soul."
+          },
+          {
+            "id": "gap_polity_q43",
+            "text": "Which writ is issued by a higher court when a lower court has considered a case going beyond its jurisdiction?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Habeas Corpus"
+              },
+              {
+                "id": "b",
+                "text": "Mandamus"
+              },
+              {
+                "id": "c",
+                "text": "Prohibition"
+              },
+              {
+                "id": "d",
+                "text": "Quo-Warranto"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Prohibition forbids a lower court from exceeding its jurisdiction."
+          },
+          {
+            "id": "gap_polity_q44",
+            "text": "Which writ means 'we command'?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Habeas Corpus"
+              },
+              {
+                "id": "b",
+                "text": "Mandamus"
+              },
+              {
+                "id": "c",
+                "text": "Certiorari"
+              },
+              {
+                "id": "d",
+                "text": "Quo-Warranto"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Mandamus commands a public official to perform their duty."
+          },
+          {
+            "id": "gap_polity_q45",
+            "text": "Which part of the Constitution deals with Citizenship?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Part I"
+              },
+              {
+                "id": "b",
+                "text": "Part II"
+              },
+              {
+                "id": "c",
+                "text": "Part III"
+              },
+              {
+                "id": "d",
+                "text": "Part IV"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Part II deals with Citizenship (Articles 5-11)."
+          },
+          {
+            "id": "gap_polity_q46",
+            "text": "Who is the Constitutional Head of the Indian State?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Prime Minister"
+              },
+              {
+                "id": "b",
+                "text": "Chief Justice of India"
+              },
+              {
+                "id": "c",
+                "text": "President"
+              },
+              {
+                "id": "d",
+                "text": "Speaker of Lok Sabha"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The President is the nominal or constitutional head."
+          },
+          {
+            "id": "gap_polity_q47",
+            "text": "The concept of Directive Principles of State Policy (DPSP) was borrowed from:",
+            "options": [
+              {
+                "id": "a",
+                "text": "USA"
+              },
+              {
+                "id": "b",
+                "text": "Ireland"
+              },
+              {
+                "id": "c",
+                "text": "UK"
+              },
+              {
+                "id": "d",
+                "text": "France"
+              }
+            ],
+            "correct": "b",
+            "explanation": "DPSP is borrowed from the Irish Constitution."
+          },
+          {
+            "id": "gap_polity_q48",
+            "text": "Which part of the Constitution contains DPSP?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Part II"
+              },
+              {
+                "id": "b",
+                "text": "Part III"
+              },
+              {
+                "id": "c",
+                "text": "Part IV"
+              },
+              {
+                "id": "d",
+                "text": "Part V"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Part IV contains the Directive Principles."
+          },
+          {
+            "id": "gap_polity_q49",
+            "text": "Fundamental Duties were added to the Constitution by which amendment?",
+            "options": [
+              {
+                "id": "a",
+                "text": "42nd Amendment"
+              },
+              {
+                "id": "b",
+                "text": "44th Amendment"
+              },
+              {
+                "id": "c",
+                "text": "86th Amendment"
+              },
+              {
+                "id": "d",
+                "text": "1st Amendment"
+              }
+            ],
+            "correct": "a",
+            "explanation": "Added by the 42nd Amendment in 1976."
+          },
+          {
+            "id": "gap_polity_q50",
+            "text": "Under which Article are Fundamental Duties listed?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 50"
+              },
+              {
+                "id": "b",
+                "text": "Article 51"
+              },
+              {
+                "id": "c",
+                "text": "Article 51A"
+              },
+              {
+                "id": "d",
+                "text": "Article 52"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 51A contains the Fundamental Duties."
+          },
+          {
+            "id": "gap_polity_q51",
+            "text": "How many Fundamental Duties are there currently?",
+            "options": [
+              {
+                "id": "a",
+                "text": "10"
+              },
+              {
+                "id": "b",
+                "text": "11"
+              },
+              {
+                "id": "c",
+                "text": "12"
+              },
+              {
+                "id": "d",
+                "text": "14"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Currently, there are 11 Fundamental Duties."
+          },
+          {
+            "id": "gap_polity_q52",
+            "text": "The President of India is elected by:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Direct election by citizens"
+              },
+              {
+                "id": "b",
+                "text": "Members of Lok Sabha only"
+              },
+              {
+                "id": "c",
+                "text": "An Electoral College"
+              },
+              {
+                "id": "d",
+                "text": "Prime Minister and Cabinet"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Elected by an Electoral College comprising elected MPs and MLAs."
+          },
+          {
+            "id": "gap_polity_q53",
+            "text": "What is the minimum age required to become the President of India?",
+            "options": [
+              {
+                "id": "a",
+                "text": "25 years"
+              },
+              {
+                "id": "b",
+                "text": "30 years"
+              },
+              {
+                "id": "c",
+                "text": "35 years"
+              },
+              {
+                "id": "d",
+                "text": "40 years"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Minimum age for President is 35 years."
+          },
+          {
+            "id": "gap_polity_q54",
+            "text": "Who administers the oath of office to the President?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Prime Minister"
+              },
+              {
+                "id": "b",
+                "text": "Chief Justice of India"
+              },
+              {
+                "id": "c",
+                "text": "Vice-President"
+              },
+              {
+                "id": "d",
+                "text": "Speaker of Lok Sabha"
+              }
+            ],
+            "correct": "b",
+            "explanation": "The Chief Justice of India administers the oath."
+          },
+          {
+            "id": "gap_polity_q55",
+            "text": "The Vice-President is the ex-officio Chairman of which body?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Lok Sabha"
+              },
+              {
+                "id": "b",
+                "text": "Rajya Sabha"
+              },
+              {
+                "id": "c",
+                "text": "NITI Aayog"
+              },
+              {
+                "id": "d",
+                "text": "Finance Commission"
+              }
+            ],
+            "correct": "b",
+            "explanation": "The VP acts as the Chairman of the Rajya Sabha."
+          },
+          {
+            "id": "gap_polity_q56",
+            "text": "Who presides over the joint sitting of the Parliament?",
+            "options": [
+              {
+                "id": "a",
+                "text": "President"
+              },
+              {
+                "id": "b",
+                "text": "Vice-President"
+              },
+              {
+                "id": "c",
+                "text": "Speaker of Lok Sabha"
+              },
+              {
+                "id": "d",
+                "text": "Prime Minister"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The Speaker of Lok Sabha presides over joint sittings."
+          },
+          {
+            "id": "gap_polity_q57",
+            "text": "What is the maximum strength of the Lok Sabha as per the Constitution?",
+            "options": [
+              {
+                "id": "a",
+                "text": "545"
+              },
+              {
+                "id": "b",
+                "text": "550"
+              },
+              {
+                "id": "c",
+                "text": "552"
+              },
+              {
+                "id": "d",
+                "text": "500"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The maximum strength is 552 (though practically varied by amendments)."
+          },
+          {
+            "id": "gap_polity_q58",
+            "text": "Money Bills can be introduced only in:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Rajya Sabha"
+              },
+              {
+                "id": "b",
+                "text": "Lok Sabha"
+              },
+              {
+                "id": "c",
+                "text": "Both Houses"
+              },
+              {
+                "id": "d",
+                "text": "State Legislatures"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Money bills originate only in the Lok Sabha."
+          },
+          {
+            "id": "gap_polity_q59",
+            "text": "Who decides whether a bill is a Money Bill or not?",
+            "options": [
+              {
+                "id": "a",
+                "text": "President"
+              },
+              {
+                "id": "b",
+                "text": "Finance Minister"
+              },
+              {
+                "id": "c",
+                "text": "Speaker of Lok Sabha"
+              },
+              {
+                "id": "d",
+                "text": "Prime Minister"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The Speaker's decision on this is final."
+          },
+          {
+            "id": "gap_polity_q60",
+            "text": "What is the tenure of a member of the Rajya Sabha?",
+            "options": [
+              {
+                "id": "a",
+                "text": "4 years"
+              },
+              {
+                "id": "b",
+                "text": "5 years"
+              },
+              {
+                "id": "c",
+                "text": "6 years"
+              },
+              {
+                "id": "d",
+                "text": "Permanent"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Members serve for 6 years, with one-third retiring every 2 years."
+          },
+          {
+            "id": "gap_polity_q61",
+            "text": "The Supreme Court of India consists of how many judges (currently maximum sanctioned)?",
+            "options": [
+              {
+                "id": "a",
+                "text": "31"
+              },
+              {
+                "id": "b",
+                "text": "34"
+              },
+              {
+                "id": "c",
+                "text": "25"
+              },
+              {
+                "id": "d",
+                "text": "40"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Currently, it is 34 (1 CJI + 33 other judges)."
+          },
+          {
+            "id": "gap_polity_q62",
+            "text": "Who appoints the judges of the Supreme Court?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Parliament"
+              },
+              {
+                "id": "b",
+                "text": "Prime Minister"
+              },
+              {
+                "id": "c",
+                "text": "President"
+              },
+              {
+                "id": "d",
+                "text": "Law Minister"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The President appoints them (collegium system)."
+          },
+          {
+            "id": "gap_polity_q63",
+            "text": "What is the retirement age for a Supreme Court Judge?",
+            "options": [
+              {
+                "id": "a",
+                "text": "60 years"
+              },
+              {
+                "id": "b",
+                "text": "62 years"
+              },
+              {
+                "id": "c",
+                "text": "65 years"
+              },
+              {
+                "id": "d",
+                "text": "70 years"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Supreme Court judges retire at 65."
+          },
+          {
+            "id": "gap_polity_q64",
+            "text": "Which article deals with the Finance Commission?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 280"
+              },
+              {
+                "id": "b",
+                "text": "Article 315"
+              },
+              {
+                "id": "c",
+                "text": "Article 324"
+              },
+              {
+                "id": "d",
+                "text": "Article 352"
+              }
+            ],
+            "correct": "a",
+            "explanation": "Article 280 provides for a Finance Commission."
+          },
+          {
+            "id": "gap_polity_q65",
+            "text": "Who conducts elections to the Lok Sabha and State Assemblies?",
+            "options": [
+              {
+                "id": "a",
+                "text": "State Election Commissions"
+              },
+              {
+                "id": "b",
+                "text": "President"
+              },
+              {
+                "id": "c",
+                "text": "Election Commission of India"
+              },
+              {
+                "id": "d",
+                "text": "Parliament"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The ECI is responsible for these elections."
+          },
+          {
+            "id": "gap_polity_q66",
+            "text": "Which Article deals with National Emergency?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 352"
+              },
+              {
+                "id": "b",
+                "text": "Article 356"
+              },
+              {
+                "id": "c",
+                "text": "Article 360"
+              },
+              {
+                "id": "d",
+                "text": "Article 370"
+              }
+            ],
+            "correct": "a",
+            "explanation": "Article 352 is for National Emergency (war, external aggression, armed rebellion)."
+          },
+          {
+            "id": "gap_polity_q67",
+            "text": "Article 356 relates to:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Financial Emergency"
+              },
+              {
+                "id": "b",
+                "text": "National Emergency"
+              },
+              {
+                "id": "c",
+                "text": "President's Rule in States"
+              },
+              {
+                "id": "d",
+                "text": "Amendment procedure"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Article 356 allows for President's Rule if state machinery fails."
+          },
+          {
+            "id": "gap_polity_q68",
+            "text": "Has Financial Emergency (Article 360) ever been declared in India?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Yes, once"
+              },
+              {
+                "id": "b",
+                "text": "Yes, twice"
+              },
+              {
+                "id": "c",
+                "text": "No, never"
+              },
+              {
+                "id": "d",
+                "text": "Yes, in 1991"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Financial Emergency has never been declared in India."
+          },
+          {
+            "id": "gap_polity_q69",
+            "text": "Which part of the Constitution deals with the amendment procedure?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Part XVIII"
+              },
+              {
+                "id": "b",
+                "text": "Part XIX"
+              },
+              {
+                "id": "c",
+                "text": "Part XX"
+              },
+              {
+                "id": "d",
+                "text": "Part XXI"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Part XX (Article 368) deals with amendments."
+          },
+          {
+            "id": "gap_polity_q70",
+            "text": "The Panchayati Raj system was constitutionally recognized by which amendment?",
+            "options": [
+              {
+                "id": "a",
+                "text": "73rd Amendment"
+              },
+              {
+                "id": "b",
+                "text": "74th Amendment"
+              },
+              {
+                "id": "c",
+                "text": "42nd Amendment"
+              },
+              {
+                "id": "d",
+                "text": "44th Amendment"
+              }
+            ],
+            "correct": "a",
+            "explanation": "The 73rd Amendment Act (1992) formalized Panchayati Raj."
+          },
+          {
+            "id": "gap_polity_q71",
+            "text": "Urban Local Bodies (Municipalities) were recognized by which amendment?",
+            "options": [
+              {
+                "id": "a",
+                "text": "73rd Amendment"
+              },
+              {
+                "id": "b",
+                "text": "74th Amendment"
+              },
+              {
+                "id": "c",
+                "text": "86th Amendment"
+              },
+              {
+                "id": "d",
+                "text": "101st Amendment"
+              }
+            ],
+            "correct": "b",
+            "explanation": "The 74th Amendment pertains to Municipalities."
+          },
+          {
+            "id": "gap_polity_q72",
+            "text": "The concurrent list in the 7th Schedule is borrowed from:",
+            "options": [
+              {
+                "id": "a",
+                "text": "USA"
+              },
+              {
+                "id": "b",
+                "text": "Australia"
+              },
+              {
+                "id": "c",
+                "text": "Canada"
+              },
+              {
+                "id": "d",
+                "text": "UK"
+              }
+            ],
+            "correct": "b",
+            "explanation": "The Concurrent list feature comes from the Australian Constitution."
+          },
+          {
+            "id": "gap_polity_q73",
+            "text": "Residuary powers in India are vested in:",
+            "options": [
+              {
+                "id": "a",
+                "text": "States"
+              },
+              {
+                "id": "b",
+                "text": "Centre (Parliament)"
+              },
+              {
+                "id": "c",
+                "text": "President"
+              },
+              {
+                "id": "d",
+                "text": "Supreme Court"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Powers not in any of the three lists belong to the Centre (Article 248)."
+          },
+          {
+            "id": "gap_polity_q74",
+            "text": "What is the quorum required to hold a meeting of the Lok Sabha?",
+            "options": [
+              {
+                "id": "a",
+                "text": "1/10th of total membership"
+              },
+              {
+                "id": "b",
+                "text": "1/5th of total membership"
+              },
+              {
+                "id": "c",
+                "text": "1/2 of total membership"
+              },
+              {
+                "id": "d",
+                "text": "100 members"
+              }
+            ],
+            "correct": "a",
+            "explanation": "A quorum of 10% (1/10th) is required."
+          },
+          {
+            "id": "gap_polity_q75",
+            "text": "The 'Zero Hour' in Parliament refers to:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Time right after Question Hour"
+              },
+              {
+                "id": "b",
+                "text": "Time before session starts"
+              },
+              {
+                "id": "c",
+                "text": "Time for passing budget"
+              },
+              {
+                "id": "d",
+                "text": "Midnight session"
+              }
+            ],
+            "correct": "a",
+            "explanation": "Zero hour is an Indian innovation for raising urgent matters immediately after Question Hour."
+          },
+          {
+            "id": "gap_polity_q76",
+            "text": "Who is the supreme commander of the Armed Forces in India?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Defence Minister"
+              },
+              {
+                "id": "b",
+                "text": "Prime Minister"
+              },
+              {
+                "id": "c",
+                "text": "Chief of Defence Staff"
+              },
+              {
+                "id": "d",
+                "text": "President"
+              }
+            ],
+            "correct": "d",
+            "explanation": "The President is the Supreme Commander."
+          },
+          {
+            "id": "gap_polity_q77",
+            "text": "A person can be a minister without being a Member of Parliament for a maximum period of:",
+            "options": [
+              {
+                "id": "a",
+                "text": "3 months"
+              },
+              {
+                "id": "b",
+                "text": "6 months"
+              },
+              {
+                "id": "c",
+                "text": "1 year"
+              },
+              {
+                "id": "d",
+                "text": "Cannot be a minister"
+              }
+            ],
+            "correct": "b",
+            "explanation": "They must get elected to either house within 6 months."
+          },
+          {
+            "id": "gap_polity_q78",
+            "text": "Who appoints the Chief Minister of a State?",
+            "options": [
+              {
+                "id": "a",
+                "text": "President"
+              },
+              {
+                "id": "b",
+                "text": "Prime Minister"
+              },
+              {
+                "id": "c",
+                "text": "Governor"
+              },
+              {
+                "id": "d",
+                "text": "Chief Justice of High Court"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The Governor appoints the Chief Minister."
+          },
+          {
+            "id": "gap_polity_q79",
+            "text": "The High Court of a state has jurisdiction under which Article to issue writs?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 32"
+              },
+              {
+                "id": "b",
+                "text": "Article 226"
+              },
+              {
+                "id": "c",
+                "text": "Article 141"
+              },
+              {
+                "id": "d",
+                "text": "Article 13"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Article 226 empowers High Courts to issue writs."
+          },
+          {
+            "id": "gap_polity_q80",
+            "text": "Which Schedule of the Constitution contains the languages recognized by it?",
+            "options": [
+              {
+                "id": "a",
+                "text": "7th Schedule"
+              },
+              {
+                "id": "b",
+                "text": "8th Schedule"
+              },
+              {
+                "id": "c",
+                "text": "9th Schedule"
+              },
+              {
+                "id": "d",
+                "text": "10th Schedule"
+              }
+            ],
+            "correct": "b",
+            "explanation": "The 8th Schedule lists 22 recognized languages."
+          },
+          {
+            "id": "gap_polity_q81",
+            "text": "The Anti-Defection Law is contained in which Schedule?",
+            "options": [
+              {
+                "id": "a",
+                "text": "8th Schedule"
+              },
+              {
+                "id": "b",
+                "text": "9th Schedule"
+              },
+              {
+                "id": "c",
+                "text": "10th Schedule"
+              },
+              {
+                "id": "d",
+                "text": "11th Schedule"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The 10th Schedule (added by 52nd Amendment) contains anti-defection provisions."
+          },
+          {
+            "id": "gap_polity_q82",
+            "text": "Who was the Chairman of the Drafting Committee of the Constituent Assembly?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Jawaharlal Nehru"
+              },
+              {
+                "id": "b",
+                "text": "Dr. Rajendra Prasad"
+              },
+              {
+                "id": "c",
+                "text": "Dr. B.R. Ambedkar"
+              },
+              {
+                "id": "d",
+                "text": "B.N. Rau"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Dr. B.R. Ambedkar chaired the Drafting Committee."
+          },
+          {
+            "id": "gap_polity_q83",
+            "text": "Who was the Constitutional Advisor to the Constituent Assembly?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Dr. B.R. Ambedkar"
+              },
+              {
+                "id": "b",
+                "text": "B.N. Rau"
+              },
+              {
+                "id": "c",
+                "text": "K.M. Munshi"
+              },
+              {
+                "id": "d",
+                "text": "Sardar Patel"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Sir B.N. Rau served as the Constitutional Advisor."
+          },
+          {
+            "id": "gap_polity_q84",
+            "text": "The concept of 'Single Citizenship' is borrowed from:",
+            "options": [
+              {
+                "id": "a",
+                "text": "USA"
+              },
+              {
+                "id": "b",
+                "text": "UK"
+              },
+              {
+                "id": "c",
+                "text": "Canada"
+              },
+              {
+                "id": "d",
+                "text": "France"
+              }
+            ],
+            "correct": "b",
+            "explanation": "India borrowed Single Citizenship from the UK (British) system."
+          },
+          {
+            "id": "gap_polity_q85",
+            "text": "Right to Information (RTI) is derived from which Fundamental Right?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Article 14"
+              },
+              {
+                "id": "b",
+                "text": "Article 19(1)(a)"
+              },
+              {
+                "id": "c",
+                "text": "Article 21"
+              },
+              {
+                "id": "d",
+                "text": "Article 32"
+              }
+            ],
+            "correct": "b",
+            "explanation": "RTI is implicitly guaranteed under Freedom of Speech and Expression (Art 19)."
+          },
+          {
+            "id": "gap_polity_q86",
+            "text": "The protection of monuments and places of national importance is a:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Fundamental Right"
+              },
+              {
+                "id": "b",
+                "text": "Fundamental Duty"
+              },
+              {
+                "id": "c",
+                "text": "Directive Principle"
+              },
+              {
+                "id": "d",
+                "text": "Legal Right only"
+              }
+            ],
+            "correct": "c",
+            "explanation": "It is a DPSP under Article 49."
+          },
+          {
+            "id": "gap_polity_q87",
+            "text": "Who has the power to pardon a death sentence in India?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Governor only"
+              },
+              {
+                "id": "b",
+                "text": "President only"
+              },
+              {
+                "id": "c",
+                "text": "Both President and Governor"
+              },
+              {
+                "id": "d",
+                "text": "Chief Justice of India"
+              }
+            ],
+            "correct": "b",
+            "explanation": "Only the President can pardon a death sentence (Article 72)."
+          },
+          {
+            "id": "gap_polity_q88",
+            "text": "An Ordinance promulgated by the President must be approved by Parliament within:",
+            "options": [
+              {
+                "id": "a",
+                "text": "6 weeks of its reassembly"
+              },
+              {
+                "id": "b",
+                "text": "6 months of its reassembly"
+              },
+              {
+                "id": "c",
+                "text": "3 months"
+              },
+              {
+                "id": "d",
+                "text": "It doesn't need approval"
+              }
+            ],
+            "correct": "a",
+            "explanation": "Ordinances expire 6 weeks after Parliament reassembles if not approved."
+          },
+          {
+            "id": "gap_polity_q89",
+            "text": "The term of a State Legislative Assembly is generally:",
+            "options": [
+              {
+                "id": "a",
+                "text": "4 years"
+              },
+              {
+                "id": "b",
+                "text": "5 years"
+              },
+              {
+                "id": "c",
+                "text": "6 years"
+              },
+              {
+                "id": "d",
+                "text": "Permanent"
+              }
+            ],
+            "correct": "b",
+            "explanation": "The normal term is 5 years, though it can be dissolved earlier."
+          },
+          {
+            "id": "gap_polity_q90",
+            "text": "Which state has a Uniform Civil Code in India?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Kerala"
+              },
+              {
+                "id": "b",
+                "text": "Gujarat"
+              },
+              {
+                "id": "c",
+                "text": "Goa"
+              },
+              {
+                "id": "d",
+                "text": "Maharashtra"
+              }
+            ],
+            "correct": "c",
+            "explanation": "Goa is currently the only state with a Uniform Civil Code (Portuguese Civil Code)."
+          },
+          {
+            "id": "gap_polity_q91",
+            "text": "The Comptroller and Auditor General (CAG) of India is appointed by:",
+            "options": [
+              {
+                "id": "a",
+                "text": "Finance Minister"
+              },
+              {
+                "id": "b",
+                "text": "Prime Minister"
+              },
+              {
+                "id": "c",
+                "text": "President"
+              },
+              {
+                "id": "d",
+                "text": "Parliament"
+              }
+            ],
+            "correct": "c",
+            "explanation": "The President appoints the CAG (Article 148)."
+          }
+        ]
       },
     };
     // ---------------- SUPER10 TEST ----------------
