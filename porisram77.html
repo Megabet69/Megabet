@@ -12387,6 +12387,79 @@ window.openNews=function(){if(!state.profile)return;stateNews.category='assam';s
 window.selectNewsCategory=function(id){if(!NEWS_CATEGORIES[id])return;stateNews.category=id;stateNews.rotation=0;render();backgroundRefresh(id);};
 window.refreshNews=function(){stateNews.rotation++;paint();backgroundRefresh(stateNews.category);};
 
+
+
+/* ===== Daily Current Affairs Quiz ===== */
+const DAILY_QUIZ_KEY='porisram77_daily_news_quiz_v1';
+let dailyQuiz={questions:[],index:0,answers:[],score:0,started:false,completed:false};
+function dailyQuizDay(){return new Date().toISOString().slice(0,10);}
+function dailyQuizCleanItems(){
+  const all=[];
+  Object.keys(NEWS_CATEGORIES).forEach(c=>all.push(...poolFor(c)));
+  const bad=/^(assam current affairs|assam government updates|indian current affairs|government jobs|education & exams|latest update|latest education|latest assam-related updates|check the latest)/i;
+  return dedupe(all).filter(x=>{
+    const t=clean(x.title||''); const d=summary(x);
+    return t.length>=18 && !bad.test(t) && d.length>=35;
+  });
+}
+function seededShuffle(arr,seed){
+  const a=arr.slice(); let x=seed>>>0;
+  for(let i=a.length-1;i>0;i--){x=(x*1664525+1013904223)>>>0;const j=x%(i+1);[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function makeDailyQuestions(){
+  const items=dailyQuizCleanItems();
+  const dayNum=Number(dailyQuizDay().replace(/-/g,''))||1;
+  const ordered=seededShuffle(items,dayNum).slice(0,10);
+  if(ordered.length<10)return [];
+  return ordered.map((item,qi)=>{
+    const others=seededShuffle(ordered.filter((_,i)=>i!==qi),dayNum+qi+17).slice(0,3);
+    const opts=seededShuffle([item,...others],dayNum+qi+101);
+    return {id:'dq'+qi,title:item.title,summary:summary(item),source:item.source||'News',pubDate:item.pubDate||'',options:opts.map((x,i)=>({value:String.fromCharCode(65+i),label:x.title})),correct:opts.findIndex(x=>x===item)};
+  });
+}
+function dailyQuizSaved(){try{return JSON.parse(localStorage.getItem(DAILY_QUIZ_KEY+'_'+dailyQuizDay())||'null');}catch(e){return null;}}
+function dailyQuizSave(v){try{localStorage.setItem(DAILY_QUIZ_KEY+'_'+dailyQuizDay(),JSON.stringify(v));}catch(e){}}
+function renderDailyQuiz(){
+  const saved=dailyQuizSaved();
+  if(saved && saved.completed){
+    return `<div class="news-page fade-in"><div class="news-topbar"><div><h2 class="text-xl font-extrabold text-gray-900">📰 Daily Current Affairs Quiz</h2><p class="text-xs text-gray-500 mt-1">Today's 10 news headlines</p></div><button class="btn btn-outline news-back" onclick="window.goDashboard()">← Home</button></div><div class="news-card text-center py-8"><div class="text-4xl mb-3">🏆</div><h3 class="text-2xl font-extrabold">Today's Quiz Completed</h3><p class="text-slate-500 mt-2">Score: <b>${saved.score}/10</b> • Accuracy: <b>${saved.accuracy}%</b></p><p class="text-slate-500 mt-1">🪙 Coins earned today: <b>${saved.coins}</b></p><button class="btn btn-primary mt-5" onclick="window.goDashboard()">Back to Home</button></div></div>`;
+  }
+  const q=dailyQuiz.questions[dailyQuiz.index];
+  if(!q)return `<div class="news-page fade-in"><div class="news-topbar"><h2 class="text-xl font-extrabold">📰 Daily Current Affairs Quiz</h2><button class="btn btn-outline news-back" onclick="window.goDashboard()">← Home</button></div><div class="news-empty">Today's 10 real news stories are not available yet. Open News once while connected to the internet, then return here.</div></div>`;
+  return `<div class="news-page fade-in"><div class="news-topbar"><div><h2 class="text-xl font-extrabold text-gray-900">📰 Daily Current Affairs Quiz</h2><p class="text-xs text-gray-500 mt-1">Question ${dailyQuiz.index+1} of 10 • ${Math.round((dailyQuiz.index/10)*100)}% complete</p></div><button class="btn btn-outline news-back" onclick="window.goDashboard()">← Home</button></div><article class="news-card"><div class="news-label">READ THE NEWS • ANSWER</div><h3 style="font-size:17px">Which headline matches this current-affairs summary?</h3><div class="news-summary" style="font-size:14px;margin-top:12px">${esc(q.summary)}</div><div class="news-meta">${esc(q.source)}${q.pubDate?' • '+esc(niceDate(q.pubDate)):''}</div><div class="mt-5" style="display:grid;gap:10px">${q.options.map((o,i)=>`<button type="button" class="news-filter" onclick="window.answerDailyNews(${i})" style="font-size:14px;padding:13px;text-align:left">${String.fromCharCode(65+i)}. ${esc(o.label)}</button>`).join('')}</div><div class="text-xs text-gray-500 mt-4">Choose one answer. Each question is based on today's news.</div></article></div>`;
+}
+window.openDailyNewsQuiz=function(){
+  const saved=dailyQuizSaved();
+  if(saved&&saved.completed){dailyQuiz.completed=true;}
+  dailyQuiz.questions=makeDailyQuestions();dailyQuiz.index=0;dailyQuiz.answers=[];dailyQuiz.score=0;dailyQuiz.started=true;
+  state.currentScreen='daily-news-quiz';render();
+};
+window.answerDailyNews=function(i){
+  if(!dailyQuiz.started||dailyQuiz.completed)return;
+  const q=dailyQuiz.questions[dailyQuiz.index]; if(!q)return;
+  const correct=i===q.correct; if(correct)dailyQuiz.score++;
+  dailyQuiz.answers.push({i,correct});
+  if(dailyQuiz.index<dailyQuiz.questions.length-1){dailyQuiz.index++;render();return;}
+  const score=dailyQuiz.score; const accuracy=Math.round(score/10*100); const coins=score*5+10;
+  try{if(window.coinSystem&&typeof window.coinSystem.award==='function')window.coinSystem.award(coins,'Daily Current Affairs Quiz','daily-news-quiz:'+dailyQuizDay());}catch(e){}
+  dailyQuiz.completed=true; dailyQuizSave({completed:true,score,accuracy,coins,date:dailyQuizDay()}); render();
+};
+
+const oldNewsRender=window.render;
+if(typeof oldNewsRender==='function')window.render=function(){
+  if(state.currentScreen==='news'){updateHeader();rootEl.innerHTML=renderNewsPage();if(window.lucide)lucide.createIcons();return;}
+  if(state.currentScreen==='daily-news-quiz'){updateHeader();rootEl.innerHTML=renderDailyQuiz();if(window.lucide)lucide.createIcons();return;}
+  return oldNewsRender();
+};
+
+const oldNewsDashboard=window.renderDashboard;
+if(typeof oldNewsDashboard==='function')window.renderDashboard=function(){
+  const base=oldNewsDashboard();
+  const quizCard=`<section class="mt-4 mb-5"><button type="button" onclick="window.openDailyNewsQuiz()" class="news-category-card rounded-2xl p-4 sm:p-5 shadow-sm transition-all duration-200"><div class="flex items-center gap-4"><div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shrink-0 text-2xl">🧠</div><div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-2 mb-1"><h3 class="text-lg sm:text-xl font-extrabold text-gray-900">Daily Current Affairs Quiz</h3><span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] sm:text-xs font-extrabold">10 MCQs</span></div><p class="text-xs sm:text-sm text-gray-600">Today's news → 10 questions • Coins + accuracy</p></div><i data-lucide="chevron-right" class="w-5 h-5 text-amber-600 shrink-0"></i></div></button></section>`;
+  return base + quizCard;
+};
+
 const originalDashboard=window.renderDashboard;
 if(typeof originalDashboard==='function')window.renderDashboard=function(){const base=originalDashboard();const card=`<section class="mt-6 mb-5"><button type="button" onclick="window.openNews()" class="news-category-card rounded-2xl p-4 sm:p-5 shadow-sm transition-all duration-200"><div class="flex items-center gap-4"><div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-sky-600 text-white flex items-center justify-center shadow-md shrink-0 text-2xl">📰</div><div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-2 mb-1"><h3 class="text-lg sm:text-xl font-extrabold text-gray-900">News Paper</h3><span class="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[10px] sm:text-xs font-extrabold">DAILY UPDATED</span></div><p class="text-xs sm:text-sm text-gray-600">Assam Current Affairs • Assam Jobs • Indian Current Affairs • Government Jobs</p></div><i data-lucide="chevron-right" class="w-5 h-5 text-sky-600 shrink-0"></i></div></button></section>`;const marker='<div class="mt-6">\n            <button type="button" onclick="openExamReminders()"';return base.includes(marker)?base.replace(marker,card+'\n          '+marker):base+card;};
 const originalRender=window.render;
