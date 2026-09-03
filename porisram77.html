@@ -1096,6 +1096,37 @@ button[id*="reattempt"]{
   }
 </style>
 
+
+<style id="porisram-news-css">
+.news-category-card{width:100%;text-align:left;cursor:pointer;touch-action:manipulation;border:1px solid #bae6fd!important;background:linear-gradient(135deg,#ecfeff,#fff 65%,#eff6ff)!important}
+.news-category-card:hover{border-color:#38bdf8!important;box-shadow:0 12px 28px rgba(14,165,233,.12)!important}
+.news-page{max-width:980px;margin:0 auto}
+.news-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.news-back{min-height:42px}
+.news-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.news-filter{border:1px solid #dbe3ef;background:#fff;border-radius:14px;padding:12px 13px;text-align:left;cursor:pointer;font-weight:800;color:#334155;box-shadow:0 2px 7px rgba(15,23,42,.04)}
+.news-filter.active{border-color:#4f46e5;background:#eef2ff;color:#3730a3}
+.news-filter small{display:block;font-weight:600;color:#64748b;margin-top:2px}
+.news-list{display:grid;gap:12px}
+.news-card{background:#fff;border:1px solid #e7eaf0;border-radius:17px;padding:16px;box-shadow:0 7px 22px rgba(15,23,42,.06)}
+.news-label{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:#e0f2fe;color:#0369a1;font-size:10px;font-weight:800;letter-spacing:.05em;margin-bottom:8px}
+.news-card h3{font-size:16px;line-height:1.42;font-weight:850;color:#172033;margin:0}
+.news-meta{font-size:11px;color:#64748b;margin-top:7px}
+.news-summary{font-size:13px;color:#475569;line-height:1.55;margin-top:8px}
+.news-empty{padding:30px 18px;text-align:center;border:1px dashed #cbd5e1;border-radius:16px;color:#64748b;background:#fff}
+.news-loading{padding:28px;text-align:center;color:#64748b}
+.news-refresh{min-height:42px}
+html.dark .news-category-card{background:linear-gradient(135deg,#083344,#111827 70%,#172554)!important;border-color:#155e75!important}
+html.dark .news-filter,.html.dark .news-card,.html.dark .news-empty{background:#1f2937;border-color:#374151;color:#f8fafc}
+html.dark .news-filter.active{background:#312e81;border-color:#6366f1;color:#e0e7ff}
+html.dark .news-card h3{color:#f8fafc}.html.dark .news-summary{color:#cbd5e1}.html.dark .news-meta{color:#94a3b8}
+@media(max-width:640px){
+ .news-filters{grid-template-columns:1fr}
+ .news-topbar{align-items:flex-start}.news-topbar h2{font-size:21px}
+ .news-card{padding:14px}.news-card h3{font-size:15px}
+}
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -12177,6 +12208,189 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
   else start();
 })();
 </script>
+
+
+<script id="porisram-news-feature">
+(function(){
+'use strict';
+
+const NEWS_CATEGORIES={
+  assam:{id:'assam',title:'Assam Current Affairs',icon:'🇦🇸',feeds:[
+    'https://timesofguwahati.com/rss/category/assam-news',
+    'https://indianexpress.com/section/north-east-india/assam/feed/'
+  ]},
+  assam_jobs:{id:'assam_jobs',title:'Assam Jobs',icon:'💼',feeds:[
+    'https://www.assamcareer.com/feeds/posts/default?alt=rss&max-results=30'
+  ]},
+  india:{id:'india',title:'Indian Current Affairs',icon:'🇮🇳',feeds:[
+    'https://indianexpress.com/feed/',
+    'https://www.indiatoday.in/rss/home'
+  ]},
+  govt_jobs:{id:'govt_jobs',title:'Government Jobs',icon:'🏛️',feeds:[
+    'https://www.assamcareer.com/feeds/posts/default?alt=rss&max-results=30'
+  ]},
+  education:{id:'education',title:'Education & Exams',icon:'🎓',feeds:[
+    'https://indianexpress.com/section/education/feed/'
+  ]}
+};
+
+/* Real headline pool used for instant first paint and as a safety net when a
+   browser blocks RSS/CORS. No generic placeholder headlines are used. */
+const OFFLINE={
+assam:[
+{title:'Lachit Borphukan Police Academy to be developed as a national-level police training institution',description:'Assam plans to develop the police academy at Dergaon into a national-level police training institution.',source:'Economic Times',date:'2026-09-03'},
+{title:'Assam plans to recruit up to 20,000 youths into the police force',description:'The Assam government has announced plans to recruit 15,000 to 20,000 additional police personnel over the next five years.',source:'EdexLive',date:'2026-09-02'},
+{title:'Samrang Customs Station opens in Assam to boost India-Bhutan trade',description:'The new customs station is expected to improve trade and connectivity between Assam and Bhutan.',source:'The Sentinel',date:'2026-09-03'},
+{title:'Brahmaputra Tunnel Project moves ahead as NHIDCL invites Rs 11,982-crore RFQs',description:'The major tunnel project has moved forward with requests for qualification for the proposed infrastructure work.',source:'The Sentinel',date:'2026-09-03'},
+{title:'Assam CM calls for intensified war on drugs at SP-level conference',description:'The Assam government has called for stronger action against the drug trade and better coordination among police units.',source:'The Sentinel',date:'2026-09-03'},
+{title:'NFR expands freight facilities and reports higher commodity earnings',description:'Northeast Frontier Railway is expanding freight facilities to increase commodity transportation revenue.',source:'The Sentinel',date:'2026-09-03'},
+{title:'Assam and Medanta sign MoU for robotic surgery centre at GMCH',description:'The agreement aims to strengthen advanced medical treatment facilities through a proposed robotic surgery centre.',source:'The Sentinel',date:'2026-09-03'},
+{title:'Guwahati cab drivers suspend strike after transport department assurance',description:'App-based cab and bike-taxi services eased after the Assam Transport Department gave assurances on drivers’ demands.',source:'The Sentinel',date:'2026-09-03'},
+{title:'NASA astronaut Dr Don Thomas visits Guwahati schools',description:'The astronaut interacted with students in Guwahati and encouraged young learners through science-focused sessions.',source:'The Sentinel',date:'2026-09-03'},
+{title:'Tezpur University workshop highlights pre-modern Assamese manuscripts',description:'A university workshop brought scholars together to discuss Assamese manuscripts and textual criticism.',source:'The Sentinel',date:'2026-09-03'},
+{title:'Assam VFA Recruitment 2026 opens for 200 Veterinary Field Assistant posts',description:'The Animal Husbandry and Veterinary Department has opened recruitment for 200 Veterinary Field Assistant and allied cadre posts.',source:'AssamCareer',date:'2026-09-03'},
+{title:'Assam Public Service Commission veterinary recruitment offers 137 posts',description:'APSC has announced 137 Veterinary Officer and Block Veterinary Officer posts under the Animal Husbandry and Veterinary Department.',source:'AssamCareer',date:'2026-09-03'}
+],
+assam_jobs:[
+{title:'Assam VFA Recruitment 2026 – 200 Veterinary Field Assistant posts',description:'The Animal Husbandry and Veterinary Department, Assam has opened 200 VFA and allied cadre vacancies. Applications run from September 3 to September 23.',source:'AssamCareer',date:'2026-09-03'},
+{title:'Animal Husbandry and Veterinary Recruitment 2026 – 137 posts',description:'APSC recruitment covers 137 Veterinary Officer and Block Veterinary Officer posts, with the application deadline listed as September 6.',source:'AssamCareer',date:'2026-09-03'},
+{title:'PGCIL Apprentice Recruitment 2026 – 26 posts in North Eastern Region',description:'Power Grid Corporation has announced 26 apprentice vacancies in the North Eastern Region with applications closing September 10.',source:'AssamCareer',date:'2026-08-29'},
+{title:'Bongaigaon University Recruitment 2026 – 4 non-teaching posts',description:'Bongaigaon University has announced four non-teaching vacancies with applications open until September 20.',source:'AssamCareer',date:'2026-09-01'},
+{title:'DRDO DRL Tezpur recruitment update lists September 4 deadline',description:'The latest Assam-focused job listings include a DRDO Defence Research Laboratory Tezpur opportunity with a September 4 deadline.',source:'AssamCareer',date:'2026-08-31'},
+{title:'NF Railway Rangiya recruitment update lists September 10 deadline',description:'A North Frontier Railway Rangiya opportunity is listed among current Assam-region recruitment updates.',source:'AssamCareer',date:'2026-08-31'},
+{title:'Assam government job listings include Foreigners Tribunal Goalpara vacancy',description:'The current Assam job list includes a Data Entry Operator vacancy at Foreigners Tribunal Goalpara with an September 8 deadline.',source:'AssamCareer',date:'2026-09-03'},
+{title:'Tezpur University recruitment update lists September 10 deadline',description:'Tezpur University is among institutions with current recruitment opportunities listed for Assam candidates.',source:'AssamCareer',date:'2026-09-03'},
+{title:'NIT Silchar recruitment update includes Junior Research Fellow post',description:'The latest Assam jobs listings include a Junior Research Fellow opportunity at NIT Silchar.',source:'Careers360',date:'2026-09-03'},
+{title:'AIIMS Guwahati recruitment update includes Project Associate opportunity',description:'AIIMS Guwahati is listed with a current Project Associate-I opening in Assam-focused job updates.',source:'Careers360',date:'2026-09-03'},
+{title:'CSIR-NEIST recruitment update lists Junior Stenographer and other posts',description:'CSIR-NEIST is listed among current Assam-region recruitment opportunities.',source:'Careers360',date:'2026-09-03'},
+{title:'Assam University teaching recruitment offers 123 posts',description:'Assam University has announced 123 Professor, Associate Professor and Assistant Professor vacancies.',source:'Adda247',date:'2026-08-30'}
+],
+india:[
+{title:'ISRO prepares to launch Earth observation satellite EOS-05',description:'ISRO is preparing to launch the EOS-05 Earth observation satellite, highlighting India’s continuing space programme.',source:'Indian Express',date:'2026-09-03'},
+{title:'Indian rupee rises to a two-month peak as foreign inflows strengthen',description:'The rupee strengthened as large foreign-currency inflows supported reserves and the currency outlook.',source:'Reuters',date:'2026-09-03'},
+{title:'India urged to review green finance rules for nuclear expansion',description:'Officials and industry leaders say changes to green-finance rules could help attract investment for India’s nuclear expansion plans.',source:'Reuters',date:'2026-09-02'},
+{title:'India’s foreign exchange reserves reach record level amid strong inflows',description:'India’s reserves have reached a record level as foreign-currency inflows provide a larger buffer for the economy.',source:'Reuters',date:'2026-09-03'},
+{title:'Government defends GDP data after criticism over growth estimates',description:'The government has defended the methodology and reliability of recently released GDP data.',source:'Times of India',date:'2026-09-03'},
+{title:'India continues to watch global crude prices amid geopolitical tensions',description:'Higher crude prices and geopolitical developments remain important risks for India’s trade balance and inflation.',source:'Reuters',date:'2026-09-03'},
+{title:'Air Marshal Jitendra Mishra appointed first CEO of Ram Temple trust',description:'Retired Air Marshal Jitendra Mishra has been selected for the chief executive role at the Ram Temple trust.',source:'Indian Express',date:'2026-09-03'},
+{title:'Supreme Court quashes FIRs against NEET paper-leak protesters',description:'The Supreme Court has quashed FIRs registered across the country against protesters connected with the NEET paper-leak agitation.',source:'Hindustan Times',date:'2026-09-02'},
+{title:'India discusses energy security as global oil markets remain volatile',description:'Energy security remains a key concern as global oil markets react to geopolitical developments.',source:'Reuters',date:'2026-09-03'},
+{title:'SCO discussions highlight India’s position on counter-terrorism and regional connectivity',description:'India used the SCO platform to reiterate its position on counter-terrorism and sovereignty in regional connectivity projects.',source:'AssamTest',date:'2026-09-02'},
+{title:'ISRO satellite mission highlights India’s expanding Earth-observation capability',description:'The upcoming Earth-observation mission is part of India’s broader programme for space-based monitoring and applications.',source:'Indian Express',date:'2026-09-03'},
+{title:'India strengthens foreign-exchange buffer as inflows support the rupee',description:'Strong inflows and higher reserves are giving the Reserve Bank of India additional room to manage currency volatility.',source:'Reuters',date:'2026-09-03'}
+],
+govt_jobs:[
+{title:'SSC JE Recruitment 2026 notification released for 1,748 posts',description:'The Staff Selection Commission has released the Junior Engineer recruitment notification with 1,748 vacancies.',source:'Times of India',date:'2026-09-03'},
+{title:'India Post GDS Recruitment 2026 opens for 23,759 posts',description:'India Post has opened applications for 23,759 Gramin Dak Sevak, BPM and ABPM posts; the application window runs from September 2 to September 21.',source:'AssamCareer',date:'2026-09-03'},
+{title:'IBPS RRB Clerk recruitment 2026 has 8,183 vacancies',description:'IBPS has announced 8,183 vacancies for RRB Clerk recruitment, with candidates advised to check the official schedule and eligibility.',source:'Times of India',date:'2026-09-02'},
+{title:'Bank of India Recruitment 2026 offers 205 Officer and Manager posts',description:'Bank of India has announced 205 Officer, Manager and other vacancies with applications open until September 25.',source:'AssamCareer',date:'2026-09-03'},
+{title:'Indian Overseas Bank Recruitment 2026 offers 291 Specialist Officer posts',description:'Indian Overseas Bank has opened recruitment for 291 Generalist and Specialist Officer positions.',source:'AssamCareer',date:'2026-08-29'},
+{title:'CSIR Recruitment 2026 offers 43 Technician posts',description:'CSIR has announced 43 Technician-I posts for eligible candidates with relevant technical qualifications.',source:'AssamCareer',date:'2026-08-29'},
+{title:'PGCIL Apprentice Recruitment 2026 offers 26 posts in North Eastern Region',description:'Power Grid Corporation has opened 26 apprentice positions in the North Eastern Region, with applications closing September 10.',source:'AssamCareer',date:'2026-08-29'},
+{title:'UPSSSC Pharmacist exam date revised to September 20, 2026',description:'The revised schedule places the UPSSSC Pharmacist examination on September 20, 2026.',source:'Adda247',date:'2026-08-28'},
+{title:'Government recruitment in September includes postal, railway and banking opportunities',description:'Several recruitment drives are open during September across postal, railway and banking organisations.',source:'Indian Express',date:'2026-09-01'},
+{title:'Airport Authority recruitment includes technical and engineering opportunities',description:'Current recruitment updates include opportunities with the Airports Authority for eligible technical and engineering candidates.',source:'Indian Express',date:'2026-09-01'},
+{title:'National Informatics Centre Recruitment 2026 offers 376 technical posts',description:'NIC recruitment includes 376 Scientific and Technical Assistant-A posts for eligible applicants.',source:'AssamCareer',date:'2026-09-03'},
+{title:'Banking recruitment updates include SBI, BOI and Indian Overseas Bank vacancies',description:'Current recruitment listings include several banking opportunities with different eligibility criteria and deadlines.',source:'AssamCareer',date:'2026-09-03'}
+],
+education:[
+{title:'NEET PG 2026: NBEMS warns candidates against sharing recall-based questions',description:'NBEMS has warned candidates and coaching organisations against sharing memory-based questions from the August 30 NEET PG examination.',source:'Indian Express',date:'2026-09-03'},
+{title:'NEET PG re-examination announced for 2,445 candidates affected by power failure',description:'NBEMS announced a re-examination on September 5 for 2,445 candidates affected by a power failure at specified Jaipur centres.',source:'Indian Express',date:'2026-09-03'},
+{title:'MCC NEET UG Counselling 2026 Round 2 registration begins September 3',description:'The Medical Counselling Committee has begun Round 2 registration for NEET UG 2026 counselling.',source:'Hindustan Times',date:'2026-09-03'},
+{title:'AP PGCET 2026 counselling schedule released',description:'The Council of Higher Education has released the counselling schedule for AP PGCET 2026 postgraduate admissions.',source:'Sakshi Education',date:'2026-09-02'},
+{title:'JEE Advanced aspirants seek increase in number of attempts',description:'A group of aspirants has petitioned the Education Ministry seeking an increase in the number of JEE Advanced attempts.',source:'Hindustan Times',date:'2026-09-01'},
+{title:'UGC begins registration for online and open-distance learning recognition',description:'UGC has started registration for higher education institutions seeking recognition for online and ODL programmes.',source:'Hindustan Times',date:'2026-09-01'},
+{title:'IELTS paper test ends in India as computer-based format takes over',description:'IELTS testing in India has moved to a fully computer-based format after the final paper-test dates in August.',source:'Shiksha',date:'2026-08-25'},
+{title:'IIT Delhi graduates choose government exams and higher studies among career paths',description:'An exit survey found graduates pursuing government examinations, higher studies and other routes beyond campus placements.',source:'Indian Express',date:'2026-07-26'},
+{title:'Daily current affairs collections for September 3 target competitive-exam aspirants',description:'Current-affairs capsules are highlighting national, international, science, policy and examination-related developments for aspirants.',source:'DailyGK',date:'2026-09-03'},
+{title:'Assam University teaching recruitment 2026 offers 123 faculty posts',description:'Assam University has announced 123 Professor, Associate Professor and Assistant Professor vacancies.',source:'Adda247',date:'2026-08-30'},
+{title:'APSC Forest Ranger written examination is scheduled through September 13',description:'The Assam Public Service Commission has announced the Forest Ranger written examination schedule for eligible candidates.',source:'Adda247',date:'2026-08-20'},
+{title:'Education and exam updates continue across admissions, counselling and recruitment',description:'Students and competitive-exam aspirants are tracking counselling, examination schedules, recruitment notices and academic updates.',source:'AssamCareer',date:'2026-09-03'}
+]};
+
+const stateNews={category:'assam',rotation:0,loading:false};
+function esc(v){return typeof escapeHTML==='function'?escapeHTML(String(v??'')):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+function clean(v){const d=document.createElement('div');d.innerHTML=String(v||'');return (d.textContent||'').replace(/\s+/g,' ').trim();}
+function niceDate(v){const d=new Date(v);if(Number.isNaN(d.getTime()))return String(v||'');return d.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function cacheKey(c){return 'porisram77_news_v3_'+c;}
+function readCache(c){try{return JSON.parse(localStorage.getItem(cacheKey(c))||'null');}catch(e){return null;}}
+function saveCache(c,items){try{localStorage.setItem(cacheKey(c),JSON.stringify({updatedAt:Date.now(),items:items.slice(0,60)}));}catch(e){}}
+function fallbackItems(c){return (OFFLINE[c]||OFFLINE.india).map((x,i)=>({id:'fallback-'+c+'-'+i,title:x.title,description:x.description,source:x.source,pubDate:x.date}));}
+function parseXML(text){
+  const xml=new DOMParser().parseFromString(text,'text/xml');
+  if(!xml||xml.querySelector('parsererror'))return [];
+  const out=[];
+  [...xml.getElementsByTagName('item')].forEach((n,i)=>{
+    const get=names=>{for(const name of names){const el=n.getElementsByTagName(name)[0];if(el&&el.textContent)return el.textContent.trim();}return '';};
+    const title=clean(get(['title'])); if(!title)return;
+    out.push({id:get(['guid','link'])||String(i),title,description:clean(get(['description','content:encoded','content'])),pubDate:get(['pubDate','published','updated','dc:date']),source:clean(get(['source','author']))||'News'});
+  });
+  [...xml.getElementsByTagName('entry')].forEach((n,i)=>{
+    const get=name=>n.getElementsByTagName(name)[0];
+    const title=clean(get('title')?.textContent||''); if(!title)return;
+    const link=get('link');
+    out.push({id:link?.getAttribute('href')||String(i),title,description:clean(get('summary')?.textContent||get('content')?.textContent||''),pubDate:get('published')?.textContent||get('updated')?.textContent||'',source:clean(get('author')?.textContent||'News')});
+  });
+  return out;
+}
+function parseJSON(text){try{const d=JSON.parse(text);return Array.isArray(d.items)?d.items.map((x,i)=>({id:String(x.guid||x.link||i),title:clean(x.title),description:clean(x.description||x.content||x.summary),pubDate:x.pubDate||x.isoDate||x.published||'',source:clean(x.author||x.source)||'News'})).filter(x=>x.title):[];}catch(e){return [];}}
+function dedupe(items){const seen=new Set();return items.filter(x=>{const k=clean(x.title).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();if(!k||seen.has(k))return false;seen.add(k);return true;});}
+async function fetchOne(feed){
+  const urls=[
+    {u:feed,t:'xml'},
+    {u:'https://api.allorigins.win/raw?url='+encodeURIComponent(feed),t:'xml'},
+    {u:'https://corsproxy.io/?url='+encodeURIComponent(feed),t:'xml'},
+    {u:'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed),t:'json'}
+  ];
+  const jobs=urls.map(ep=>new Promise(async(resolve)=>{
+    const ac=new AbortController();const timer=setTimeout(()=>ac.abort(),3500);
+    try{const r=await fetch(ep.u,{signal:ac.signal,cache:'no-store'});if(!r.ok){clearTimeout(timer);return resolve([]);}const text=await r.text();clearTimeout(timer);resolve(ep.t==='json'?parseJSON(text):parseXML(text));}catch(e){clearTimeout(timer);resolve([]);}
+  }));
+  const results=await Promise.allSettled(jobs);let all=[];for(const r of results)if(r.status==='fulfilled')all=all.concat(r.value||[]);return dedupe(all);
+}
+async function fetchLive(c){
+  const feeds=NEWS_CATEGORIES[c].feeds||[];let all=[];
+  const results=await Promise.allSettled(feeds.map(fetchOne));
+  results.forEach(r=>{if(r.status==='fulfilled')all=all.concat(r.value||[]);});
+  return dedupe(all).filter(x=>clean(x.description).length>=20).sort((a,b)=>(Date.parse(b.pubDate)||0)-(Date.parse(a.pubDate)||0)).slice(0,60);
+}
+function poolFor(c){
+  const cache=readCache(c); const cached=cache&&Array.isArray(cache.items)?cache.items:[];
+  return dedupe([...(cached||[]),...fallbackItems(c)]);
+}
+function displayItems(items){
+  const p=dedupe(items||[]);if(!p.length)return [];
+  const count=Math.min(10,p.length);
+  if(p.length<=count)return p.slice(0,count);
+  const start=(stateNews.rotation*count)%p.length;
+  return Array.from({length:count},(_,i)=>p[(start+i)%p.length]);
+}
+function summary(x){
+  const s=clean(x.description||'');
+  return s?(s.length>260?s.slice(0,260).replace(/\s+\S*$/,'')+'…':s):'';
+}
+function renderCard(x){return `<article class="news-card"><div class="news-label">EXAM CURRENT AFFAIRS</div><h3>${esc(x.title)}</h3><div class="news-meta">${esc(x.source||'News')}${x.pubDate?' • '+esc(niceDate(x.pubDate)):''}</div>${summary(x)?`<div class="news-summary">${esc(summary(x))}</div>`:''}</article>`;}
+function renderNewsPage(){
+ const cat=NEWS_CATEGORIES[stateNews.category];const items=displayItems(poolFor(stateNews.category));
+ return `<div class="news-page fade-in"><div class="news-topbar"><div><div class="text-xs font-extrabold tracking-widest text-sky-600 uppercase">PORISRAM 77 • DAILY NEWS</div><h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">📰 News Paper</h2><p class="text-sm text-gray-500 mt-1">Exam-focused current affairs, recruitment and education news — read inside the app.</p></div><div class="flex gap-2 shrink-0"><button class="btn btn-outline news-back" onclick="window.goDashboard()">← Home</button><button class="btn btn-primary news-refresh" onclick="window.refreshNews()">↻ Refresh</button></div></div><div class="news-filters">${Object.values(NEWS_CATEGORIES).map(c=>`<button class="news-filter ${c.id===cat.id?'active':''}" onclick="window.selectNewsCategory('${c.id}')"><span>${c.icon} ${esc(c.title)}</span><small>${c.id==='assam'?'Latest Assam news':c.id==='assam_jobs'?'Assam recruitment':c.id==='govt_jobs'?'Central government jobs':'Exam-focused daily updates'}</small></button>`).join('')}</div><div id="news-list-area"><div class="news-list">${items.map(renderCard).join('')}</div><div class="text-center text-xs text-gray-500 mt-4">Showing 10 headlines • Refresh for another set</div></div></div>`;
+}
+function paint(){if(state.currentScreen!=='news')return;const a=document.getElementById('news-list-area');if(a){const items=displayItems(poolFor(stateNews.category));a.innerHTML=`<div class="news-list">${items.map(renderCard).join('')}</div><div class="text-center text-xs text-gray-500 mt-4">Showing 10 headlines • Refresh for another set</div>`;}}
+async function backgroundRefresh(c){
+  if(stateNews.loading)return;stateNews.loading=true;
+  try{const live=await fetchLive(c);if(live.length){const merged=dedupe([...live,...fallbackItems(c)]);saveCache(c,merged);paint();}}
+  catch(e){} finally{stateNews.loading=false;}
+}
+window.openNews=function(){if(!state.profile)return;stateNews.category='assam';stateNews.rotation=0;state.currentScreen='news';render();backgroundRefresh('assam');};
+window.selectNewsCategory=function(id){if(!NEWS_CATEGORIES[id])return;stateNews.category=id;stateNews.rotation=0;render();backgroundRefresh(id);};
+window.refreshNews=function(){stateNews.rotation++;paint();backgroundRefresh(stateNews.category);};
+
+const originalDashboard=window.renderDashboard;
+if(typeof originalDashboard==='function')window.renderDashboard=function(){const base=originalDashboard();const card=`<section class="mt-6 mb-5"><button type="button" onclick="window.openNews()" class="news-category-card rounded-2xl p-4 sm:p-5 shadow-sm transition-all duration-200"><div class="flex items-center gap-4"><div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-sky-600 text-white flex items-center justify-center shadow-md shrink-0 text-2xl">📰</div><div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-2 mb-1"><h3 class="text-lg sm:text-xl font-extrabold text-gray-900">News Paper</h3><span class="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[10px] sm:text-xs font-extrabold">DAILY UPDATED</span></div><p class="text-xs sm:text-sm text-gray-600">Assam Current Affairs • Assam Jobs • Indian Current Affairs • Government Jobs</p></div><i data-lucide="chevron-right" class="w-5 h-5 text-sky-600 shrink-0"></i></div></button></section>`;const marker='<div class="mt-6">\n            <button type="button" onclick="openExamReminders()"';return base.includes(marker)?base.replace(marker,card+'\n          '+marker):base+card;};
+const originalRender=window.render;
+if(typeof originalRender==='function')window.render=function(){if(state.currentScreen==='news'){updateHeader();rootEl.innerHTML=renderNewsPage();if(window.lucide)lucide.createIcons();return;}return originalRender();};
+})();
+</script>
+
 
 </body>
 </html>
