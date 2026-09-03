@@ -1006,6 +1006,32 @@ button[id*="reattempt"]{
 }
 </style>
 
+
+<style id="aeje-folder-and-reattempt-polish">
+  .aeje-folder-card{min-width:0;overflow:hidden;}
+  .aeje-folder-card p{overflow-wrap:anywhere;}
+  .aeje-folder-hero{min-width:0;overflow:hidden;}
+  .reattempt-btn{min-width:0;max-width:100%;white-space:normal!important;overflow:hidden;overflow-wrap:anywhere;word-break:normal;line-height:1.2!important;}
+  .reattempt-btn .reattempt-fee-badge{flex:0 1 auto;min-width:0;max-width:100%;white-space:nowrap!important;}
+  @media (max-width:640px){
+    .reattempt-btn{min-height:42px!important;padding:8px 8px!important;font-size:12px!important;gap:4px!important;}
+    .reattempt-btn .reattempt-fee-badge{font-size:9px!important;padding:3px 5px!important;}
+  }
+  @media (max-width:380px){
+    .reattempt-btn{min-height:40px!important;padding:7px 6px!important;font-size:11px!important;}
+    .reattempt-btn .reattempt-fee-badge{font-size:8px!important;padding:3px 4px!important;}
+  }
+</style>
+
+<style id="clean-folder-home-css">
+.professional-home .home-section-heading{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.professional-home .section-icon{width:36px;height:36px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;background:rgba(99,102,241,.10);font-size:18px;flex:0 0 auto}
+.professional-home .section-title{font-size:17px;font-weight:800;color:#111827}
+.aeje-folder-card,.all-assam-folder-card{min-width:0;cursor:pointer;touch-action:manipulation}
+.aeje-folder-card *,.all-assam-folder-card *{min-width:0}
+@media(max-width:640px){.professional-home .section-title{font-size:15px}.aeje-folder-card,.all-assam-folder-card{padding:14px!important}}
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -6156,37 +6182,88 @@ function scheduleFirebaseRetry() {
       } catch (e) {}
     }
 
-    function renderDashboard() {
-      try {
-        Object.keys(quizData || {}).forEach(id => {
-          if (id !== 'special30' && id !== 'super10') refreshSavedAccuracy(id);
-        });
-        if (typeof saveLocalCache === 'function') saveLocalCache();
-      } catch (e) {}
 
-      return `<div class="fade-in">
-        <div class="mb-8"><h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Hello, ${escapeHtml(state.profile.name)}! 👋</h2><p class="text-gray-600 mt-1">Select a category to start or resume your test.</p></div>
+    const AEJE_FOLDER_IDS = ['rrb_je', 'environmental_engineering', 'general_awareness_polity', 'indian_gs'];
 
-          <div id="memory-mode-dashboard-card" class="mb-6 bg-white rounded-2xl shadow-sm border border-violet-200 p-6 relative overflow-hidden">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 text-2xl">🧠</div>
-                <div>
-                  <h3 class="text-xl font-extrabold text-gray-900">Memory Mode</h3>
-                  <p class="text-sm text-gray-500 mt-1">Choose one category, remember the answer, then reveal it.</p>
+    
+    // ---------------- HOME FOLDER NAVIGATION ----------------
+    const ALL_ASSAM_FOLDER_IDS = ['adre','police','apsc','history','reasoning','vfa','ibps_rrb'];
+
+    function getAllAssamCategories() {
+      return ALL_ASSAM_FOLDER_IDS
+        .map(id => quizData[id])
+        .filter(cat => cat && Array.isArray(cat.questions));
+    }
+
+    function openAllAssamFolder() {
+      state.activeCategory = null;
+      state.currentScreen = 'all-assam-folder';
+      render();
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+
+    function renderAllAssamFolder() {
+      const cats = getAllAssamCategories();
+      const totalQuestions = cats.reduce((sum, cat) => sum + cat.questions.length, 0);
+
+      return `
+        <div class="max-w-6xl mx-auto fade-in">
+          <div class="mb-5">
+            <button type="button" onclick="goDashboard()" class="btn btn-outline inline-flex items-center gap-2 !px-4 !py-2 text-sm">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              Home
+            </button>
+          </div>
+
+          <div class="rounded-3xl border border-orange-200 bg-gradient-to-br from-orange-50 via-white to-amber-50 p-5 sm:p-7 mb-6 shadow-sm">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-lg shrink-0">
+                <i data-lucide="folder-open" class="w-8 h-8 sm:w-10 sm:h-10"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="inline-flex items-center px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-extrabold mb-2">
+                  ALL ASSAM EXAM
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
+                  All Assam Exam
+                </h1>
+                <p class="text-sm sm:text-base text-gray-600 mt-1">
+                  Assam-focused and common competitive-exam preparation.
+                </p>
+                <div class="flex flex-wrap gap-2 mt-3 text-xs font-bold text-gray-600">
+                  <span class="px-2.5 py-1 rounded-full bg-white border border-gray-200">${cats.length} Test Series</span>
+                  <span class="px-2.5 py-1 rounded-full bg-white border border-gray-200">${totalQuestions} Questions</span>
                 </div>
               </div>
-              ${isMemoryUnlocked() ? '<button onclick="openMemoryPicker()" class="btn btn-primary shrink-0 bg-violet-600 hover:bg-violet-700 border-violet-600">🧠 Start Memory Mode</button>' : '<button onclick="buyMemoryMode()" class="btn btn-primary shrink-0 bg-violet-600 hover:bg-violet-700 border-violet-600">🛒 Buy · 500 🪙</button>'}
             </div>
           </div>
 
-        <div id="dashboard-category-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6 relative overflow-hidden">
-            <div class="flex items-start justify-between mb-4"><div class="p-3 rounded-xl text-white bg-emerald-600 shadow-sm"><i data-lucide="graduation-cap" class="w-7 h-7"></i></div><span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">Study</span></div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Learn</h3><p class="text-sm text-gray-500 mb-5">Choose 1 category and study all questions with direct answers and explanations.</p>
-            ${isLearnUnlocked() ? '<button onclick="openLearnPicker()" class="btn btn-primary w-full bg-emerald-600 hover:bg-emerald-700 border-emerald-600">📚 Start Learning</button>' : '<button onclick="buyLearn()" class="btn btn-primary w-full bg-emerald-600 hover:bg-emerald-700 border-emerald-600">🛒 Buy Learn · 5000 🪙</button>'}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            ${renderTestCardGrid(cats)}
           </div>
-          ${Object.values(quizData).map(cat => {
+        </div>`;
+    }
+
+    window.openAllAssamFolder = openAllAssamFolder;
+
+function getAEJECategories() {
+      return AEJE_FOLDER_IDS.map(id => quizData[id]).filter(Boolean);
+    }
+
+    function getHomeCategories() {
+      return Object.values(quizData).filter(cat => !AEJE_FOLDER_IDS.includes(cat.id));
+    }
+
+    function openAEJEFolder() {
+      state.activeCategory = null;
+      state.currentScreen = 'aeje-folder';
+      render();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function renderTestCardGrid(categories) {
+      return categories.map(cat => {
+
             const prog = getProgress(cat.id);
             const dashboardQuestions = (cat.id === 'special30' && Array.isArray(prog?.questionSet) && prog.questionSet.length) ? prog.questionSet : cat.questions;
             const attempted = prog?.answers ? Object.keys(prog.answers).length : 0;
@@ -6215,10 +6292,184 @@ function scheduleFirebaseRetry() {
               <h3 class="text-xl font-bold text-gray-900 mb-2">${cat.title}</h3><p class="text-sm text-gray-500 mb-5">${cat.id === 'special30' ? '30 random questions • choose up to 2 categories • timed test' : `${total} ${cat.id === 'super10' ? 'random questions from all categories' : 'curated questions'}`}</p>
               ${inProgress ? `<div class="mb-5"><div class="flex justify-between text-xs mb-1.5 font-medium"><span>Progress</span><span class="text-blue-600">${attempted} / ${total}</span></div><div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full bg-blue-500" style="width:${percent}%"></div></div></div>` : ''}
               ${mini}
-              ${completed ? `<div class="grid grid-cols-2 gap-2"><button onclick="reattemptQuiz('${cat.id}')" class="btn btn-primary w-full flex items-center justify-center gap-2 whitespace-nowrap">🔄 <span>Re-attempt</span><span class="reattempt-fee-badge inline-flex items-center whitespace-nowrap">−20 🪙</span></button><button onclick="startQuiz('${cat.id}')" class="btn btn-outline w-full">View Results</button></div>` : (cat.id === 'special30' && !isTestUnlocked('special30') ? `<button onclick="buyPaidTest('special30')" class="btn btn-primary w-full">🛒 Buy Special 30 · 150 🪙</button>` : (cat.id === 'super10' && !isTestUnlocked('super10') ? `<button onclick="buyPaidTest('super10')" class="btn btn-primary w-full">🛒 Buy Super10 · 50 🪙</button>` : `<button onclick="startQuiz('${cat.id}')" class="btn btn-primary w-full">${inProgress ? '▶ Resume Test' : (cat.id === 'special30' ? '🎯 Choose Test' : 'Start Test')}</button>`))}
+              ${completed ? `<div class="grid grid-cols-2 gap-2"><button onclick="reattemptQuiz('${cat.id}')" class="btn btn-primary w-full reattempt-btn flex items-center justify-center gap-1.5">🔄 <span>Re-attempt</span><span class="reattempt-fee-badge inline-flex items-center whitespace-nowrap">−20 🪙</span></button><button onclick="startQuiz('${cat.id}')" class="btn btn-outline w-full">View Results</button></div>` : (cat.id === 'special30' && !isTestUnlocked('special30') ? `<button onclick="buyPaidTest('special30')" class="btn btn-primary w-full">🛒 Buy Special 30 · 150 🪙</button>` : (cat.id === 'super10' && !isTestUnlocked('super10') ? `<button onclick="buyPaidTest('super10')" class="btn btn-primary w-full">🛒 Buy Super10 · 50 🪙</button>` : `<button onclick="startQuiz('${cat.id}')" class="btn btn-primary w-full">${inProgress ? '▶ Resume Test' : (cat.id === 'special30' ? '🎯 Choose Test' : 'Start Test')}</button>`))}
             </div>`;
-          }).join('')}
+
+      }).join('');
+    }
+
+    window.openAEJEFolder = openAEJEFolder;
+
+    function renderAEJEFolder() {
+      const cats = getAEJECategories();
+      const totalQuestions = cats.reduce((sum, cat) => sum + (Array.isArray(cat.questions) ? cat.questions.length : 0), 0);
+      return `
+        <div class="max-w-6xl mx-auto fade-in">
+          <div class="mb-5">
+            <button onclick="goDashboard()" class="btn btn-outline inline-flex items-center gap-2 !px-4 !py-2 text-sm">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i> Home
+            </button>
+          </div>
+          <div class="aeje-folder-hero rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-5 sm:p-7 mb-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div class="aeje-folder-icon w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shrink-0">
+                <i data-lucide="folder-open" class="w-8 h-8 sm:w-10 sm:h-10"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-extrabold mb-2">AE / JE</div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">AE / JE Test Series</h1>
+                <p class="text-sm sm:text-base text-gray-600 mt-1">All engineering-focused preparation tests are organized here.</p>
+                <div class="flex flex-wrap gap-2 mt-3 text-xs font-bold text-gray-600">
+                  <span class="px-2.5 py-1 rounded-full bg-white border border-gray-200">${cats.length} Test Series</span>
+                  <span class="px-2.5 py-1 rounded-full bg-white border border-gray-200">${totalQuestions} Questions</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="aeje-test-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            ${renderTestCardGrid(cats)}
+          </div>
+        </div>`;
+    }
+
+    function renderDashboard() {
+      try {
+        Object.keys(quizData || {}).forEach(id => {
+          if (id !== 'special30' && id !== 'super10') refreshSavedAccuracy(id);
+        });
+        if (typeof saveLocalCache === 'function') saveLocalCache();
+      } catch (e) {}
+
+      const quickCats = ['super10', 'special30']
+        .map(id => quizData[id]).filter(Boolean);
+
+      const allAssamSet = new Set(ALL_ASSAM_FOLDER_IDS);
+      const aejeSet = new Set(AEJE_FOLDER_IDS);
+
+      const normalCats = Object.values(quizData || {}).filter(cat =>
+        cat &&
+        !['super10', 'special30'].includes(cat.id) &&
+        !allAssamSet.has(cat.id) &&
+        !aejeSet.has(cat.id)
+      );
+
+      return `<div class="fade-in professional-home">
+
+        <div class="mb-7">
+          <div class="text-xs font-extrabold tracking-widest text-gray-400 uppercase">PORISRAM 77</div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-1">
+            Welcome back, ${escapeHtml(state.profile.name)} 👋
+          </h2>
+          <p class="text-gray-500 mt-1">Choose a practice mode or continue your exam preparation.</p>
         </div>
+
+        <section class="mb-7">
+          <div class="home-section-heading">
+            <span class="section-icon">⚡</span>
+            <div>
+              <div class="section-title">Quick Practice</div>
+              <div class="text-xs text-gray-500 mt-0.5">Fast tests for daily practice</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            ${renderTestCardGrid(quickCats)}
+          </div>
+        </section>
+
+        <section class="mb-7">
+          <div class="home-section-heading">
+            <span class="section-icon">🧠</span>
+            <div>
+              <div class="section-title">Learning</div>
+              <div class="text-xs text-gray-500 mt-0.5">Learn and remember before you test</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <div class="bg-white rounded-2xl shadow-sm border border-violet-200 p-5 sm:p-6">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center shrink-0 text-xl">🧠</div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-lg font-extrabold text-gray-900">Memory Mode</h3>
+                  <p class="text-xs sm:text-sm text-gray-500 mt-1">Remember answers and reveal them while studying.</p>
+                </div>
+              </div>
+              <div class="mt-4">
+                ${isMemoryUnlocked()
+                  ? '<button type="button" onclick="openMemoryPicker()" class="btn btn-primary w-full bg-violet-600 hover:bg-violet-700 border-violet-600">🧠 Start Memory Mode</button>'
+                  : '<button type="button" onclick="buyMemoryMode()" class="btn btn-primary w-full bg-violet-600 hover:bg-violet-700 border-violet-600">🛒 Buy · 500 🪙</button>'}
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-5 sm:p-6">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-xl">📚</div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-lg font-extrabold text-gray-900">Learn</h3>
+                  <p class="text-xs sm:text-sm text-gray-500 mt-1">Study questions with direct answers and explanations.</p>
+                </div>
+              </div>
+              <div class="mt-4">
+                ${isLearnUnlocked()
+                  ? '<button type="button" onclick="openLearnPicker()" class="btn btn-primary w-full bg-emerald-600 hover:bg-emerald-700 border-emerald-600">📚 Start Learning</button>'
+                  : '<button type="button" onclick="buyLearn()" class="btn btn-primary w-full bg-emerald-600 hover:bg-emerald-700 border-emerald-600">🛒 Buy Learn · 5000 🪙</button>'}
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <section>
+          <div class="home-section-heading">
+            <span class="section-icon">🎯</span>
+            <div>
+              <div class="section-title">Exam Preparation</div>
+              <div class="text-xs text-gray-500 mt-0.5">Organized test series</div>
+            </div>
+          </div>
+
+          <button type="button"
+            onclick="window.openAEJEFolder()"
+            class="aeje-folder-card w-full text-left mb-4 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-indigo-50 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shrink-0">
+                <i data-lucide="folder" class="w-7 h-7 sm:w-8 sm:h-8"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <h3 class="text-lg sm:text-xl font-extrabold text-gray-900">AE / JE</h3>
+                  <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] sm:text-xs font-extrabold">4 SERIES</span>
+                </div>
+                <p class="text-xs sm:text-sm text-gray-600">RRB JE • Environmental • General Awareness • Comprehensive</p>
+              </div>
+              <i data-lucide="chevron-right" class="w-5 h-5 text-blue-600 shrink-0"></i>
+            </div>
+          </button>
+
+          <button type="button"
+            onclick="window.openAllAssamFolder()"
+            class="all-assam-folder-card w-full text-left mb-5 rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 via-white to-amber-50 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-md shrink-0">
+                <i data-lucide="folder" class="w-7 h-7 sm:w-8 sm:h-8"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <h3 class="text-lg sm:text-xl font-extrabold text-gray-900">All Assam Exam</h3>
+                  <span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] sm:text-xs font-extrabold">7 SERIES</span>
+                </div>
+                <p class="text-xs sm:text-sm text-gray-600">ADRE • Police • APSC • Assam &amp; Indian History • Reasoning &amp; Aptitude • Veterinary • IBPS</p>
+              </div>
+              <i data-lucide="chevron-right" class="w-5 h-5 text-orange-600 shrink-0"></i>
+            </div>
+          </button>
+
+          <div id="dashboard-category-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            ${renderTestCardGrid(normalCats)}
+          </div>
+        </section>
+
       </div>`;
     }
 
@@ -7485,6 +7736,10 @@ function scheduleFirebaseRetry() {
           </div>`;
       } else if (state.currentScreen === 'dashboard') {
         content = renderDashboard();
+      } else if (state.currentScreen === 'all-assam-folder') {
+        content = renderAllAssamFolder();
+      } else if (state.currentScreen === 'aeje-folder') {
+        content = renderAEJEFolder();
       } else if (state.currentScreen === 'learn') {
         content = renderLearn();
       } else if (state.currentScreen === 'memory') {
