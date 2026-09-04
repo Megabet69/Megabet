@@ -4529,6 +4529,186 @@ html.dark .news-card h3{color:#f8fafc}.html.dark .news-summary{color:#cbd5e1}.ht
     firebase.initializeApp(firebaseConfig);
     const firebaseDB = firebase.database();
 
+    // ---------------- ACCOUNT AUTHENTICATION ----------------
+    // Passwords and recovery answers are never stored as plain text.
+    // PBKDF2 + per-account salts are used before values are written to RTDB.
+    const AUTH_SESSION_KEY = "porisram77_auth_session";
+    const AUTH_INDEX_PATH = "authUsers";
+
+    function normalizeAuthName(v) {
+      return String(v || "").trim().toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function bytesToBase64(bytes) {
+      let bin = "";
+      bytes.forEach(b => bin += String.fromCharCode(b));
+      return btoa(bin);
+    }
+
+    function base64ToBytes(str) {
+      const bin = atob(str);
+      return Uint8Array.from(bin, c => c.charCodeAt(0));
+    }
+
+    async function sha256Base64(value) {
+      const data = new TextEncoder().encode(String(value || ""));
+      const digest = await crypto.subtle.digest("SHA-256", data);
+      return bytesToBase64(new Uint8Array(digest));
+    }
+
+    async function deriveAuthHash(secret, saltB64) {
+      const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(secret || "")), "PBKDF2", false, ["deriveBits"]);
+      const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: base64ToBytes(saltB64), iterations: 120000, hash: "SHA-256" }, key, 256);
+      return bytesToBase64(new Uint8Array(bits));
+    }
+
+    function newAuthId() {
+      if (crypto.randomUUID) return "acct_" + crypto.randomUUID().replace(/-/g, "");
+      return "acct_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 12);
+    }
+
+    function newAuthSalt() {
+      const a = new Uint8Array(16);
+      crypto.getRandomValues(a);
+      return bytesToBase64(a);
+    }
+
+    function getAuthSessionId() {
+      try { return localStorage.getItem(AUTH_SESSION_KEY) || ""; } catch(e) { return ""; }
+    }
+
+    function setAuthSessionId(id) {
+      try { if (id) localStorage.setItem(AUTH_SESSION_KEY, id); else localStorage.removeItem(AUTH_SESSION_KEY); } catch(e) {}
+    }
+
+    async function findAuthAccount(name) {
+      const key = await sha256Base64(normalizeAuthName(name));
+      const snap = await firebaseDB.ref(AUTH_INDEX_PATH + "/" + key).once("value");
+      return snap.exists() ? { key, uid: snap.val() } : null;
+    }
+
+    async function migrateAnonymousData(oldId, newId) {
+      if (!oldId || !newId || oldId === newId) return;
+      try {
+        const oldSnap = await firebaseDB.ref("users/" + oldId).once("value");
+        if (oldSnap.exists()) {
+          const oldData = oldSnap.val() || {};
+          const newSnap = await firebaseDB.ref("users/" + newId).once("value");
+          if (!newSnap.exists()) await firebaseDB.ref("users/" + newId).set(oldData);
+        }
+      } catch(e) { console.warn("Anonymous data migration skipped:", e); }
+    }
+
+    window.openAuth = function(mode) {
+      state.currentScreen = mode === "forgot" ? "forgot-password" : (mode === "register" ? "register" : "login");
+      render();
+    };
+
+    window.logoutAccount = function() {
+      try { saveLocalCache(); } catch(e) {}
+      setAuthSessionId("");
+      clientId = null;
+      state.profile = null;
+      state.progressData = {};
+      state.examReminders = [];
+      state.currentScreen = "login";
+      render();
+    };
+
+    window.handleLogin = async function() {
+      const name = (document.getElementById("auth-login-name")?.value || "").trim();
+      const password = document.getElementById("auth-login-password")?.value || "";
+      const btn = document.getElementById("auth-login-btn");
+      if (!name || !password) { showToast("Enter your name and password.", "error"); return; }
+      if (btn) { btn.disabled = true; btn.textContent = "Signing in..."; }
+      try {
+        const found = await findAuthAccount(name);
+        if (!found) throw new Error("Invalid name or password");
+        const snap = await firebaseDB.ref("users/" + found.uid + "/auth").once("value");
+        const auth = snap.val() || {};
+        const hash = await deriveAuthHash(password, auth.passwordSalt || "");
+        if (!auth.passwordHash || hash !== auth.passwordHash) throw new Error("Invalid name or password");
+        setAuthSessionId(found.uid);
+        clientId = found.uid;
+        state.profile = null; state.progressData = {}; state.currentScreen = "loading"; render();
+        await loadFirebaseData();
+        await loadExamRemindersFirebase().catch(()=>{});
+        state.currentScreen = state.profile ? "dashboard" : "welcome";
+        render();
+        showToast("Welcome back! Your data has been restored.", "success");
+      } catch(e) {
+        console.error(e); showToast(e.message === "Invalid name or password" ? "Invalid name or password." : "Login failed. Check your internet connection.", "error");
+      } finally { if (btn) { btn.disabled = false; btn.textContent = "Login"; } }
+    };
+
+    window.handleRegister = async function() {
+      const name = (document.getElementById("auth-reg-name")?.value || "").trim();
+      const place = (document.getElementById("auth-reg-place")?.value || "").trim();
+      const password = document.getElementById("auth-reg-password")?.value || "";
+      const confirm = document.getElementById("auth-reg-confirm")?.value || "";
+      const friend = (document.getElementById("auth-reg-friend")?.value || "").trim();
+      const btn = document.getElementById("auth-reg-btn");
+      if (!name || !place || !password || !confirm || !friend) { showToast("Please complete all fields.", "error"); return; }
+      if (password.length < 6) { showToast("Password must be at least 6 characters.", "error"); return; }
+      if (password !== confirm) { showToast("Passwords do not match.", "error"); return; }
+      if (normalizeAuthName(friend) === normalizeAuthName(name)) { showToast("Friend's name must be different from your name.", "error"); return; }
+      if (btn) { btn.disabled = true; btn.textContent = "Creating account..."; }
+      try {
+        const existing = await findAuthAccount(name);
+        if (existing) throw new Error("An account with this name already exists.");
+        const oldId = getClientId();
+        const uid = newAuthId();
+        const passwordSalt = newAuthSalt();
+        const recoverySalt = newAuthSalt();
+        const passwordHash = await deriveAuthHash(password, passwordSalt);
+        const recoveryHash = await deriveAuthHash(normalizeAuthName(friend), recoverySalt);
+        await migrateAnonymousData(oldId, uid);
+        const authData = { passwordHash, passwordSalt, recoveryHash, recoverySalt, createdAt: new Date().toISOString() };
+        const profileData = { name, place, avatar: state.profile?.avatar || "😀", bio: String(state.profile?.bio || ""), medium: state.medium === "as" ? "as" : "en", createdAt: state.profile?.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+        const nameKey = await sha256Base64(normalizeAuthName(name));
+        const updates = {};
+        updates["users/" + uid + "/auth"] = authData;
+        updates["users/" + uid + "/profile"] = profileData;
+        updates[AUTH_INDEX_PATH + "/" + nameKey] = uid;
+        await firebaseDB.ref().update(updates);
+        setAuthSessionId(uid); clientId = uid;
+        state.profile = profileData;
+        saveLocalCache();
+        state.currentScreen = "dashboard"; render();
+        showToast("Account created. Your data is now linked to your login.", "success");
+      } catch(e) {
+        console.error(e); showToast(e.message || "Registration failed.", "error");
+      } finally { if (btn) { btn.disabled = false; btn.textContent = "Create Account"; } }
+    };
+
+    window.handleForgotPassword = async function() {
+      const name = (document.getElementById("auth-forgot-name")?.value || "").trim();
+      const friend = (document.getElementById("auth-forgot-friend")?.value || "").trim();
+      const newPassword = document.getElementById("auth-forgot-new")?.value || "";
+      const confirm = document.getElementById("auth-forgot-confirm")?.value || "";
+      const btn = document.getElementById("auth-forgot-btn");
+      if (!name || !friend || !newPassword || !confirm) { showToast("Complete all password reset fields.", "error"); return; }
+      if (newPassword.length < 6) { showToast("New password must be at least 6 characters.", "error"); return; }
+      if (newPassword !== confirm) { showToast("New passwords do not match.", "error"); return; }
+      if (btn) { btn.disabled = true; btn.textContent = "Verifying..."; }
+      try {
+        const found = await findAuthAccount(name);
+        if (!found) throw new Error("Details could not be verified.");
+        const authRef = firebaseDB.ref("users/" + found.uid + "/auth");
+        const snap = await authRef.once("value");
+        const auth = snap.val() || {};
+        const recoveryHash = await deriveAuthHash(normalizeAuthName(friend), auth.recoverySalt || "");
+        if (!auth.recoveryHash || recoveryHash !== auth.recoveryHash) throw new Error("Details could not be verified.");
+        const salt = newAuthSalt();
+        const passwordHash = await deriveAuthHash(newPassword, salt);
+        await authRef.update({ passwordHash, passwordSalt: salt, passwordUpdatedAt: new Date().toISOString() });
+        showToast("Password reset successfully. You can now log in.", "success");
+        state.currentScreen = "login"; render();
+      } catch(e) {
+        console.error(e); showToast(e.message || "Password reset failed.", "error");
+      } finally { if (btn) { btn.disabled = false; btn.textContent = "Reset Password"; } }
+    };
+
     let clientId = null;
     let firebaseRetryTimer = null;
 
@@ -4536,9 +4716,8 @@ html.dark .news-card h3{color:#f8fafc}.html.dark .news-summary{color:#cbd5e1}.ht
       if (clientId) return clientId;
 
       try {
-        // Keep the same user identity even if the phone sleeps, the tab is
-        // discarded, or the browser restores the page later.
-        clientId = localStorage.getItem("porisram_firebase_user_id");
+        // Registered accounts always use their persistent Firebase account ID.
+        clientId = getAuthSessionId() || localStorage.getItem("porisram_firebase_user_id");
 
         if (!clientId) {
           clientId = "user_" +
@@ -5879,7 +6058,8 @@ function scheduleFirebaseRetry() {
             </select>
           </label>
           ${state.currentScreen !== 'dashboard' ? `<button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="goDashboard()">Dashboard</button>` : ''}
-          ${state.currentScreen !== 'profile' && state.currentScreen !== 'welcome' && state.currentScreen !== 'loading' ? `<button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="showProfile()"><i data-lucide="user" class="w-4 h-4"></i> Profile</button>` : ''}`;
+          ${state.currentScreen !== 'profile' && state.currentScreen !== 'welcome' && state.currentScreen !== 'loading' ? `<button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="showProfile()"><i data-lucide="user" class="w-4 h-4"></i> Profile</button>` : ''}
+          <button class="btn btn-outline !px-3 !py-1.5 text-sm" onclick="logoutAccount()"><i data-lucide="log-out" class="w-4 h-4"></i> Logout</button>`;
         lucide.createIcons();
       } else headerProfileEl.innerHTML = '';
     }
@@ -8198,7 +8378,53 @@ function getAEJECategories() {
       updateHeader();
       let content = '';
 
-      if (state.currentScreen === 'loading') {
+      if (state.currentScreen === 'login') {
+        content = `<div class="fade-in max-w-md mx-auto bg-white p-7 sm:p-8 rounded-3xl shadow-xl border border-gray-100 mt-8">
+          <div class="w-16 h-16 mx-auto bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-5"><i data-lucide="log-in" class="w-8 h-8"></i></div>
+          <h2 class="text-2xl font-extrabold text-gray-900 text-center">Welcome Back</h2>
+          <p class="text-gray-500 text-sm text-center mt-1 mb-6">Login to restore your profile, coins, quizzes and progress.</p>
+          <div class="space-y-4">
+            <input id="auth-login-name" type="text" autocomplete="username" class="w-full px-4 py-3" placeholder="Your name">
+            <input id="auth-login-password" type="password" autocomplete="current-password" class="w-full px-4 py-3" placeholder="Password" onkeydown="if(event.key==='Enter')handleLogin()">
+            <button id="auth-login-btn" onclick="handleLogin()" class="btn btn-primary w-full">Login</button>
+            <button onclick="openAuth('forgot')" class="w-full text-sm font-bold text-indigo-600 hover:underline">Forgot Password?</button>
+            <div class="border-t pt-4 text-center text-sm text-gray-500">New user? <button onclick="openAuth('register')" class="font-bold text-indigo-600">Create an account</button></div>
+          </div>
+        </div>`;
+      } else if (state.currentScreen === 'register') {
+        content = `<div class="fade-in max-w-md mx-auto bg-white p-7 sm:p-8 rounded-3xl shadow-xl border border-gray-100 mt-6">
+          <div class="w-14 h-14 mx-auto bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4"><i data-lucide="user-plus" class="w-7 h-7"></i></div>
+          <h2 class="text-2xl font-extrabold text-gray-900 text-center">Create Your Account</h2>
+          <p class="text-gray-500 text-sm text-center mt-1 mb-5">Your account keeps your data available even after the browser is cleared.</p>
+          <div class="space-y-3">
+            <input id="auth-reg-name" type="text" autocomplete="name" class="w-full px-4 py-3" placeholder="Full name">
+            <input id="auth-reg-place" type="text" autocomplete="address-level2" class="w-full px-4 py-3" placeholder="District / Place">
+            <input id="auth-reg-password" type="password" autocomplete="new-password" class="w-full px-4 py-3" placeholder="Password (minimum 6 characters)">
+            <input id="auth-reg-confirm" type="password" autocomplete="new-password" class="w-full px-4 py-3" placeholder="Confirm password">
+            <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4 mt-2">
+              <p class="font-extrabold text-amber-900 text-sm">🔐 Password Recovery</p>
+              <p class="text-xs text-amber-800 mt-1 mb-3">Enter a friend's name. You will need your name + this friend's name to reset your password.</p>
+              <input id="auth-reg-friend" type="text" autocomplete="off" class="w-full px-4 py-3" placeholder="Friend's name">
+            </div>
+            <button id="auth-reg-btn" onclick="handleRegister()" class="btn btn-primary w-full mt-2">Create Account</button>
+            <button onclick="openAuth('login')" class="w-full text-sm font-bold text-indigo-600">Already have an account? Login</button>
+          </div>
+        </div>`;
+      } else if (state.currentScreen === 'forgot-password') {
+        content = `<div class="fade-in max-w-md mx-auto bg-white p-7 sm:p-8 rounded-3xl shadow-xl border border-gray-100 mt-8">
+          <div class="w-14 h-14 mx-auto bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mb-4"><i data-lucide="key-round" class="w-7 h-7"></i></div>
+          <h2 class="text-2xl font-extrabold text-gray-900 text-center">Reset Password</h2>
+          <p class="text-gray-500 text-sm text-center mt-1 mb-5">Verify your name and friend's name, then choose a new password.</p>
+          <div class="space-y-3">
+            <input id="auth-forgot-name" type="text" class="w-full px-4 py-3" placeholder="Your name">
+            <input id="auth-forgot-friend" type="text" class="w-full px-4 py-3" placeholder="Friend's name">
+            <input id="auth-forgot-new" type="password" autocomplete="new-password" class="w-full px-4 py-3" placeholder="New password">
+            <input id="auth-forgot-confirm" type="password" autocomplete="new-password" class="w-full px-4 py-3" placeholder="Confirm new password">
+            <button id="auth-forgot-btn" onclick="handleForgotPassword()" class="btn btn-primary w-full">Reset Password</button>
+            <button onclick="openAuth('login')" class="w-full text-sm font-bold text-indigo-600">← Back to Login</button>
+          </div>
+        </div>`;
+      } else if (state.currentScreen === 'loading') {
         content = `<div class="flex flex-col items-center justify-center mt-32"><div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div><p class="mt-4 text-gray-600 font-medium">Loading...</p></div>`;
       } else if (state.currentScreen === 'welcome') {
         content = `<div class="fade-in max-w-md mx-auto bg-white p-7 sm:p-8 rounded-2xl shadow-xl border border-gray-100 mt-6 sm:mt-10">
@@ -8612,37 +8838,31 @@ function getAEJECategories() {
     }
 
     async function initApp() {
-      // Render from local cache immediately. Never wait for the network
-      // before showing the login/welcome screen.
       restoreLocalCache();
       loadExamRemindersLocal();
-      state.currentScreen = state.profile ? "dashboard" : "welcome";
+      const session = getAuthSessionId();
+      if (!session) {
+        state.profile = null;
+        state.currentScreen = "login";
+        render();
+        return;
+      }
+      clientId = session;
+      state.currentScreen = "loading";
       render();
-
-      // Network work happens in the background and must never block first paint.
-      Promise.allSettled([
-        loadFollowing(),
-        loadFirebaseData(),
-        loadExamRemindersFirebase()
-      ]).then(results => {
-        const firebaseResult = results[1];
-        if (firebaseResult && firebaseResult.status === "fulfilled") {
-          startUnreadMessageMonitor();
-          if (state.profile && (state.currentScreen === "welcome" || state.currentScreen === "loading")) {
-            state.currentScreen = "dashboard";
-            render();
-          }
-          setFirebaseStatus("online");
-          if (state.currentScreen === "dashboard") render();
-        } else {
-          setFirebaseStatus("offline");
-          scheduleFirebaseRetry();
-        }
-      }).catch(error => {
-        console.error("Background data load failed:", error);
+      try {
+        await Promise.all([loadFirebaseData(), loadFollowing(), loadExamRemindersFirebase()]);
+        startUnreadMessageMonitor();
+        state.currentScreen = state.profile ? "dashboard" : "welcome";
+        setFirebaseStatus("online");
+        render();
+      } catch (error) {
+        console.error("Account data load failed:", error);
         setFirebaseStatus("offline");
-        scheduleFirebaseRetry();
-      });
+        state.currentScreen = "login";
+        render();
+        showToast("Could not restore your account. Check your internet connection.", "error");
+      }
     }
 
     // Keep the question timer display accurate without re-rendering the question.
