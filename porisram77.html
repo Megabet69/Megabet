@@ -1376,6 +1376,122 @@ html.dark .profile-logout-btn{background:#1f2937;color:#f87171;border-color:#7f1
 html.dark .profile-logout-btn:hover{background:#3f1720}
 @media(max-width:640px){.profile-account-card{padding:14px!important}.profile-logout-btn{min-height:40px;padding:8px 12px;font-size:12px}}
 </style>
+
+<style id="mobile-header-final-fix">
+/* Mobile: keep the top bar compact — no student name/place in the header. */
+@media (max-width: 640px){
+  .app-header-inner{
+    min-height:54px !important;
+    height:54px !important;
+    padding-top:5px !important;
+    padding-bottom:5px !important;
+    gap:5px !important;
+  }
+  .app-brand{
+    flex:0 0 auto !important;
+    min-width:38px !important;
+  }
+  .app-brand-title{display:none !important;}
+  .app-brand-icon{
+    width:38px !important;
+    height:38px !important;
+    flex-basis:38px !important;
+  }
+
+  /* Do not show the user's name/place in the mobile top bar. */
+  .header-user-info{
+    display:none !important;
+  }
+
+  .app-header-right{
+    flex:1 1 auto !important;
+    min-width:0 !important;
+    gap:5px !important;
+    overflow:visible !important;
+  }
+  .header-profile{
+    flex:1 1 auto !important;
+    min-width:0 !important;
+    width:auto !important;
+    gap:5px !important;
+    justify-content:flex-end !important;
+  }
+  .header-coin{
+    min-width:48px !important;
+    height:34px !important;
+    padding:5px 7px !important;
+    font-size:11px !important;
+    flex:0 0 auto !important;
+  }
+  #theme-toggle{
+    width:36px !important;
+    height:36px !important;
+    min-width:36px !important;
+    flex:0 0 36px !important;
+  }
+  #medium-selector{
+    min-width:82px !important;
+    width:82px !important;
+    height:34px !important;
+    min-height:34px !important;
+    padding:5px 6px !important;
+    font-size:11px !important;
+    flex:0 0 82px !important;
+  }
+  header label:has(#medium-selector){
+    min-width:82px !important;
+    margin:0 !important;
+    flex:0 0 82px !important;
+  }
+  header label:has(#medium-selector)>span{
+    display:none !important;
+  }
+  #header-profile .btn{
+    min-height:34px !important;
+    height:34px !important;
+    padding:5px 8px !important;
+    font-size:11px !important;
+    flex:0 0 auto !important;
+    white-space:nowrap !important;
+  }
+}
+
+@media (max-width: 380px){
+  .app-header-inner{
+    min-height:52px !important;
+    height:52px !important;
+  }
+  .app-brand-icon{
+    width:36px !important;
+    height:36px !important;
+    flex-basis:36px !important;
+  }
+  #theme-toggle{
+    width:34px !important;
+    height:34px !important;
+    min-width:34px !important;
+  }
+  .header-coin{
+    min-width:44px !important;
+    height:32px !important;
+    padding:4px 6px !important;
+    font-size:10px !important;
+  }
+  #medium-selector,
+  header label:has(#medium-selector){
+    min-width:76px !important;
+    width:76px !important;
+    flex-basis:76px !important;
+  }
+  #header-profile .btn{
+    min-height:32px !important;
+    height:32px !important;
+    padding:4px 7px !important;
+    font-size:10px !important;
+  }
+}
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
