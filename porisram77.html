@@ -394,161 +394,6 @@ html.dark .rewards-nav-btn{background:#1f2937;color:#f8fafc;border-color:#475569
   .rewards-nav-btn{flex:1;justify-content:center;min-height:42px}
 }
 .reattempt-fee-badge{font-size:.68rem;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;line-height:1;flex-shrink:0;margin-left:.15rem}
-
-/* Mobile quiz: fixed timer + full-screen exam layout */
-@media (max-width: 640px) {
-  body.quiz-active { overflow: hidden !important; }
-  body.quiz-active #app,
-  body.quiz-active .app-shell {
-    min-height: 100dvh !important;
-    height: 100dvh !important;
-  }
-
-  .quiz-screen, .quiz-container, .quiz-page {
-    min-height: 100dvh !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    overflow: hidden !important;
-    padding-bottom: env(safe-area-inset-bottom) !important;
-  }
-
-  /* Timer stays in its own fixed row and never sits over questions/options */
-  .quiz-screen .quiz-timer,
-  .quiz-container .quiz-timer,
-  .quiz-page .quiz-timer,
-  .quiz-screen [id*="timer"],
-  .quiz-container [id*="timer"],
-  .quiz-page [id*="timer"] {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 100 !important;
-    width: 100% !important;
-    min-height: 42px !important;
-    box-sizing: border-box !important;
-    margin: 0 !important;
-    flex-shrink: 0 !important;
-  }
-
-  /* Prevent fixed/sticky timer from covering the question */
-  .quiz-screen .quiz-question,
-  .quiz-container .quiz-question,
-  .quiz-page .quiz-question {
-    scroll-margin-top: 50px !important;
-  }
-
-  /* Compact mobile header */
-  .quiz-screen .quiz-header,
-  .quiz-container .quiz-header,
-  .quiz-page .quiz-header {
-    min-height: 48px !important;
-    padding: 6px 10px !important;
-    gap: 6px !important;
-  }
-
-  /* Full usable height for the question area */
-  .quiz-screen .quiz-body,
-  .quiz-container .quiz-body,
-  .quiz-page .quiz-body {
-    min-height: 0 !important;
-    flex: 1 1 auto !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    padding: 10px !important;
-  }
-
-  .quiz-screen .quiz-options,
-  .quiz-container .quiz-options,
-  .quiz-page .quiz-options {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-  }
-
-  .quiz-screen .quiz-options button,
-  .quiz-container .quiz-options button,
-  .quiz-page .quiz-options button {
-    min-height: 48px !important;
-    width: 100% !important;
-    touch-action: manipulation !important;
-  }
-}
-
-/* Prevent the browser viewport from jumping when the mobile keyboard/UI changes */
-@supports (height: 100dvh) {
-  @media (max-width: 640px) {
-    .quiz-screen, .quiz-container, .quiz-page { height: 100dvh !important; }
-  }
-}
-
-
-/* FINAL MOBILE QUIZ FIX: timer occupies real layout space, question scrolls below it */
-@media (max-width: 640px) {
-  body.quiz-active {
-    overflow: hidden !important;
-  }
-
-  body.quiz-active .quiz-screen,
-  body.quiz-active .quiz-container,
-  body.quiz-active .quiz-page {
-    position: relative !important;
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100dvh !important;
-    min-height: 100dvh !important;
-    max-height: 100dvh !important;
-    overflow: hidden !important;
-    box-sizing: border-box !important;
-  }
-
-  /* Never overlay the timer on content */
-  body.quiz-active .quiz-screen .quiz-timer,
-  body.quiz-active .quiz-container .quiz-timer,
-  body.quiz-active .quiz-page .quiz-timer {
-    position: relative !important;
-    top: auto !important;
-    bottom: auto !important;
-    z-index: 20 !important;
-    flex: 0 0 44px !important;
-    height: 44px !important;
-    min-height: 44px !important;
-    width: 100% !important;
-    margin: 0 !important;
-    transform: none !important;
-  }
-
-  /* If timer is a generic timer element, keep it in flow */
-  body.quiz-active .quiz-screen [id*="timer"],
-  body.quiz-active .quiz-container [id*="timer"],
-  body.quiz-active .quiz-page [id*="timer"] {
-    z-index: 20 !important;
-  }
-
-  /* Question/content starts below timer and is the only scrolling region */
-  body.quiz-active .quiz-screen .quiz-body,
-  body.quiz-active .quiz-container .quiz-body,
-  body.quiz-active .quiz-page .quiz-body {
-    position: relative !important;
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
-    scroll-padding-top: 12px !important;
-    padding: 12px 10px calc(20px + env(safe-area-inset-bottom)) !important;
-    box-sizing: border-box !important;
-  }
-
-  body.quiz-active .quiz-screen .quiz-question,
-  body.quiz-active .quiz-container .quiz-question,
-  body.quiz-active .quiz-page .quiz-question {
-    position: relative !important;
-    z-index: 1 !important;
-    scroll-margin-top: 12px !important;
-  }
-}
-
 </style>
 
 </style>
@@ -10211,8 +10056,6 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
     }catch(e){}
   }
   function render(){
-      document.body.classList.toggle('quiz-active', state.currentScreen === 'quiz');
-
     const balance=document.getElementById('coin-balance');
     const box=document.getElementById('reward-items');
     if(balance) balance.textContent=coins+' 🪙';
@@ -13348,31 +13191,20 @@ html.dark .reward-action{background:#f8fafc;color:#111827}
 
 const NEWS_CATEGORIES={
   assam:{id:'assam',title:'Assam Current Affairs',icon:'🇦🇸',feeds:[
-    'https://news.google.com/rss/search?q=Assam%20when:1d&hl=en-IN&gl=IN&ceid=IN:en',
     'https://timesofguwahati.com/rss/category/assam-news',
     'https://indianexpress.com/section/north-east-india/assam/feed/'
   ]},
   assam_jobs:{id:'assam_jobs',title:'Assam Jobs',icon:'💼',feeds:[
-    // 1) AssamCareer — primary Assam jobs source
-    'https://www.assamcareer.com/feeds/posts/default?alt=rss&max-results=50',
-    'https://news.google.com/rss/search?q=site%3Aassamcareer.com%20%28Assam%20OR%20Guwahati%29%20%28recruitment%20OR%20vacancy%20OR%20job%20OR%20notification%29%20when:7d&hl=en-IN&gl=IN&ceid=IN:en',
-    // 2) Careers360 — Assam jobs/recruitment
-    'https://news.google.com/rss/search?q=site%3Acareers360.com%20%28Assam%20OR%20Guwahati%29%20%28jobs%20OR%20recruitment%20OR%20vacancy%29%20when:7d&hl=en-IN&gl=IN&ceid=IN:en',
-    // 3) Official Government of Assam recruitment notices
-    'https://news.google.com/rss/search?q=site%3Aassam.gov.in%20%28recruitment%20OR%20vacancy%20OR%20job%20OR%20notification%20OR%20advertisement%29%20when:7d&hl=en-IN&gl=IN&ceid=IN:en',
-    'https://news.google.com/rss/search?q=site%3Aniyukti.assam.gov.in%20%28recruitment%20OR%20vacancy%20OR%20job%29%20when:30d&hl=en-IN&gl=IN&ceid=IN:en'
+    'https://www.assamcareer.com/feeds/posts/default?alt=rss&max-results=30'
   ]},
   india:{id:'india',title:'Indian Current Affairs',icon:'🇮🇳',feeds:[
-    'https://news.google.com/rss/search?q=India%20news%20when:1d&hl=en-IN&gl=IN&ceid=IN:en',
     'https://indianexpress.com/feed/',
     'https://www.indiatoday.in/rss/home'
   ]},
   govt_jobs:{id:'govt_jobs',title:'Government Jobs',icon:'🏛️',feeds:[
-    'https://news.google.com/rss/search?q=government%20jobs%20India%20recruitment%20when:2d&hl=en-IN&gl=IN&ceid=IN:en',
     'https://www.assamcareer.com/feeds/posts/default?alt=rss&max-results=30'
   ]},
   education:{id:'education',title:'Education & Exams',icon:'🎓',feeds:[
-    'https://news.google.com/rss/search?q=India%20education%20exams%20when:1d&hl=en-IN&gl=IN&ceid=IN:en',
     'https://indianexpress.com/section/education/feed/'
   ]}
 };
@@ -13481,9 +13313,9 @@ function dedupe(items){const seen=new Set();return items.filter(x=>{const k=clea
 async function fetchOne(feed){
   const urls=[
     {u:feed,t:'xml'},
-    {u:'https://api.allorigins.win/raw?url='+encodeURIComponent(feed)+'&t='+Date.now(),t:'xml'},
-    {u:'https://corsproxy.io/?url='+encodeURIComponent(feed)+'&t='+Date.now(),t:'xml'},
-    {u:'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed)+'&t='+Date.now(),t:'json'}
+    {u:'https://api.allorigins.win/raw?url='+encodeURIComponent(feed),t:'xml'},
+    {u:'https://corsproxy.io/?url='+encodeURIComponent(feed),t:'xml'},
+    {u:'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(feed),t:'json'}
   ];
   const jobs=urls.map(ep=>new Promise(async(resolve)=>{
     const ac=new AbortController();const timer=setTimeout(()=>ac.abort(),3500);
@@ -13491,24 +13323,15 @@ async function fetchOne(feed){
   }));
   const results=await Promise.allSettled(jobs);let all=[];for(const r of results)if(r.status==='fulfilled')all=all.concat(r.value||[]);return dedupe(all);
 }
-function isAssamJobItem(x){
-  const text=(clean(x.title)+' '+clean(x.description)+' '+clean(x.source)).toLowerCase();
-  const jobWords=/(recruitment|recruits|recruit|vacanc|job|hiring|apply|application|apprentice|notification|post|posts|career|employment|selection|admit card|exam date|walk[- ]?in)/i;
-  const assamWords=/(assam|guwahati|tezpur|silchar|dibrugarh|jorhat|sivasagar|nagaon|barpeta|bongaigaon|kokrajhar|goalpara|tinsukia|dhemaji|lakhimpur|sonitpur|karbi anglong|cachar|hailakandi|karimganj|golaghat|morigaon|biswanath|chirang|baksa|udalguri|majuli|assam university|tezu|nit silchar|aiims guwahati|nfr|nf railway|apsc|assam govt|government of assam)/i;
-  const genericNonAssam=/(uttar pradesh|upsssc|bihar|rajasthan|west bengal|odisha|kerala|karnataka|tamil nadu|maharashtra|delhi|madhya pradesh|andhra pradesh|telangana|jharkhand|chhattisgarh|punjab|haryana|gujarat|uttarakhand|himachal pradesh|jammu|kashmir)/i;
-  return jobWords.test(text) && assamWords.test(text) && !genericNonAssam.test(text);
-}
 async function fetchLive(c){
   const feeds=NEWS_CATEGORIES[c].feeds||[];let all=[];
   const results=await Promise.allSettled(feeds.map(fetchOne));
   results.forEach(r=>{if(r.status==='fulfilled')all=all.concat(r.value||[]);});
-  let items=dedupe(all).filter(x=>clean(x.description).length>=20).filter(x=>{const t=Date.parse(x.pubDate);return !Number.isFinite(t)||t>=Date.now()-72*60*60*1000;});
-  if(c==='assam_jobs') items=items.filter(isAssamJobItem);
-  return items.sort((a,b)=>(Date.parse(b.pubDate)||0)-(Date.parse(a.pubDate)||0)).slice(0,60);
+  return dedupe(all).filter(x=>clean(x.description).length>=20).sort((a,b)=>(Date.parse(b.pubDate)||0)-(Date.parse(a.pubDate)||0)).slice(0,60);
 }
 function poolFor(c){
   const cache=readCache(c); const cached=cache&&Array.isArray(cache.items)?cache.items:[];
-  return cached.length ? dedupe(cached) : dedupe(fallbackItems(c));
+  return dedupe([...(cached||[]),...fallbackItems(c)]);
 }
 function newsLastUpdated(c){try{const x=readCache(c);return x&&x.updatedAt?x.updatedAt:null;}catch(e){return null;}}
 function newsAgeText(c){const t=newsLastUpdated(c);if(!t)return 'Not updated yet';const mins=Math.max(0,Math.floor((Date.now()-t)/60000));if(mins<1)return 'Updated just now';if(mins<60)return 'Updated '+mins+' min ago';const hrs=Math.floor(mins/60);return 'Updated '+hrs+' hour'+(hrs===1?'':'s')+' ago';}
@@ -13528,19 +13351,14 @@ function renderNewsPage(){
  const cat=NEWS_CATEGORIES[stateNews.category];const items=displayItems(poolFor(stateNews.category));
  return `<div class="news-page fade-in"><div class="news-topbar justify-end"><div class="flex gap-2 shrink-0"><button class="btn btn-outline news-back" onclick="window.goDashboard()">← Home</button><button class="btn btn-primary news-refresh" onclick="window.refreshNews()">↻ Refresh</button></div></div><div class="news-filters">${Object.values(NEWS_CATEGORIES).map(c=>`<button class="news-filter ${c.id===cat.id?'active':''}" onclick="window.selectNewsCategory('${c.id}')"><span>${c.icon} ${esc(c.title)}</span><small>${c.id==='assam'?'Latest Assam news':c.id==='assam_jobs'?'Assam recruitment':c.id==='govt_jobs'?'Central government jobs':'Exam-focused daily updates'}</small></button>`).join('')}</div><div id="news-list-area"><div class="news-list">${items.map(renderCard).join('')}</div><div class="text-center text-xs text-gray-500 mt-4">Showing 10 headlines • ${esc(newsAgeText(stateNews.category))} • Auto-updates every 5 minutes</div></div></div>`;
 }
-function paint(){if(state.currentScreen!=='news')return;const a=document.getElementById('news-list-area');if(a){if(stateNews.loading){a.innerHTML='<div class="text-center py-10 text-gray-500">🔄 Fetching latest news…</div>';return;}const items=displayItems(poolFor(stateNews.category));a.innerHTML=`<div class="news-list">${items.map(renderCard).join('')}</div><div class="text-center text-xs text-gray-500 mt-4">Showing 10 headlines • ${esc(newsAgeText(stateNews.category))} • Auto-updates every 5 minutes</div>`;}}
+function paint(){if(state.currentScreen!=='news')return;const a=document.getElementById('news-list-area');if(a){const items=displayItems(poolFor(stateNews.category));a.innerHTML=`<div class="news-list">${items.map(renderCard).join('')}</div><div class="text-center text-xs text-gray-500 mt-4">Showing 10 headlines • ${esc(newsAgeText(stateNews.category))} • Auto-updates every 5 minutes</div>`;}}
 async function backgroundRefresh(c,force=false){
   if(stateNews.loading)return;
-  if(force){try{localStorage.removeItem(cacheKey(c));}catch(e){}}
   const cached=readCache(c);
   if(!force && cached && cached.updatedAt && (Date.now()-cached.updatedAt)<5*60*1000) { paint(); return; }
   stateNews.loading=true;
-  paint();
-  try{
-    const live=await fetchLive(c);
-    if(live.length){saveCache(c,live);stateNews.rotation=0;}
-    else if(force){try{localStorage.removeItem(cacheKey(c));}catch(e){}}
-  }catch(e){} finally{stateNews.loading=false;paint();}
+  try{const live=await fetchLive(c);if(live.length){saveCache(c,live);paint();}}
+  catch(e){} finally{stateNews.loading=false;paint();}
 }
 let newsAutoRefreshTimer=null;
 let newsMinuteTimer=null;
@@ -13553,7 +13371,7 @@ function startNewsAutoRefresh(){
 startNewsAutoRefresh();
 window.openNews=function(){if(!state.profile)return;stateNews.category='assam';stateNews.rotation=0;state.currentScreen='news';render();backgroundRefresh('assam');};
 window.selectNewsCategory=function(id){if(!NEWS_CATEGORIES[id])return;stateNews.category=id;stateNews.rotation=0;render();backgroundRefresh(id);};
-window.refreshNews=function(){stateNews.rotation=0;backgroundRefresh(stateNews.category,true);};
+window.refreshNews=function(){stateNews.rotation++;paint();backgroundRefresh(stateNews.category,true);};
 
 
 
