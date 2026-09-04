@@ -1492,6 +1492,137 @@ html.dark .profile-logout-btn:hover{background:#3f1720}
 }
 </style>
 
+
+<style id="compact-mobile-header-final">
+  /* Mobile header: no name/place, compact connection state, no overlap. */
+  @media (max-width: 640px){
+    header{
+      overflow:visible !important;
+    }
+
+    header > div,
+    header .container,
+    header .mx-auto{
+      min-width:0 !important;
+    }
+
+    header .header-user-info,
+    header .header-user-name,
+    header .header-user-place,
+    header .header-divider,
+    header .header-user-icon,
+    header .header-place-icon{
+      display:none !important;
+    }
+
+    /* Treat the connection status like a small utility chip. */
+    header #firebase-status,
+    header #connection-status,
+    header [id*="firebase-status"],
+    header [id*="connection-status"]{
+      width:auto !important;
+      min-width:0 !important;
+      max-width:58px !important;
+      flex:0 0 auto !important;
+      padding:4px 6px !important;
+      margin:0 !important;
+      border-radius:999px !important;
+      font-size:9px !important;
+      line-height:1 !important;
+      white-space:nowrap !important;
+      overflow:hidden !important;
+      text-overflow:ellipsis !important;
+      box-sizing:border-box !important;
+    }
+
+    header #firebase-status i,
+    header #connection-status i,
+    header [id*="firebase-status"] i,
+    header [id*="connection-status"] i{
+      width:9px !important;
+      height:9px !important;
+      flex:0 0 auto !important;
+    }
+
+    header .header-coin{
+      flex:0 0 auto !important;
+      min-width:0 !important;
+      width:auto !important;
+      padding:5px 7px !important;
+      font-size:11px !important;
+      line-height:1 !important;
+      white-space:nowrap !important;
+    }
+
+    header .btn{
+      min-height:36px !important;
+      height:36px !important;
+      padding:6px 9px !important;
+      gap:4px !important;
+      font-size:11px !important;
+      white-space:nowrap !important;
+      flex:0 0 auto !important;
+    }
+
+    header .btn i{
+      width:14px !important;
+      height:14px !important;
+    }
+
+    header #medium-selector{
+      min-width:76px !important;
+      width:76px !important;
+      min-height:36px !important;
+      height:36px !important;
+      padding:5px 5px !important;
+      font-size:10px !important;
+    }
+
+    header label:has(#medium-selector){
+      gap:0 !important;
+      flex:0 0 auto !important;
+    }
+    header label:has(#medium-selector)>span{
+      display:none !important;
+    }
+
+    /* Keep the right-side controls compact and allow only controlled shrink. */
+    header .flex,
+    header nav{
+      min-width:0 !important;
+    }
+  }
+
+  @media (max-width:380px){
+    header #firebase-status,
+    header #connection-status,
+    header [id*="firebase-status"],
+    header [id*="connection-status"]{
+      max-width:50px !important;
+      padding:4px 5px !important;
+      font-size:8px !important;
+    }
+
+    header .header-coin{
+      padding:5px 6px !important;
+      font-size:10px !important;
+    }
+
+    header .btn{
+      min-height:34px !important;
+      height:34px !important;
+      padding:5px 7px !important;
+      font-size:10px !important;
+    }
+
+    header #medium-selector{
+      min-width:68px !important;
+      width:68px !important;
+      font-size:9px !important;
+    }
+  }
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -1643,6 +1774,35 @@ html.dark .header-coin{background:linear-gradient(135deg,#422006,#3f2b0b)!import
 
   <!-- Main App Container -->
   <main id="app-root" class="max-w-5xl mx-auto p-4 md:p-6 pb-20 w-full flex-grow" class="app-shell"></main>
+
+
+<style id="offline-refresh-prompt-css">
+  #offline-refresh-prompt[hidden]{display:none!important}
+  #offline-refresh-prompt{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+  .offline-refresh-card{width:min(390px,100%);box-sizing:border-box;background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:24px 20px;text-align:center;box-shadow:0 20px 60px rgba(15,23,42,.22)}
+  .offline-refresh-icon{width:54px;height:54px;margin:0 auto 12px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:#fff1f2;color:#dc2626;font-size:26px}
+  .offline-refresh-title{font-size:19px;font-weight:900;color:#111827}
+  .offline-refresh-text{margin:6px 0 16px;font-size:13px;line-height:1.5;color:#64748b}
+  .offline-refresh-btn{width:100%;min-height:46px;border:0;border-radius:12px;background:#4f46e5;color:#fff;font-weight:850;font-size:14px;cursor:pointer}
+  .offline-refresh-btn:active{transform:scale(.98)}
+  html.dark .offline-refresh-card{background:#111827;border-color:#374151}
+  html.dark .offline-refresh-title{color:#f8fafc}
+  html.dark .offline-refresh-text{color:#94a3b8}
+  @media(max-width:640px){
+    #offline-refresh-prompt{padding:14px}
+    .offline-refresh-card{padding:22px 16px;border-radius:18px}
+  }
+</style>
+
+
+  <div id="offline-refresh-prompt" hidden role="dialog" aria-modal="true" aria-labelledby="offline-refresh-title">
+    <div class="offline-refresh-card">
+      <div class="offline-refresh-icon">📡</div>
+      <div id="offline-refresh-title" class="offline-refresh-title">You are offline</div>
+      <div class="offline-refresh-text">Your internet connection was lost. Reconnect to the internet, then refresh the app to connect again.</div>
+      <button id="offline-refresh-btn" class="offline-refresh-btn" type="button">↻ Refresh &amp; Connect</button>
+    </div>
+  </div>
 
   <!-- Global Modal Container -->
   <div id="modal-container" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 fade-in">
@@ -5365,6 +5525,7 @@ html.dark .header-coin{background:linear-gradient(135deg,#422006,#3f2b0b)!import
 
     let clientId = null;
     let firebaseRetryTimer = null;
+    let firebaseWasOnline = false;
 
     function getClientId() {
       if (clientId) return clientId;
@@ -5398,17 +5559,29 @@ html.dark .header-coin{background:linear-gradient(135deg,#422006,#3f2b0b)!import
       return firebaseDB.ref("users/" + getClientId());
     }
 
+    function showOfflineRefreshPrompt() {
+      const prompt = document.getElementById("offline-refresh-prompt");
+      if (prompt) prompt.hidden = false;
+    }
+
+    function hideOfflineRefreshPrompt() {
+      const prompt = document.getElementById("offline-refresh-prompt");
+      if (prompt) prompt.hidden = true;
+    }
+
     function setFirebaseStatus(status) {
       const el = document.getElementById("firebase-status");
       if (!el) return;
 
       if (status === "online") {
+        hideOfflineRefreshPrompt();
         el.textContent = "● Online";
         el.className =
           "text-xs px-2.5 py-1 rounded-full border font-semibold " +
           "bg-green-50 text-green-700 border-green-200";
       } else if (status === "offline") {
         el.textContent = "● Offline";
+        showOfflineRefreshPrompt();
         el.className =
           "text-xs px-2.5 py-1 rounded-full border font-semibold " +
           "bg-red-50 text-red-700 border-red-200";
@@ -5420,15 +5593,39 @@ html.dark .header-coin{background:linear-gradient(135deg,#422006,#3f2b0b)!import
       }
     }
 
+    // If the device/browser loses internet, ask the user to reconnect and refresh.
+    window.addEventListener("offline", () => {
+      setFirebaseStatus("offline");
+    });
+
+    window.addEventListener("online", () => {
+      // Give Firebase a moment to establish its connection before hiding the prompt.
+      setFirebaseStatus("connecting");
+      scheduleFirebaseRetry();
+    });
+
+    document.getElementById("offline-refresh-btn")?.addEventListener("click", () => {
+      window.location.reload();
+    });
+
     // This is Firebase's actual connection state.
     firebaseDB.ref(".info/connected").on("value", snapshot => {
       if (snapshot.val() === true) {
+        firebaseWasOnline = true;
         setFirebaseStatus("online");
       } else {
-        setFirebaseStatus("offline");
+        // Avoid showing the offline prompt during the app's initial Firebase connection.
+        // Show it when the device is actually offline or an established connection drops.
+        if (navigator.onLine === false || firebaseWasOnline) {
+          setFirebaseStatus("offline");
+        }
         scheduleFirebaseRetry();
       }
     });
+
+    if (navigator.onLine === false) {
+      setFirebaseStatus("offline");
+    }
 
     // ---------------- INSTANT LOCAL RESTORE ----------------
     // Firebase remains the source of truth, but localStorage lets the app
