@@ -1130,6 +1130,55 @@ html.dark .news-card h3{color:#f8fafc}.html.dark .news-summary{color:#cbd5e1}.ht
 }
 </style>
 
+<style id="compact-auth-mobile">
+  @media (max-width:640px){
+    #app-root > div:first-child { min-height: 100dvh; }
+    input { min-height: 42px !important; }
+  }
+</style>
+
+<style id="final-dark-mode-fix">
+html.dark body { background:#0b1220 !important; color:#e5e7eb !important; }
+html.dark .bg-white { background:#111827 !important; color:#f8fafc !important; }
+html.dark .bg-gray-50 { background:#0f172a !important; }
+html.dark .bg-blue-50 { background:#172554 !important; }
+html.dark .bg-purple-50 { background:#2e1065 !important; }
+html.dark .bg-amber-50 { background:#422006 !important; }
+html.dark .bg-emerald-50 { background:#052e16 !important; }
+html.dark .bg-indigo-50 { background:#1e1b4b !important; }
+html.dark .text-gray-900, html.dark .text-gray-800, html.dark .text-gray-700 { color:#f8fafc !important; }
+html.dark .text-gray-600, html.dark .text-gray-500 { color:#cbd5e1 !important; }
+html.dark .text-indigo-600 { color:#a5b4fc !important; }
+html.dark .text-indigo-700 { color:#c7d2fe !important; }
+html.dark .text-amber-900, html.dark .text-amber-800 { color:#fde68a !important; }
+html.dark input, html.dark textarea, html.dark select {
+  background:#1e293b !important; color:#f8fafc !important; border-color:#475569 !important;
+}
+html.dark input::placeholder, html.dark textarea::placeholder { color:#94a3b8 !important; }
+html.dark .border-gray-100, html.dark .border-gray-200, html.dark .border-gray-300 { border-color:#334155 !important; }
+html.dark .border-t { border-color:#334155 !important; }
+html.dark .btn-secondary, html.dark .btn-outline {
+  background:#1e293b !important; color:#f8fafc !important; border-color:#64748b !important;
+}
+html.dark .btn-secondary:hover, html.dark .btn-outline:hover {
+  background:#273449 !important; color:#fff !important;
+}
+html.dark button.text-gray-500, html.dark button.text-gray-600 { color:#cbd5e1 !important; }
+html.dark .text-red-600 { color:#fca5a5 !important; }
+html.dark .text-green-600 { color:#86efac !important; }
+</style>
+
+
+<style id="no-gap-registration-fields">
+  #auth-reg-name-status:empty { display:none !important; }
+  #auth-reg-name-status:not(:empty) {
+    height:auto !important;
+    min-height:14px;
+    margin-top:2px;
+    margin-bottom:-2px;
+  }
+</style>
+
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans min-h-screen flex flex-col">
 <script>
@@ -4641,6 +4690,197 @@ html.dark .news-card h3{color:#f8fafc}.html.dark .news-summary{color:#cbd5e1}.ht
       } finally { if (btn) { btn.disabled = false; btn.textContent = "Login"; } }
     };
 
+    let authNameCheckTimer = null;
+
+    async function getAvailableNameSuggestions(name) {
+      const base = name.trim().replace(/\s+/g, " ");
+      if (!base) return [];
+      const candidates = [base + "1", base + "2", base + "3", base + "01", base + "77"];
+      const available = [];
+      for (const candidate of candidates) {
+        try {
+          const found = await findAuthAccount(candidate);
+          if (!found) available.push(candidate);
+          if (available.length >= 3) break;
+        } catch(e) {}
+      }
+      return available;
+    }
+
+    window.checkRegistrationName = async function() {
+      const input = document.getElementById("auth-reg-name");
+      const status = document.getElementById("auth-reg-name-status");
+      if (!input || !status) return true;
+      const name = input.value.trim();
+
+      input.classList.remove("!border-red-500", "!border-green-500");
+      if (!name) {
+        status.innerHTML = "";
+        return true;
+      }
+
+      status.textContent = "Checking username…";
+      status.className = "text-[10px] font-bold min-h-[14px] -mt-1 text-gray-500";
+
+      try {
+        const existing = await findAuthAccount(name);
+        if (!existing) {
+          status.innerHTML = "✓ Username is available";
+          status.className = "text-[10px] font-bold min-h-[14px] -mt-1 text-green-600";
+          input.classList.add("!border-green-500");
+          return true;
+        }
+
+        const suggestions = await getAvailableNameSuggestions(name);
+        status.innerHTML = "⚠️ Username already taken." +
+          (suggestions.length ? " Try: " + suggestions.map(s =>
+            '<button type="button" onclick="useNameSuggestion(this.dataset.name)" data-name="' +
+            s.replace(/"/g, '&quot;') +
+            '" class="underline font-extrabold mx-0.5">' + s + '</button>'
+          ).join(", ") : " Please choose another name.");
+        status.className = "text-[10px] font-bold min-h-[14px] -mt-1 text-red-600";
+        input.classList.add("!border-red-500");
+        return false;
+      } catch(e) {
+        status.textContent = "";
+        return true;
+      }
+    };
+
+    window.useNameSuggestion = function(name) {
+      const input = document.getElementById("auth-reg-name");
+      if (!input) return;
+      input.value = name;
+      input.focus();
+      window.checkRegistrationName();
+    };
+
+    document.addEventListener("input", function(e) {
+      if (e.target && e.target.id === "auth-reg-name") {
+        clearTimeout(authNameCheckTimer);
+        authNameCheckTimer = setTimeout(() => window.checkRegistrationName(), 400);
+      }
+    });
+
+
+    let authPlaceCheckTimer = null;
+    let authPlaceRequest = 0;
+
+    function normalizePlaceName(value) {
+      return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function getBestCategoryFromProgress(progress) {
+      let best = null;
+      Object.entries(progress || {}).forEach(([catId, p]) => {
+        if (catId === "super10" || catId === "special30") return;
+        if (!p || typeof p !== "object") return;
+        const cat = quizData[catId];
+        if (!cat) return;
+        const answers = p.answers || {};
+        const attempted = Object.keys(answers).length;
+        if (!attempted) return;
+        const correct = cat.questions.filter(q => answers[q.id] === q.correct).length;
+        const accuracy = (correct / attempted) * 100;
+        if (!best || accuracy > best.accuracy || (accuracy === best.accuracy && correct > best.correct)) {
+          best = { title: cat.title, accuracy, correct, attempted };
+        }
+      });
+      return best;
+    }
+
+    async function checkStudentsFromPlace() {
+      const input = document.getElementById("auth-reg-place");
+      const box = document.getElementById("auth-reg-area-students");
+      if (!input || !box) return;
+
+      const place = normalizePlaceName(input.value);
+      if (!place) {
+        box.className = "hidden";
+        box.innerHTML = "";
+        return;
+      }
+
+      const requestId = ++authPlaceRequest;
+      try {
+        const snap = await firebaseDB.ref("users").once("value");
+        if (requestId !== authPlaceRequest) return;
+
+        const users = snap.val() || {};
+        const matches = [];
+
+        Object.entries(users).forEach(([id, data]) => {
+          const profile = data?.profile || {};
+          if (normalizePlaceName(profile.place) !== place) return;
+
+          const best = getBestCategoryFromProgress(data?.progress || {});
+          let attempted = 0, correct = 0;
+          Object.entries(data?.progress || {}).forEach(([catId, p]) => {
+            if (catId === "super10" || catId === "special30" || !p || typeof p !== "object") return;
+            const cat = quizData[catId];
+            if (!cat) return;
+            const answers = p.answers || {};
+            attempted += Object.keys(answers).length;
+            correct += cat.questions.filter(q => answers[q.id] === q.correct).length;
+          });
+
+          matches.push({
+            id,
+            name: profile.name || "Student",
+            best,
+            accuracy: attempted ? (correct / attempted) * 100 : 0,
+            correct,
+            attempted
+          });
+        });
+
+        // The message appears only when at least TWO students are already
+        // registered from the same area.
+        if (matches.length < 2) {
+          box.className = "hidden";
+          box.innerHTML = "";
+          return;
+        }
+
+        matches.sort((a, b) =>
+          b.accuracy - a.accuracy ||
+          b.correct - a.correct ||
+          b.attempted - a.attempted ||
+          a.name.localeCompare(b.name)
+        );
+
+        const allRanked = processLeaderboardUsers(users);
+        const rankMap = new Map(allRanked.map((u, i) => [u.id, i + 1]));
+
+        // Keep the notice generic, but reveal only the top-performing student
+        // from the entered area (highest accuracy, then correct answers).
+        const topStudent = matches[0];
+
+        box.className = "mt-1 rounded-xl bg-indigo-50 border border-indigo-100 px-3 py-2";
+        box.innerHTML = `
+          <p class="text-[10px] font-extrabold text-indigo-800">
+            👥 Students from your area are practising in this app
+          </p>
+          <div class="mt-1.5 flex items-center justify-between gap-2 text-[10px] text-indigo-900">
+            <span class="font-bold truncate">🏆 ${escapeHTML(topStudent.name)}</span>
+            <span class="shrink-0 font-semibold">
+              Rank #${rankMap.get(topStudent.id) || "—"} · ${topStudent.best ? `Best: ${escapeHTML(topStudent.best.title)}` : "No category yet"}
+            </span>
+          </div>`;
+      } catch (e) {
+        console.warn("Area student lookup failed:", e);
+        box.className = "hidden";
+        box.innerHTML = "";
+      }
+    }
+
+    document.addEventListener("input", function(e) {
+      if (e.target && e.target.id === "auth-reg-place") {
+        clearTimeout(authPlaceCheckTimer);
+        authPlaceCheckTimer = setTimeout(checkStudentsFromPlace, 500);
+      }
+    });
+
     window.handleRegister = async function() {
       const name = (document.getElementById("auth-reg-name")?.value || "").trim();
       const place = (document.getElementById("auth-reg-place")?.value || "").trim();
@@ -4652,6 +4892,15 @@ html.dark .news-card h3{color:#f8fafc}.html.dark .news-summary{color:#cbd5e1}.ht
       if (password.length < 6) { showToast("Password must be at least 6 characters.", "error"); return; }
       if (password !== confirm) { showToast("Passwords do not match.", "error"); return; }
       if (normalizeAuthName(friend) === normalizeAuthName(name)) { showToast("Friend's name must be different from your name.", "error"); return; }
+
+      // Final server-side index check immediately before creating the account.
+      const duplicateCheck = await findAuthAccount(name).catch(() => null);
+      if (duplicateCheck) {
+        await window.checkRegistrationName();
+        showToast("Username already taken. Please choose another name.", "error");
+        return;
+      }
+
       if (btn) { btn.disabled = true; btn.textContent = "Creating account..."; }
       try {
         const existing = await findAuthAccount(name);
@@ -8382,7 +8631,7 @@ function getAEJECategories() {
         content = `<div class="fade-in max-w-md mx-auto bg-white p-7 sm:p-8 rounded-3xl shadow-xl border border-gray-100 mt-8">
           <div class="w-16 h-16 mx-auto bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-5"><i data-lucide="log-in" class="w-8 h-8"></i></div>
           <h2 class="text-2xl font-extrabold text-gray-900 text-center">Welcome Back</h2>
-          <p class="text-gray-500 text-sm text-center mt-1 mb-6">Login to restore your profile, coins, quizzes and progress.</p>
+          <p class="text-gray-500 text-sm text-center mt-1 mb-6">Welcome back. Login to restore your profile, coins, quizzes and progress.</p>
           <div class="space-y-4">
             <input id="auth-login-name" type="text" autocomplete="username" class="w-full px-4 py-3" placeholder="Your name">
             <input id="auth-login-password" type="password" autocomplete="current-password" class="w-full px-4 py-3" placeholder="Password" onkeydown="if(event.key==='Enter')handleLogin()">
@@ -8392,22 +8641,42 @@ function getAEJECategories() {
           </div>
         </div>`;
       } else if (state.currentScreen === 'register') {
-        content = `<div class="fade-in max-w-md mx-auto bg-white p-7 sm:p-8 rounded-3xl shadow-xl border border-gray-100 mt-6">
-          <div class="w-14 h-14 mx-auto bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-4"><i data-lucide="user-plus" class="w-7 h-7"></i></div>
-          <h2 class="text-2xl font-extrabold text-gray-900 text-center">Create Your Account</h2>
-          <p class="text-gray-500 text-sm text-center mt-1 mb-5">Your account keeps your data available even after the browser is cleared.</p>
-          <div class="space-y-3">
-            <input id="auth-reg-name" type="text" autocomplete="name" class="w-full px-4 py-3" placeholder="Full name">
-            <input id="auth-reg-place" type="text" autocomplete="address-level2" class="w-full px-4 py-3" placeholder="District / Place">
-            <input id="auth-reg-password" type="password" autocomplete="new-password" class="w-full px-4 py-3" placeholder="Password (minimum 6 characters)">
-            <input id="auth-reg-confirm" type="password" autocomplete="new-password" class="w-full px-4 py-3" placeholder="Confirm password">
-            <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4 mt-2">
-              <p class="font-extrabold text-amber-900 text-sm">🔐 Password Recovery</p>
-              <p class="text-xs text-amber-800 mt-1 mb-3">Enter a friend's name. You will need your name + this friend's name to reset your password.</p>
-              <input id="auth-reg-friend" type="text" autocomplete="off" class="w-full px-4 py-3" placeholder="Friend's name">
+        content = `<div class="fade-in max-w-md mx-auto px-2 mt-2 sm:mt-5">
+          <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div class="p-4 sm:p-6 text-center">
+              <div class="w-12 h-12 mx-auto bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-2">
+                <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+              </div>
+              <h2 class="text-2xl font-black text-gray-900">Create Your Account</h2>
+              <p class="text-xs text-gray-500 mt-1">Your account keeps your progress safe.</p>
             </div>
-            <button id="auth-reg-btn" onclick="handleRegister()" class="btn btn-primary w-full mt-2">Create Account</button>
-            <button onclick="openAuth('login')" class="w-full text-sm font-bold text-indigo-600">Already have an account? Login</button>
+
+            <div class="px-4 sm:px-6 pb-4 sm:pb-6">
+              <div class="grid grid-cols-4 gap-2 mb-4 text-center">
+                <div class="rounded-xl bg-blue-50 p-2"><div class="text-lg">📝</div><div class="text-[10px] font-bold text-gray-700">Quizzes</div></div>
+                <div class="rounded-xl bg-purple-50 p-2"><div class="text-lg">📈</div><div class="text-[10px] font-bold text-gray-700">Progress</div></div>
+                <div class="rounded-xl bg-amber-50 p-2"><div class="text-lg">🏆</div><div class="text-[10px] font-bold text-gray-700">Compete</div></div>
+                <div class="rounded-xl bg-emerald-50 p-2"><div class="text-lg">🪙</div><div class="text-[10px] font-bold text-gray-700">Coins</div></div>
+              </div>
+
+              <div class="space-y-2.5">
+                <input id="auth-reg-name" type="text" autocomplete="name" class="w-full px-3 py-2.5" placeholder="Full name">
+                <div id="auth-reg-name-status" class="text-[10px] font-bold h-0 overflow-visible leading-none"></div>
+                <input id="auth-reg-place" type="text" autocomplete="address-level2" class="w-full px-3 py-2.5" placeholder="District / Place">
+                <div id="auth-reg-area-students" class="hidden"></div>
+                <input id="auth-reg-password" type="password" autocomplete="new-password" class="w-full px-3 py-2.5" placeholder="Password (minimum 6 characters)">
+                <input id="auth-reg-confirm" type="password" autocomplete="new-password" class="w-full px-3 py-2.5" placeholder="Confirm password">
+
+                <div class="rounded-xl bg-amber-50 border border-amber-200 p-3">
+                  <p class="font-extrabold text-amber-900 text-xs">🔑 Password Recovery</p>
+                  <p class="text-[10px] text-amber-800 mt-1 mb-2">Choose a friend's name for password recovery.</p>
+                  <input id="auth-reg-friend" type="text" autocomplete="off" class="w-full px-3 py-2.5" placeholder="Friend's name">
+                </div>
+
+                <button id="auth-reg-btn" onclick="handleRegister()" class="btn btn-primary w-full mt-1">Create Account <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+                <button onclick="openAuth('login')" class="w-full py-2 text-xs font-extrabold text-indigo-600">Already have an account? Login</button>
+              </div>
+            </div>
           </div>
         </div>`;
       } else if (state.currentScreen === 'forgot-password') {
@@ -8843,7 +9112,9 @@ function getAEJECategories() {
       const session = getAuthSessionId();
       if (!session) {
         state.profile = null;
-        state.currentScreen = "login";
+        // New visitors always start with account creation.
+        // Existing users can tap Login to reach the login screen.
+        state.currentScreen = "register";
         render();
         return;
       }
